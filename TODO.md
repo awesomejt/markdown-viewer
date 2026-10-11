@@ -16,7 +16,6 @@ Items that require a human decision, credential, source file, or manual validati
 
 ## Phase 0: Foundation
 
-- [ ] **P0.1** [H] Scaffold Go module, layout, and Vite React-TS app (bundle to ignored `internal/web/dist/`)
 - [ ] **P0.2** [H] Makefile; all outputs under ignored `build/` (deps: P0.1)
 - [ ] **P0.3** [H] Lint configs (YAML) + `make lint` + coverage gates (deps: P0.2)
 - [ ] **P0.4** [H] Test fixture tree + `testdata/mkfixtures.sh` (deps: P0.1)
@@ -88,6 +87,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **P0.1** Scaffolded Go module, internal packages, Vite React-TS app (outDir internal/web/dist).
 - [x] 2026-10-11: Researched tech stack (D2, Mermaid, Markdown pipeline, desktop wrappers, SMB). Notes in `agents/Research.md`.
 - [x] 2026-10-11: Filled `docs/Requirements.md`, `docs/Tech-Stack.md`, and `docs/Architecture.md`.
 - [x] 2026-10-11: Owner decisions: host mounts only, no auth, viewer + live reload, Go backend (D-5), Docker Compose on a VM (D-11).

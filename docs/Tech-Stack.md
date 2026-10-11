@@ -13,7 +13,7 @@ This document lists the chosen languages, frameworks, and libraries, with the re
 | D2 rendering | `github.com/d2lang/d2` (`d2lib`, `d2svg`, dagre/ELK layouts) | v0.9.0 |
 | File watching | `github.com/fsnotify/fsnotify` + polling fallback | v1.10.1 |
 | Asset embedding | Go `embed.FS` (the built React app ships inside the binary) | stdlib |
-| Frontend framework | React + TypeScript | React 19.3, TS 7.0 |
+| Frontend framework | React + TypeScript | React 19.3, TS 6.0 |
 | Build tool | Vite | 8.3 |
 | Routing | React Router | 8.4 |
 | Server state | TanStack Query | 5.104 |
@@ -62,7 +62,7 @@ The deciding factor is D2. Its only first-class library is Go, and the browser/W
 ### Frontend: React + TypeScript + Vite
 
 - React was named as the preferred UI library. React 19 has a mature ecosystem for Markdown (unified/remark/rehype), and Vite 8 gives fast builds and a static `dist/` that Go can embed.
-- TypeScript catches API-contract mistakes between the server and the UI.
+- TypeScript catches API-contract mistakes between the server and the UI. The project uses TypeScript 6.0 (the Vite template's pin), not the Go-native TypeScript 7, until `typescript-eslint` officially supports 7 (D-17).
 - React Router provides bookmarkable URLs for every path (FR-6). TanStack Query handles caching and refetching of listings and files, and invalidates them when SSE change events arrive.
 
 ### Markdown rendering: client-side unified pipeline

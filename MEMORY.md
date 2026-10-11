@@ -6,9 +6,9 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 ## Current Status
 
-- Current phase: Phase 0 Foundation (planning complete)
-- Last major milestone: Phased implementation plan with model tiers (2026-10-11)
-- Next recommended task: P0.1 [H] scaffold repo (see `TODO.md`)
+- Current phase: Phase 0 Foundation (scaffolding in progress)
+- Last major milestone: P0.1 scaffolding complete (2026-10-11)
+- Next recommended task: P0.2 [H] Makefile (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -55,6 +55,20 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Code (Opus 5.5) - P0.1 review
+
+- Task: Verify and fix P0.1 before merge.
+- Files changed: `go.mod` (`ignore ./web`), removed `web/README.md` and `web/public/icons.svg`, `docs/Tech-Stack.md`, `agents/Decisions.md` (D-17).
+- Result: `go ./...` no longer scans `node_modules`. TypeScript 6.0 is recorded. Build, lint, and tests pass.
+- Blockers or follow-up: none. Next is P0.2.
+
+### 2026-10-11 - Claude Haiku 4.5 (P0.1)
+
+- Task: Scaffold Go module, internal packages, Vite React-TS app with outDir configuration.
+- Files changed: `go.mod`, `cmd/mdv/main.go`, `cmd/mdv/main_test.go`, internal package `doc.go` files, Vite React app in `web/`, `eslint.config.js`, `.prettierrc.yaml`, `vite.config.ts`, build output placeholders.
+- Result: Go module initialized. All tests pass. `go build`, `go vet`, `go test` succeed. `npm run build` and `npm run lint` pass. Build outputs properly ignored except `.gitkeep` files.
+- Blockers or follow-up: None. Ready for P0.2 (Makefile).
 
 ### 2026-10-11 - Claude Code (Opus 5.5)
 
