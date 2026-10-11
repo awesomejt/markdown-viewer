@@ -78,7 +78,8 @@ func (h *Handle) Stat(ctx context.Context, rel string) (fs.FileInfo, error) {
 
 // Open opens rel under the timeout machinery. See [Root.Open]. The caller owns
 // and must close the file. If the call times out and the file is opened later,
-// it is closed here. Reads on the returned file are not covered by the timeout.
+// it is closed here. Reads on the returned file are not covered by the timeout;
+// wrap it with [Handle.Reader] for that.
 func (h *Handle) Open(ctx context.Context, rel string) (*os.File, error) {
 	return withRetry(rel, func(name string) (*os.File, error) {
 		return run(ctx, h, "open", rel, func() (*os.File, error) { return h.fs.Open(name) },
@@ -88,6 +89,13 @@ func (h *Handle) Open(ctx context.Context, rel string) (*os.File, error) {
 				}
 			})
 	})
+}
+
+// FileStat stats an open file under the timeout machinery, so a mount that
+// died after Open cannot hang the caller. The size and mode come from the file
+// actually opened, not from a separate path lookup.
+func (h *Handle) FileStat(ctx context.Context, f *os.File) (fs.FileInfo, error) {
+	return run(ctx, h, "fstat", "", f.Stat, nil)
 }
 
 // List lists the directory at rel. The whole listing, including the stats that

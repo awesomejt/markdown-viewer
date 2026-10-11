@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B3 listing + timed reads complete (2026-10-11)
-- Next recommended task: B4a [S] 🔒 HTTP API core, error model, allowlist file serving
+- Last major milestone: B4a HTTP API core complete (2026-10-11)
+- Next recommended task: B4b [S] SPA embed + fallback/caching, graceful shutdown, `mdv healthcheck`
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (B4a)
+
+- Task: HTTP API core (🔒).
+- Files changed: `internal/api/{api,file,ino_unix,ino_other}.go` + tests, `internal/fsroot/{reader.go,access.go,ops.go,registry.go,doc.go}` + tests, `docs/Architecture.md`, `agents/Decisions.md` (D-23).
+- Result: `api.New(reg, cfg, logger)`; `Mux()` for B4b/B5/B6 routes, `Handler()` wraps recover + slog (call after registering). `/api/file` does Open, then `Handle.FileStat`, and streams through `Handle.Reader` (64 KiB timed `ReadAt` chunks). The allowlist is explicit in `file.go`. CSP + nosniff on every `/api/file` response, 405 included. The Opus review found no security blockers; it found fail-fast slots truncated parallel streams, so `run` now waits for a slot within `MDV_FS_TIMEOUT` (D-23). Late panics re-panic `http.ErrAbortHandler`. 94.7% api / 98.9% fsroot; `make check` green.
+- Blockers or follow-up: B6 must use `http.ResponseController` (the middleware's `statusWriter` has `Unwrap`, but not `Flusher`). `classify` uses `path.Ext`, so `.env` is served as text while `ClassifyName` says other (harmless: text/plain).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestration (B3)
 

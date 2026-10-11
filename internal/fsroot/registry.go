@@ -60,3 +60,13 @@ func (r *Registry) Close() error {
 	}
 	return errors.Join(errs...)
 }
+
+// NewRegistryFromHandles builds a Registry over existing handles, in the order
+// given. It is for callers (and tests) that construct handles themselves.
+func NewRegistryFromHandles(handles ...*Handle) *Registry {
+	reg := &Registry{handles: handles, byName: make(map[string]*Handle, len(handles))}
+	for _, h := range handles {
+		reg.byName[h.name] = h
+	}
+	return reg
+}
