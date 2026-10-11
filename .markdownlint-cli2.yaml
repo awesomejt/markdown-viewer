@@ -1,0 +1,17 @@
+globs:
+  - "**/*.md"
+ignores:
+  - "**/node_modules/**"
+  - "build/**"
+  - "internal/web/dist/**"
+  - ".agents/chats/**"
+  - "testdata/fixtures/**"
+  - "examples/broken*"
+config:
+  default: true
+  # Docs use long table rows and prose lines.
+  MD013: false
+  MD033:
+    allowed_elements: [details, summary, br]
+  MD024:
+    siblings_only: true
