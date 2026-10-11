@@ -88,7 +88,7 @@ func run() error {
 			return fmt.Errorf("render: %w", err)
 		}
 		out := filepath.Join(*outDir, fmt.Sprintf("%s-%s.svg", name, th.suffix))
-		if err := os.WriteFile(out, svg, 0o600); err != nil {
+		if err := os.WriteFile(out, svg, 0o600); err != nil { //nolint:gosec // spike writes to a caller-chosen dir
 			return err
 		}
 		fmt.Printf("%s layout=%s theme=%d: %v, %d bytes -> %s\n", th.suffix, *layout, th.id, time.Since(start), len(svg), out)
