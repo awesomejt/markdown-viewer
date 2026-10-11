@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B2 path guard complete (2026-10-11)
-- Next recommended task: B3 [S] Listing + reads with timeouts, in-flight cap, NFC/NFD retry
+- Last major milestone: B3 listing + timed reads complete (2026-10-11)
+- Next recommended task: B4a [S] 🔒 HTTP API core, error model, allowlist file serving
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestration (B3)
+
+- Task: Listing + reads with timeouts, in-flight cap, NFC/NFD retry.
+- Files changed: `internal/fsroot/{access,ops,kind,registry}.go` + tests, `guard.go` (`KindTimeout`/`ErrTimeout`), `go.mod` (`x/text` direct), `testdata/mkfixtures.sh` (NFD fixture), `docs/Architecture.md`.
+- Result: `Handle` runs each fs op in a goroutine under `MDV_FS_TIMEOUT`; the non-blocking in-flight slot is held until the call returns, so a dead mount never holds more than the cap. Only the handle's own timeout marks a root unavailable (caller cancel and a full cap give 504 but don't). One probe stat at a time restores it. `List` on a file is 400; symlinks that escape/dangle/loop are omitted; `Listing.Path` is `"."` for the root (B4a maps to `""`). `ClassifyName` is exported for the B4a allowlist. Sonnet review: no blockers; 3 weak tests fixed. 98.7% coverage; `make check` green.
+- Blockers or follow-up: B4a must not trust reads from an opened `*os.File` on a dead mount (outside the timeout), and must map `KindTimeout` to 504 `fs_timeout`. Probe has no own timeout (bounded by its slot).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (B2)
 
