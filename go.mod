@@ -2,8 +2,11 @@ module github.com/awesomejt/markdown-viewer
 
 go 1.27.0
 
-// Keep ./... from descending into the frontend (node_modules ships stray Go files).
-ignore ./web
+// Keep ./... out of the JS trees (node_modules ship stray Go files).
+ignore (
+	./e2e
+	./web
+)
 
 require (
 	github.com/d2lang/d2 v0.9.0

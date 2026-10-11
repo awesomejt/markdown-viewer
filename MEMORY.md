@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F1 app shell complete (2026-10-11)
-- Next recommended task: T0 [S] Playwright scaffold + smoke test (then F2/F3)
+- Last major milestone: T0 Playwright e2e scaffold complete (2026-10-11)
+- Next recommended task: F2 [S] browse views (F3 is also ready)
 - Current blocker: None
 
 ## Key Decisions
@@ -34,7 +34,7 @@ Full log: `agents/Decisions.md`.
 
 - Resume prompt after `/clear` or a stop: "Read AGENTS.md, MEMORY.md and TODO.md, then continue with the next task using the Git workflow in docs/Implementation.md."
 - Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
-- Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck run via Docker images; markdownlint-cli2 via npm.
+- Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
 
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (T0)
+
+- Task: Playwright scaffold + smoke test.
+- Files changed: `e2e/{package.json,package-lock.json,playwright.config.ts,tsconfig.json,eslint.config.js,.prettierrc.yaml}`, `e2e/tests/{smoke,shell}.spec.ts`, `Makefile` (`e2e`, `deps-e2e`, `lint-e2e`), `go.mod` (`ignore ./e2e`), `.yamllint.yaml`, `CONTRIBUTING.md`, `docs/Implementation.md`.
+- Result: `make e2e` depends on `build`, `fixtures` and an npm-ci stamp, then runs Playwright in the pinned image as the host user (`--ipc=host`, HOME under `build/.cache/home`). The webServer runs the static `build/mdv` on `127.0.0.1:18080` (`E2E_PORT`) with root `fixtures=testdata/fixtures`. Output goes to `build/e2e/{report,test-results}`. Scenarios: root list + browse, traversal 4xx, drawer at 600 px, sidebar at 1200 px, theme survives a reload. The orchestrator replaced the coder's nested `e2e/go.mod` with `ignore ./e2e` (same approach as D-17) and re-ran `make check` and `make e2e`. About 3 s warm.
+- Blockers or follow-up: T1 adds the firefox, webkit and iPad projects. F-tasks add scenarios under `e2e/tests/`.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F1)
 
