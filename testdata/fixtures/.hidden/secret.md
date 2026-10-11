@@ -1,0 +1,3 @@
+# Secret
+
+Dot folder fixture.
