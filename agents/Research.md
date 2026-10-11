@@ -58,3 +58,48 @@ Track AI-assisted research and references - saved for later reference if needed.
 - MarkdownManager: <https://piefed.nullspace.lol/post/77547>
 - Markbrowse: <https://peerlist.io/anantshri/project/markbrowse>
 - Veldoc: <https://awesome.ecosyste.ms/projects/github.com%2Faredoff%2Fveldoc>
+
+## 2026-10-11: D2 Library Spike (P0.5)
+
+Spike code: `cmd/spike-d2` (throwaway, deleted when B5 lands).
+
+**Module and imports.** `go.mod` of v0.9.0 declares `module github.com/d2lang/d2` (Go 1.27). Imports used:
+`github.com/d2lang/d2/{d2lib, d2graph, d2renderers/d2svg, d2layouts/d2dagrelayout, d2layouts/d2elklayout, d2themes/d2themescatalog, lib/log, lib/textmeasure}` and `github.com/d2lang/util-go/go2` (for `go2.Pointer`).
+
+**Working call sequence.**
+
+```go
+ruler, _ := textmeasure.NewRuler() // reusable
+renderOpts := &d2svg.RenderOpts{Pad: go2.Pointer(int64(5)), ThemeID: go2.Pointer(int64(0))}
+compileOpts := &d2lib.CompileOptions{
+    Ruler: ruler,
+    LayoutResolver: func(string) (d2graph.LayoutGraph, error) {
+        return d2dagrelayout.DefaultLayout, nil // or d2elklayout.DefaultLayout
+    },
+}
+ctx, cancel := context.WithTimeout(log.WithDefault(context.Background()), 10*time.Second)
+defer cancel()
+diagram, _, err := d2lib.Compile(ctx, src, compileOpts, renderOpts)
+if err != nil { /* user error text */ }
+svg, err := d2svg.Render(diagram, renderOpts) // []byte
+```
+
+`log.WithDefault(ctx)` is required (the library logs through the context).
+
+**Themes.** Neutral Default = 0 (light), Dark Mauve = 200 (dark default used), Dark Flagship Terrastruct = 201, Neutral Grey = 1. `RenderOpts.DarkThemeID` exists for a theme that follows `prefers-color-scheme`. B5 should render one SVG per theme ID (light 0, dark 200). **Layouts:** dagre and ELK, both pure Go. TALA is not imported.
+
+**CGO and JS runtime.** None. `elk-go` is a Go port of ELK, and dagre is native Go. No goja or V8 appears in `go list -deps`. Builds work with `CGO_ENABLED=0`.
+
+**Timings** (`arch.d2`, 1 edge; compile plus render, excluding `NewRuler`): dagre first 2.5 ms, warm 0.75 to 0.9 ms; ELK first 3.0 ms, warm 1.1 to 1.7 ms. Whole process about 17 ms. Larger diagrams were not measured; B5 tests should keep the timeout.
+
+**Sizes** (`CGO_ENABLED=0 -trimpath -s -w`): `cmd/mdv` 1.2 MB with 0 module deps; the spike binary is 23.9 MB with 22 deps (about +22.7 MB, mostly embedded fonts and the D2 stack).
+
+**Errors.** Compile errors are plain text with `line:col:` prefixes, one per line. For `broken.d2`: `compile: 1:1: connection missing destination` then `1:6: maps must be terminated with }`. Suitable as the 422 body.
+
+**Context.** ELK honours cancellation (`failed to ELK layout: context deadline exceeded` with a 1 ns timeout). Dagre did NOT fail with a 1 ns timeout on the tiny input, so do not rely on ctx alone. B5 should also enforce a wall-clock limit around the call, the semaphore, and the 256 KiB source cap.
+
+**SVG notes.** No `<script>` elements. Two `<style>` blocks. Two `@font-face` rules with `data:application/font-woff` fonts embedded, so no external fetches. Output is self-contained (8.5 KB for `arch.d2`). Still sanitize or serve through `<img>`/`<object>`, since D2 source can include links and user text.
+
+**Determinism.** Repeated runs of the same input and options gave byte-identical SVG (same sha256), so a sha256 of source plus options is a valid cache and ETag key. IDs inside the SVG derive from a content hash; `RenderOpts.Salt` can alter them.
+
+**Recommendations for B5.** Create one `textmeasure.Ruler` at startup and reuse it. Concurrency safety of the Ruler is unverified, so the semaphore should bound concurrent renders and a Ruler per worker is the safe fallback. Key the LRU on source plus theme ID plus layout. Pin the version in the cache key so upgrades invalidate it.
