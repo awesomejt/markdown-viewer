@@ -33,6 +33,7 @@ Full log: `agents/Decisions.md`.
 ## Important Context
 
 - Resume prompt after `/clear` or a stop: "Read AGENTS.md, MEMORY.md and TODO.md, then continue with the next task using the Git workflow in docs/Implementation.md."
+- Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck run via Docker images; markdownlint-cli2 via npm.
 
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
