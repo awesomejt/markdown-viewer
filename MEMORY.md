@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B5 D2 render endpoint complete (2026-10-11)
-- Next recommended task: B6 [S] watch hub + SSE (`sub=` streams); F1 app shell is also ready
+- Last major milestone: B6 watch hub + SSE complete (2026-10-11)
+- Next recommended task: B7 [S] concurrency review of B6; F1 app shell is also ready
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B6)
+
+- Task: Watch hub + SSE.
+- Files changed: `internal/watch/{hub,poll,fsn,event,doc}.go` + tests, `internal/fsroot/{watchops,inode_unix,inode_other}.go` + tests, `internal/api/{api,events}.go` + tests, `cmd/mdv/main.go`, `go.mod` (fsnotify v1.10.1, goleak v1.3.0), `docs/Architecture.md`.
+- Result: Directory subs emit `created`/`deleted` on child paths and `modified` on the dir when its mtime changes (child content changes need a file sub). Poll keeps the previous state on timeout (an outage is never a deletion); one goroutine per key, ticks dropped while a poll is pending. fsnotify uses one hub-wide inotify instance, refcounted per host dir; `Handle.HostPath` validates via `os.Root` before joining to the host dir. `api.Server.Close()` ends streams; `cmd/mdv` registers it with `RegisterOnShutdown` (after close: 503 `busy`). goleak in the watch package. Orchestrator reviewed the diff and re-ran `make check`; the coder ran `-race -count=5`. 94.8% watch / 94.2% api / 98.1% fsroot.
+- Blockers or follow-up: (B7/F6) any missing `sub` path fails the whole stream with 404, so a deleted file breaks live reload for the tab; F6 must drop that sub and reopen, or B7 should consider allowing missing paths. fsnotify `Add`/`Remove` bypass the Handle timeouts (it is meant for local disks). `HostPath` has a small TOCTOU gap (leaks only "changed"). Poll treats a file-to-dir swap at the same path as `modified`.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B5)
 

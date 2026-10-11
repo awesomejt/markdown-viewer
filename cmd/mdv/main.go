@@ -127,6 +127,7 @@ func serve(ctx context.Context, getenv func(string) string, stderr io.Writer, re
 	defer func() { _ = reg.Close() }()
 
 	apiSrv := api.New(reg, cfg, logger)
+	defer apiSrv.Close()
 	apiSrv.Mux().Handle("/", web.Handler())
 
 	ln, err := net.Listen("tcp", cfg.Listen)
@@ -142,6 +143,8 @@ func serve(ctx context.Context, getenv func(string) string, stderr io.Writer, re
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
+	// Open SSE streams would otherwise hold Shutdown until the drain timeout.
+	srv.RegisterOnShutdown(apiSrv.Close)
 	logger.Info("listening", "addr", ln.Addr().String(), "version", version)
 	if ready != nil {
 		ready <- ln.Addr()

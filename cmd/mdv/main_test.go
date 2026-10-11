@@ -7,6 +7,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -190,5 +192,46 @@ func TestServeListenError(t *testing.T) {
 	}), &errb, nil)
 	if code != 1 {
 		t.Fatalf("code = %d", code)
+	}
+}
+
+// An open SSE stream must not hold shutdown for the drain timeout.
+func TestServeShutdownWithOpenEventStream(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "a.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ready := make(chan net.Addr, 1)
+	done := make(chan int, 1)
+	var errb bytes.Buffer
+	go func() {
+		done <- serve(ctx, env(map[string]string{
+			"MDV_ROOTS":  "t=" + root,
+			"MDV_LISTEN": "127.0.0.1:0",
+		}), &errb, ready)
+	}()
+	addr := <-ready
+	resp, err := http.Get("http://" + addr.String() + "/api/events?sub=t:a.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+	start := time.Now()
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("code = %d, stderr %s", code, errb.String())
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("shutdown blocked by the open stream")
+	}
+	if d := time.Since(start); d > 3*time.Second {
+		t.Fatalf("shutdown took %v", d)
 	}
 }
