@@ -1,4 +1,4 @@
-.PHONY: help deps web build test-go test-web test cover-check lint lint-go lint-web lint-yaml lint-md lint-docker lint-shell check run e2e docker clean
+.PHONY: help deps web build fixtures test-go test-web test cover-check lint lint-go lint-web lint-yaml lint-md lint-docker lint-shell check run e2e docker clean
 .SHELLFLAGS := -eu -o pipefail -c
 SHELL := /bin/bash
 
@@ -29,8 +29,13 @@ web:
 build: web
 	CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS)' -o build/mdv ./cmd/mdv
 
+## fixtures: generate untracked test fixtures (symlinks, large file) and verify them
+fixtures:
+	testdata/mkfixtures.sh
+	testdata/mkfixtures.sh --verify
+
 ## test-go: run Go tests with race detection and coverage
-test-go:
+test-go: fixtures
 	mkdir -p build/coverage
 	go test -race -coverprofile=build/coverage/go.out ./...
 
