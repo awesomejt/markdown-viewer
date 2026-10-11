@@ -1,7 +1,7 @@
 # Minimum statement coverage (%) per Go package; enforced by `make cover-check`.
+# Thresholds apply to internal/ and tools/ packages; cmd/ mains are excluded.
 default: 80
 packages:
-  - github.com/awesomejt/markdown-viewer/internal/fsroot: 90
+  github.com/awesomejt/markdown-viewer/internal/fsroot: 90
 exclude:
-  - github.com/awesomejt/markdown-viewer/cmd/spike-d2
-  - github.com/awesomejt/markdown-viewer/tools/covercheck
+  - github.com/awesomejt/markdown-viewer/cmd/

@@ -1,316 +1,261 @@
+// Command covercheck enforces per-package statement coverage thresholds
+// against a Go coverage profile.
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"path"
 	"sort"
+	"strconv"
 	"strings"
 )
 
 func main() {
-	profilePath := flag.String("profile", "build/coverage/go.out", "path to Go coverage profile")
-	configPath := flag.String("config", ".coverage.yaml", "path to coverage config file")
-	flag.Parse()
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
 
-	// Read and parse the coverage profile
+// run executes covercheck and returns the process exit code.
+func run(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("covercheck", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	profilePath := fs.String("profile", "build/coverage/go.out", "path to Go coverage profile")
+	configPath := fs.String("config", ".coverage.yaml", "path to coverage config file")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+
 	profileFile, err := os.Open(*profilePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening profile: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "Error opening profile: %v\n", err)
+		return 1
 	}
 	defer profileFile.Close()
 
-	profile, err := parseProfile(profileFile)
+	blocks, err := parseProfile(profileFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing profile: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "Error parsing profile: %v\n", err)
+		return 1
 	}
 
-	// Read and parse the config
 	configFile, err := os.Open(*configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error opening config: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "Error opening config: %v\n", err)
+		return 1
 	}
 	defer configFile.Close()
 
-	config, err := loadConfig(configFile)
+	cfg, err := loadConfig(configFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing config: %v\n", err)
-		os.Exit(1)
+		fmt.Fprintf(stderr, "Error parsing config: %v\n", err)
+		return 1
 	}
 
-	// Evaluate coverage
-	results := evaluate(profile, config)
-
-	// Print results and determine exit code
-	hasFailure := false
-	for _, result := range results {
+	failed := false
+	for _, r := range evaluate(blocks, cfg) {
 		status := "PASS"
-		if !result.Pass {
+		if !r.Pass {
 			status = "FAIL"
-			hasFailure = true
+			failed = true
 		}
-		fmt.Printf("%s %s %.1f%% (min %.1f%%)\n", status, result.Package, result.Coverage, result.MinCoverage)
+		fmt.Fprintf(stdout, "%s %s %.1f%% (min %g%%)\n", status, r.Package, r.Coverage, r.MinCoverage)
 	}
-
-	if hasFailure {
-		os.Exit(1)
+	if failed {
+		return 1
 	}
+	return 0
 }
 
-// CoverageBlock represents a single block in the coverage profile
+// CoverageBlock is a single block in a Go coverage profile.
 type CoverageBlock struct {
-	File      string
-	StartLine int
-	StartCol  int
-	EndLine   int
-	EndCol    int
-	NumStmt   int
-	Count     int
+	File    string
+	Range   string // "startLine.startCol,endLine.endCol"
+	NumStmt int
+	Count   int
 }
 
-// parseProfile reads and parses a Go coverage profile
+// parseProfile parses a Go coverage profile.
 func parseProfile(r io.Reader) ([]CoverageBlock, error) {
 	var blocks []CoverageBlock
-	scanner := &strings.Builder{}
-
-	data := make([]byte, 4096)
-	for {
-		n, err := r.Read(data)
-		if n > 0 {
-			scanner.Write(data[:n])
-		}
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			break
-		}
-	}
-
-	lines := strings.Split(scanner.String(), "\n")
-	for i, line := range lines {
-		line = strings.TrimSpace(line)
+	sc := bufio.NewScanner(r)
+	lineNo := 0
+	for sc.Scan() {
+		lineNo++
+		line := strings.TrimSpace(sc.Text())
 		if line == "" || strings.HasPrefix(line, "mode:") {
 			continue
 		}
-
 		parts := strings.Fields(line)
 		if len(parts) != 3 {
-			if len(parts) > 0 {
-				return nil, fmt.Errorf("invalid line %d: expected 3 fields, got %d", i+1, len(parts))
-			}
-			continue
+			return nil, fmt.Errorf("invalid line %d: expected 3 fields, got %d", lineNo, len(parts))
 		}
-
-		// Parse range: file:startLine.startCol,endLine.endCol
-		fileParts := strings.Split(parts[0], ":")
-		if len(fileParts) != 2 {
-			return nil, fmt.Errorf("invalid line %d: bad file:range format", i+1)
+		idx := strings.LastIndex(parts[0], ":")
+		if idx <= 0 || idx == len(parts[0])-1 {
+			return nil, fmt.Errorf("invalid line %d: bad file:range format", lineNo)
 		}
-
-		rangeParts := strings.Split(fileParts[1], ",")
-		if len(rangeParts) != 2 {
-			return nil, fmt.Errorf("invalid line %d: bad range format", i+1)
+		numStmt, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("invalid line %d: bad statement count: %v", lineNo, err)
 		}
-
-		startParts := strings.Split(rangeParts[0], ".")
-		endParts := strings.Split(rangeParts[1], ".")
-
-		if len(startParts) != 2 || len(endParts) != 2 {
-			return nil, fmt.Errorf("invalid line %d: bad position format", i+1)
+		count, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return nil, fmt.Errorf("invalid line %d: bad hit count: %v", lineNo, err)
 		}
-
-		var startLine, startCol, endLine, endCol, numStmt, count int
-		if _, err := fmt.Sscanf(startParts[0], "%d", &startLine); err != nil {
-			return nil, fmt.Errorf("invalid line %d: %v", i+1, err)
-		}
-		if _, err := fmt.Sscanf(startParts[1], "%d", &startCol); err != nil {
-			return nil, fmt.Errorf("invalid line %d: %v", i+1, err)
-		}
-		if _, err := fmt.Sscanf(endParts[0], "%d", &endLine); err != nil {
-			return nil, fmt.Errorf("invalid line %d: %v", i+1, err)
-		}
-		if _, err := fmt.Sscanf(endParts[1], "%d", &endCol); err != nil {
-			return nil, fmt.Errorf("invalid line %d: %v", i+1, err)
-		}
-		if _, err := fmt.Sscanf(parts[1], "%d", &numStmt); err != nil {
-			return nil, fmt.Errorf("invalid line %d: %v", i+1, err)
-		}
-		if _, err := fmt.Sscanf(parts[2], "%d", &count); err != nil {
-			return nil, fmt.Errorf("invalid line %d: %v", i+1, err)
-		}
-
 		blocks = append(blocks, CoverageBlock{
-			File:      fileParts[0],
-			StartLine: startLine,
-			StartCol:  startCol,
-			EndLine:   endLine,
-			EndCol:    endCol,
-			NumStmt:   numStmt,
-			Count:     count,
+			File:    parts[0][:idx],
+			Range:   parts[0][idx+1:],
+			NumStmt: numStmt,
+			Count:   count,
 		})
 	}
-
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
 	return blocks, nil
 }
 
-// CoverageConfig represents the coverage configuration
+// CoverageConfig is the parsed coverage configuration.
 type CoverageConfig struct {
 	Default  float64
 	Packages map[string]float64
-	Exclude  []string
+	Exclude  []string // import-path prefixes
 }
 
-// loadConfig reads and parses the coverage config
+// loadConfig parses the .coverage.yaml schema: a top-level `default`, a
+// `packages` mapping of import path to minimum, and an `exclude` list of
+// import-path prefixes.
 func loadConfig(r io.Reader) (*CoverageConfig, error) {
-	data := make([]byte, 4096)
-	var content strings.Builder
-	for {
-		n, err := r.Read(data)
-		if n > 0 {
-			content.Write(data[:n])
-		}
-		if err != nil {
-			if err != io.EOF {
-				return nil, err
-			}
-			break
-		}
-	}
-
-	cfg := &CoverageConfig{
-		Default:  80.0,
-		Packages: make(map[string]float64),
-		Exclude:  []string{},
-	}
-
-	lines := strings.Split(content.String(), "\n")
-	inPackages := false
-	inExclude := false
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
+	cfg := &CoverageConfig{Default: 80, Packages: map[string]float64{}}
+	section := ""
+	sc := bufio.NewScanner(r)
+	lineNo := 0
+	for sc.Scan() {
+		lineNo++
+		raw := sc.Text()
+		line := strings.TrimSpace(raw)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-
-		if line == "packages:" {
-			inPackages = true
-			inExclude = false
+		indented := raw[0] == ' ' || raw[0] == '\t'
+		if !indented {
+			key, val, ok := strings.Cut(line, ":")
+			if !ok {
+				return nil, fmt.Errorf("line %d: expected key: value", lineNo)
+			}
+			val = strings.TrimSpace(val)
+			switch key {
+			case "default":
+				f, err := strconv.ParseFloat(val, 64)
+				if err != nil {
+					return nil, fmt.Errorf("line %d: invalid default %q", lineNo, val)
+				}
+				cfg.Default = f
+				section = ""
+			case "packages", "exclude":
+				if val != "" {
+					return nil, fmt.Errorf("line %d: %s must be a block", lineNo, key)
+				}
+				section = key
+			default:
+				return nil, fmt.Errorf("line %d: unknown key %q", lineNo, key)
+			}
 			continue
 		}
-		if line == "exclude:" {
-			inExclude = true
-			inPackages = false
-			continue
-		}
-
-		if strings.HasPrefix(line, "default:") {
-			parts := strings.Split(line, ":")
-			if len(parts) >= 2 {
-				var val float64
-				fmt.Sscanf(strings.TrimSpace(parts[1]), "%f", &val)
-				cfg.Default = val
+		switch section {
+		case "packages":
+			if strings.HasPrefix(line, "- ") {
+				return nil, fmt.Errorf("line %d: packages must be a mapping of import path to percent, not a list", lineNo)
 			}
-		} else if inPackages && strings.HasPrefix(line, "- ") {
-			parts := strings.Split(line, ":")
-			if len(parts) >= 2 {
-				pkg := strings.TrimSpace(strings.TrimPrefix(parts[0], "- "))
-				var val float64
-				fmt.Sscanf(strings.TrimSpace(parts[1]), "%f", &val)
-				cfg.Packages[pkg] = val
+			pkg, val, ok := strings.Cut(line, ":")
+			if !ok {
+				return nil, fmt.Errorf("line %d: expected `import/path: percent`", lineNo)
 			}
-		} else if inExclude && strings.HasPrefix(line, "- ") {
-			pkg := strings.TrimSpace(strings.TrimPrefix(line, "- "))
-			cfg.Exclude = append(cfg.Exclude, pkg)
+			f, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+			if err != nil {
+				return nil, fmt.Errorf("line %d: invalid percent %q", lineNo, strings.TrimSpace(val))
+			}
+			cfg.Packages[strings.TrimSpace(pkg)] = f
+		case "exclude":
+			item, ok := strings.CutPrefix(line, "- ")
+			if !ok {
+				return nil, fmt.Errorf("line %d: exclude entries must be list items", lineNo)
+			}
+			cfg.Exclude = append(cfg.Exclude, strings.TrimSpace(item))
+		default:
+			return nil, fmt.Errorf("line %d: unexpected indented line", lineNo)
 		}
 	}
-
+	if err := sc.Err(); err != nil {
+		return nil, err
+	}
 	return cfg, nil
 }
 
-// CoverageResult represents the result for a package
+// CoverageResult is the evaluated coverage of one package.
 type CoverageResult struct {
-	Package    string
-	Coverage   float64
+	Package     string
+	Coverage    float64
 	MinCoverage float64
-	Pass       bool
+	Pass        bool
 }
 
-// evaluate computes coverage per package and checks thresholds
-func evaluate(blocks []CoverageBlock, config *CoverageConfig) []CoverageResult {
-	packageStats := make(map[string]struct {
-		totalStmt   float64
-		coveredStmt float64
-	})
-
-	// Group blocks by package and compute coverage
-	for _, block := range blocks {
-		// Extract package from file path
-		// File format: path/to/file.go, package = directory = import path relative to root
-		dir := filepath.Dir(block.File)
-		// Remove the module name prefix if present
-		pkgParts := strings.Split(dir, "/")
-		var pkg string
-		if len(pkgParts) > 0 {
-			pkg = strings.Join(pkgParts, "/")
-		}
-
-		stats := packageStats[pkg]
-		stats.totalStmt += float64(block.NumStmt)
-		stats.coveredStmt += float64(block.Count)
-		packageStats[pkg] = stats
+// evaluate computes statement coverage per package and compares it with the
+// configured thresholds. Blocks with identical file and range (as emitted when
+// several test binaries are merged) are counted once, covered if any count > 0.
+func evaluate(blocks []CoverageBlock, cfg *CoverageConfig) []CoverageResult {
+	type key struct{ file, rng string }
+	type stat struct {
+		stmts   int
+		covered bool
+	}
+	uniq := map[key]stat{}
+	for _, b := range blocks {
+		k := key{b.File, b.Range}
+		s := uniq[k]
+		s.stmts = b.NumStmt
+		s.covered = s.covered || b.Count > 0
+		uniq[k] = s
 	}
 
-	// Build results
+	type pkgStat struct{ total, covered int }
+	pkgs := map[string]*pkgStat{}
+	for k, s := range uniq {
+		p := path.Dir(k.file)
+		ps := pkgs[p]
+		if ps == nil {
+			ps = &pkgStat{}
+			pkgs[p] = ps
+		}
+		ps.total += s.stmts
+		if s.covered {
+			ps.covered += s.stmts
+		}
+	}
+
 	var results []CoverageResult
-	for pkg, stats := range packageStats {
-		// Skip packages with zero statements
-		if stats.totalStmt == 0 {
+	for pkg, ps := range pkgs {
+		if ps.total == 0 || excluded(pkg, cfg.Exclude) {
 			continue
 		}
-
-		// Check if package is excluded
-		excluded := false
-		for _, pattern := range config.Exclude {
-			if strings.HasPrefix(pkg, pattern) {
-				excluded = true
-				break
-			}
+		min := cfg.Default
+		if v, ok := cfg.Packages[pkg]; ok {
+			min = v
 		}
-		if excluded {
-			continue
-		}
-
-		// Calculate coverage percentage: covered statements / total statements * 100
-		coverage := (stats.coveredStmt / stats.totalStmt) * 100
-
-		// Get minimum threshold
-		minCoverage := config.Default
-		if pkgThreshold, ok := config.Packages[pkg]; ok {
-			minCoverage = pkgThreshold
-		}
-
-		// Check pass/fail
-		pass := coverage >= minCoverage
-
-		results = append(results, CoverageResult{
-			Package:    pkg,
-			Coverage:   coverage,
-			MinCoverage: minCoverage,
-			Pass:       pass,
-		})
+		cov := float64(ps.covered) / float64(ps.total) * 100
+		results = append(results, CoverageResult{pkg, cov, min, cov >= min})
 	}
-
-	// Sort results by package name for consistent output
-	sort.Slice(results, func(i, j int) bool {
-		return results[i].Package < results[j].Package
-	})
-
+	sort.Slice(results, func(i, j int) bool { return results[i].Package < results[j].Package })
 	return results
+}
+
+func excluded(pkg string, prefixes []string) bool {
+	for _, p := range prefixes {
+		if strings.HasPrefix(pkg, p) {
+			return true
+		}
+	}
+	return false
 }
