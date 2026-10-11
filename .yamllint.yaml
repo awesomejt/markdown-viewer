@@ -1,6 +1,7 @@
 extends: default
 ignore: |
   web/node_modules/
+  e2e/node_modules/
   build/
   internal/web/dist/
 rules:

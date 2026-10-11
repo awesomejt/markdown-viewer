@@ -1,4 +1,4 @@
-.PHONY: help deps web build fixtures test-go test-web test cover-check lint lint-go lint-web lint-yaml lint-md lint-docker lint-shell check run e2e docker clean
+.PHONY: help deps deps-e2e web build fixtures test-go test-web test cover-check lint lint-go lint-web lint-e2e lint-yaml lint-md lint-docker lint-shell check run e2e docker clean
 .SHELLFLAGS := -eu -o pipefail -c
 SHELL := /bin/bash
 
@@ -9,17 +9,27 @@ LDFLAGS := -s -w -X main.version=$(VERSION)
 GOLANGCI_IMAGE := golangci/golangci-lint:v2.14.0
 HADOLINT_IMAGE := hadolint/hadolint:v2.15.1
 SHELLCHECK_IMAGE := koalaman/shellcheck:v0.11.0
+# Must match the @playwright/test version pinned in e2e/package.json.
+PLAYWRIGHT_IMAGE := mcr.microsoft.com/playwright:v1.64.0-noble
 DOCKER_RUN := docker run --rm -u $$(id -u):$$(id -g) -v $(CURDIR):/src -w /src
 # Dockerfiles and shell scripts, excluding vendored/generated trees.
-FIND_EXCLUDES := -not -path './web/node_modules/*' -not -path './build/*' -not -path './.git/*' -not -path './internal/web/dist/*'
+FIND_EXCLUDES := -not -path './web/node_modules/*' -not -path './e2e/node_modules/*' -not -path './build/*' -not -path './.git/*' -not -path './internal/web/dist/*'
 
 ## help: show this help message
 help:
 	@sed -n 's/^## //p' Makefile
 
 ## deps: install npm dependencies
-deps:
+deps: deps-e2e
 	npm --prefix web ci
+
+## deps-e2e: install e2e npm dependencies
+deps-e2e: build/.stamp-e2e-deps
+
+build/.stamp-e2e-deps: e2e/package.json e2e/package-lock.json
+	npm --prefix e2e ci
+	mkdir -p build
+	touch $@
 
 ## web: build the web frontend
 web:
@@ -52,7 +62,7 @@ cover-check: test-go
 	go run ./tools/covercheck -profile build/coverage/go.out -config .coverage.yaml
 
 ## lint: run all linters
-lint: lint-go lint-web lint-yaml lint-md lint-docker lint-shell
+lint: lint-go lint-web lint-e2e lint-yaml lint-md lint-docker lint-shell
 
 ## lint-go: go vet + golangci-lint (Docker)
 lint-go:
@@ -66,6 +76,12 @@ lint-web:
 	npm --prefix web run lint
 	npm --prefix web run typecheck
 	npm --prefix web run format:check
+
+## lint-e2e: ESLint, typecheck, and Prettier check for e2e/
+lint-e2e: build/.stamp-e2e-deps
+	npm --prefix e2e run lint
+	npm --prefix e2e run typecheck
+	npm --prefix e2e run format:check
 
 ## lint-yaml: yamllint (local binary)
 lint-yaml:
@@ -95,9 +111,10 @@ run: build
 	MDV_ROOTS=$${MDV_ROOTS:-examples=$(CURDIR)/examples} ./build/mdv
 
 ## e2e: run end-to-end tests
-e2e:
-	@echo "e2e not configured yet (T1)"
-	@exit 0
+# Runs inside the pinned Playwright image (no host browsers); reports go to build/e2e/ (HTML: build/e2e/report).
+e2e: build fixtures build/.stamp-e2e-deps
+	mkdir -p build/e2e build/.cache/home
+	$(DOCKER_RUN) --ipc=host -e HOME=/src/build/.cache/home -e CI=1 -w /src/e2e $(PLAYWRIGHT_IMAGE) npx playwright test
 
 ## docker: build Docker image
 docker:
