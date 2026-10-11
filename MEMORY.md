@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
 - Last major milestone: P0.3 lint configs + per-tool `make lint` complete (2026-10-11)
-- Next recommended task: P0.6 [O] Plan debate
+- Next recommended task: B1 [S] Config package (env only)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 (P0.6 apply)
+
+- Task: Apply the 15 accepted plan-challenge findings (C-1 to C-15).
+- Files changed: `docs/Architecture.md`, `docs/Implementation.md`, `docs/Requirements.md`, `docs/Tech-Stack.md`, `TODO.md`, `MEMORY.md`, `agents/Decisions.md`.
+- Result: SSE is one stream per tab (`sub=`); dead-mount in-flight cap; allowlist file serving; D2 empty FS, busy/timeout codes; `os.Root` guard; env-only config (D-20); minimal large-file button in MVP (D-21); B4 split into B4a/B4b, F3 into F3/F3b, T0 added. Decisions D-19 to D-21.
+- Blockers or follow-up: B3 adds an NFD fixture via `mkfixtures.sh`. Ready for B1.
 
 ### 2026-10-11 - Claude Code (Opus 5.5) - P0.5 review
 

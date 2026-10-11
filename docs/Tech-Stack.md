@@ -106,10 +106,10 @@ NAS (SMB/NFS share)
 ```
 
 - Multi-stage `Dockerfile`: a `node` stage runs `vite build`. A `golang:1.27` stage builds a static binary (`CGO_ENABLED=0`) with the SPA embedded. The runtime is a minimal image (distroless or alpine) running as a non-root user.
-- `compose.yaml`: one service with a published port, `:ro` bind mounts for each NAS path, environment-based config, `restart: unless-stopped`, and a healthcheck on `/healthz`. No internet access is needed at runtime.
+- `compose.yaml`: one service with a published port, `:ro` bind mounts for each NAS path, environment-based config, `restart: unless-stopped`, and a healthcheck running `mdv healthcheck` against `/healthz` (distroless has no curl). Hardening: `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`. No internet access is needed at runtime.
 - The container user's UID/GID must be able to read the NAS mount on the VM. Make it configurable (`user:` in Compose) to match the mount's ownership.
 - **Live reload:** files changed on the NAS by other machines do not generate inotify events inside the container. Roots on network mounts therefore default to mtime polling (configurable interval), with fsnotify used only when a root is marked local.
-- Configuration: environment variables (primary, Compose-friendly) with an optional YAML config file. Example: `MDV_LISTEN=:8080`, `MDV_ROOTS=markdown=/data/markdown`, `MDV_POLL_INTERVAL=3s`.
+- Configuration: environment variables only, set in `compose.yaml` (a config file is deferred, D-20). Example: `MDV_LISTEN=:8080`, `MDV_ROOTS=markdown=/data/markdown`, `MDV_POLL_INTERVAL=3s`.
 - `make build` / `make docker` wrap the builds. The plain binary still works for local development without Docker. Images are built for linux/amd64 (the VM); arm64 is optional.
 
 ## Desktop App Option

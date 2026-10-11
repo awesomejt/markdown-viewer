@@ -125,10 +125,10 @@ Priority: **M** = MVP must-have, **S** = should-have (post-MVP refinement), **C*
 | --- | --- | --- |
 | NFR-1 | Compatibility | Fully usable in current iPad Safari (iPadOS 18+) and current desktop Chrome, Edge, Firefox, Safari. Usable on phones. |
 | NFR-2 | Responsiveness | Layout adapts from phone to wide desktop. On narrow screens the sidebar collapses into a drawer. Touch targets are at least 44px. |
-| NFR-3 | Performance | Folder listings of up to 10,000 entries stay responsive (lazy-loaded tree, virtualized long lists). A typical document (under 1 MB) with up to 10 diagrams renders in under 2 seconds on an iPad. Large files show a size warning before rendering. |
+| NFR-3 | Performance | Folder listings of up to 10,000 entries stay responsive (lazy-loaded tree, virtualized long lists). A typical document (under 1 MB) with up to 10 diagrams renders in under 2 seconds on an iPad. Large files show a size warning with a "load anyway" button (`force=1`) before rendering (MVP, D-21). |
 | NFR-4 | Security | Read-only. Only configured roots are accessible. Path traversal and symlink escapes are rejected server-side. Markdown HTML is sanitized. Raw HTML files are served with a restrictive Content-Security-Policy or as downloads, never executed in the app origin. Binds to a configurable address. Documentation warns against exposing it to the internet. |
 | NFR-5 | Offline/LAN | No runtime dependency on the internet or CDNs. All assets are bundled and served by the server. No telemetry. |
-| NFR-6 | Deployment | Runs as a Docker Compose service on a VM server. NAS shares are mounted on the VM and bind-mounted read-only into the container. Configured by environment variables (optional config file). Restarts automatically and exposes a healthcheck. |
+| NFR-6 | Deployment | Runs as a Docker Compose service on a VM server. NAS shares are mounted on the VM and bind-mounted read-only into the container. Configured by environment variables set in `compose.yaml`. Restarts automatically and exposes a healthcheck. |
 | NFR-7 | Portability | The server builds and runs on Linux (x86-64, ARM64). Windows and macOS are supported on a best-effort basis. |
 | NFR-8 | Observability | Structured logs (request, error, slow-mount timeouts) to stdout. A health endpoint is available for service monitors. |
 | NFR-9 | Maintainability | Typed frontend (TypeScript). Server, rendering, and UI concerns are separated. Automated tests cover path safety, rendering, and key UI flows. |

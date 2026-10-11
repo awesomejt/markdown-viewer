@@ -16,34 +16,37 @@ Items that require a human decision, credential, source file, or manual validati
 
 ## Phase 0: Foundation
 
-- [ ] **P0.6** [O] Debate/challenge the architecture and Phase 1 plan; apply accepted changes (deps: P0.5)
+All Phase 0 tasks are done.
 
 ## Phase 1: MVP
 
 Backend:
 
-- [ ] **B1** [S] Config package (env + YAML) (deps: P0.3, P0.6)
-- [ ] **B2** [S] 🔒 Path guard (deps: B1, P0.4)
-- [ ] **B3** [S] Listing + reads with timeouts (deps: B2)
-- [ ] **B4** [S] 🔒 HTTP API core + SPA embed (deps: B3)
-- [ ] **B5** [S] D2 render endpoint + cache (deps: B4, P0.5)
-- [ ] **B6** [S] Watch hub + SSE (deps: B4)
+- [ ] **B1** [S] Config package (env only) (deps: P0.3, P0.6)
+- [ ] **B2** [S] 🔒 Path guard on `os.Root` (deps: B1, P0.4)
+- [ ] **B3** [S] Listing + reads with timeouts, in-flight cap, NFC/NFD retry (deps: B2)
+- [ ] **B4a** [S] 🔒 HTTP API core, error model, allowlist file serving (deps: B3)
+- [ ] **B4b** [S] SPA embed + fallback/caching, graceful shutdown, `mdv healthcheck` (deps: B4a)
+- [ ] **B5** [S] D2 render endpoint + cache (deps: B4a, P0.5)
+- [ ] **B6** [S] Watch hub + SSE (`sub=` streams) (deps: B4a)
 - [ ] **B7** [S] Concurrency review of B6 (deps: B6)
 
-Frontend:
+Frontend (each F-task adds its own e2e scenario):
 
-- [ ] **F1** [S] App shell: routes, API client, layout, theme (deps: P0.3, B4)
+- [ ] **F1** [S] App shell: routes, API client, layout, theme (deps: P0.3, B4a)
 - [ ] **F2** [S] Browse views (deps: F1)
 - [ ] **F3** [S] 🔒 Markdown pipeline + link rewriting + sanitizing (deps: F1)
+- [ ] **F3b** [S] Shiki highlighting, lazy languages (deps: F3)
 - [ ] **F4** [S] Mermaid + D2 diagram components (deps: F3, B5)
-- [ ] **F5** [S] Workspace tree + file views by kind (deps: F2, F3)
+- [ ] **F5** [S] Workspace tree + file views by kind + large-file load button (deps: F2, F3)
 - [ ] **F6** [S] Live reload client (deps: F5, B6)
 
 Packaging, tests, review:
 
+- [ ] **T0** [S] Playwright scaffold + smoke test; `make e2e` real (deps: F1)
 - [ ] **EX1** [S] Example Markdown set in `examples/` (GFM, Mermaid, D2, cross-links) (deps: F4)
-- [ ] **D1** [S] Dockerfile + compose.yaml, hadolint/yamllint clean (deps: B4, F1)
-- [ ] **T1** [S] Playwright e2e incl. WebKit/iPad viewport (deps: F6, D1, EX1)
+- [ ] **D1** [S] Dockerfile + compose.yaml, hardened, hadolint/yamllint clean (deps: B4b, F1)
+- [ ] **T1** [S] Complete cross-browser e2e suite + iPad viewport (deps: T0, F6, D1, EX1)
 - [ ] **T2** [H] Full validation run (deps: T1)
 - [ ] **R1** [O] MVP phase review; log FIX-n tasks (deps: T2)
 - [ ] **DOC1** [S] README quick start + Compose deployment (deps: R1)
@@ -61,7 +64,7 @@ Packaging, tests, review:
 - [ ] **R2.8** [S] Diagram source toggle, pan/zoom, full screen
 - [ ] **R2.9** [S] D2 ELK option; theme-aware re-render
 - [ ] **R2.10** [S] Workspace tree live updates
-- [ ] **R2.11** [S] Virtualized listings; large-file warning
+- [ ] **R2.11** [S] Virtualized listings
 - [ ] **R2.12** [H] Full validation run
 - [ ] **R2.13** [O] Phase review + iPad performance check
 
@@ -84,6 +87,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **P0.6** Opus plan challenge; 15 findings applied (D-19–D-21).
 - [x] 2026-10-11: **P0.5** D2 v0.9.0 library spike; findings in agents/Research.md.
 
 - [x] 2026-10-11: **P0.4** Fixture tree + testdata/mkfixtures.sh (symlinks, large file generated).
