@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F2 browse views complete (2026-10-11)
-- Next recommended task: F3 [S] 🔒 Markdown pipeline (needs an Opus review before merge)
+- Last major milestone: F3 Markdown pipeline complete (2026-10-11)
+- Next recommended task: F3b [S] Shiki highlighting
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review/verification (F3)
+
+- Task: Markdown pipeline (🔒).
+- Files changed: `web/src/markdown/{pipeline,links,scroll}.ts`, `MarkdownView.tsx` + tests, `web/src/app/{views.tsx,app.css,App.test.tsx,viewfile.test.tsx}`, `web/package.json` (react-markdown 10, remark-gfm 4, remark-frontmatter 5, rehype-raw 7, rehype-sanitize 6, rehype-slug 6), `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`.
+- Result: Footnotes were broken by default (sanitize double-prefixed ids); fixed with `clobberPrefix: ''`. Diagram detection lives in the `pre` component (avoids nested `pre`). `ViewFileView` renders `.md`/`.markdown` only; other kinds stay placeholders for F5. The Opus review found no XSS; it found that raw HTML `data-footnote-*` links bypassed `resolveLink`, which is now fixed and tested. Also added `no-referrer` on images, and empty hrefs render as text. The orchestrator re-ran `make check` (87 web tests, `src/markdown` 97.5%) and `make e2e` (13).
+- Blockers or follow-up: F5 should add a route `errorElement` (lazy chunk or render failure shows the router default page). F3b adds Shiki after `rehype-slug`.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F2)
 

@@ -205,6 +205,15 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 
 **Markdown pipeline order (exact):** remark-gfm, remark-frontmatter, rehype-raw, rehype-sanitize (schema allows a `language-*` class on `code`), rehype-slug, then Shiki. Mermaid and D2 blocks are detected in the `code` component after sanitizing. Raw-HTML `id` values stay `user-content-` prefixed, while `[x](#heading)` links resolve to slugs.
 
+**Markdown details (F3):**
+
+- `remarkRehypeOptions.clobberPrefix` is `''` so sanitize prefixes footnote ids exactly once; the `a` component prefixes `#` hrefs of footnote ref/backref links with `user-content-` (only `#` hrefs; other hrefs go through `resolveLink`).
+- A leading `/` in a link is root-relative. Blocked links (outside the root, non-`http(s)`/`mailto` schemes, `//host`, encoded `/`, `\` or NUL, empty href) render as `span.link-blocked`; outside-root ones carry a warning `title`.
+- Relative non-document links open `/api/file` in a new tab (served with a sandbox CSP). Images get `loading="lazy"` and `referrerPolicy="no-referrer"`.
+- Anchor scroll runs on load and hash change: `getElementById(id)`, then `user-content-<id>`.
+- Heading slugs are unprefixed (by design), so a heading can reuse an app id such as `root`; app code must not read optional `window.*` globals (DOM clobbering).
+- `MarkdownView` is a lazy chunk; Mermaid/D2 blocks render as `pre[data-diagram]` placeholders until F4.
+
 **Client resilience:** the SPA handles `vite:preloadError` by reloading once.
 
 **Frontend shell (F1):**
