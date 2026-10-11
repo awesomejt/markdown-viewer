@@ -22,7 +22,6 @@ All Phase 0 tasks are done.
 
 Backend:
 
-- [ ] **B4b** [S] SPA embed + fallback/caching, graceful shutdown, `mdv healthcheck` (deps: B4a)
 - [ ] **B5** [S] D2 render endpoint + cache (deps: B4a, P0.5)
 - [ ] **B6** [S] Watch hub + SSE (`sub=` streams) (deps: B4a)
 - [ ] **B7** [S] Concurrency review of B6 (deps: B6)
@@ -83,6 +82,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **B4b** `internal/web` SPA handler (history fallback, `/assets` immutable, 503 when unbuilt); `mdv serve|version|healthcheck` with graceful shutdown; 95.2% coverage.
 - [x] 2026-10-11: **B4a** `internal/api` (healthz, roots, list, allowlist file serving, error model, recover/slog); timed `Handle.Reader`, slot wait (D-23); Opus review fixes applied; 94.7% coverage.
 - [x] 2026-10-11: **B3** `fsroot.Handle` (timeouts, in-flight cap, unavailable + probe), `List`, NFC/NFD retry, `Registry`; 98.7% coverage.
 - [x] 2026-10-11: **B2** `internal/fsroot` path guard on `os.Root`; Opus review fixes applied (D-22); 98.2% coverage.
