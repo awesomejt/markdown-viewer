@@ -68,7 +68,7 @@ Each task runs branch → work → review → merge, starting from a clean `main
 
 ## Multi-Agent Model Tiers
 
-This project delegates work to subagents by model tier to save tokens: **Haiku** for deterministic work, **Sonnet** for moderate implementation and review, and **Opus** for design, security-critical code, and phase reviews. Each task in `TODO.md` is tagged `[H]`, `[S]`, or `[O]`. Follow the rules in `docs/Implementation.md` ("Multi-Agent Workflow And Model Tiers"): the orchestrator delegates one task per fresh-context subagent with a scoped prompt, validates cheaply, escalates on repeated failure, and commits small grouped changesets per task.
+This project delegates work to subagents by model tier to save tokens (D-18). **Haiku** handles Git management and running tools (build, lint, tests) only, never authoring. **Sonnet** handles all coding, tests, configs, docs, research, and planning. **Opus** handles big reviews (🔒 tasks, phase reviews), debates/challenges of designs, and escalations. Each task in `TODO.md` is tagged `[H]`, `[S]`, or `[O]`. Follow the rules in `docs/Implementation.md` ("Multi-Agent Workflow And Model Tiers"). The orchestrator delegates one task per fresh-context subagent with a scoped prompt and independently verifies results before merging.
 
 ## Status Workflow
 
