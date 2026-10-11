@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
 - Last major milestone: P0.3 lint configs + per-tool `make lint` complete (2026-10-11)
-- Next recommended task: P0.5 [S] D2 spike (see `TODO.md`)
+- Next recommended task: P0.6 [O] Plan debate
 - Current blocker: None
 
 ## Key Decisions
@@ -40,6 +40,7 @@ Full log: `agents/Decisions.md`.
 
 - D2 Go module path is `github.com/d2lang/d2` (v0.9.0). Do not use `oss.terrastruct.com/d2` (frozen at v0.7.2).
 - `@terrastruct/d2` npm WASM package is stale (Aug 2025) and ~60 MB, so D2 is rendered server-side.
+- D2 Go API (P0.5): `d2lib.Compile` + `d2svg.Render`, pure Go (no CGO/JS), ~1-3 ms for small diagrams, +22 MB binary, deterministic SVG with embedded fonts; details in `agents/Research.md`.
 - SMB/NFS mounts often emit no fsnotify events, so a polling fallback is required.
 - Task tracking is `TODO.md` and state is `status.yaml` (D-16). No AWB.
 
@@ -56,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 (P0.5)
+
+- Task: Spike the D2 Go library.
+- Files changed: `cmd/spike-d2/main.go`, `go.mod`, `go.sum`, `agents/Research.md`.
+- Result: Renders light (0) and dark (200) SVG with dagre and ELK; findings (API, timings, sizes, errors, determinism) recorded in `agents/Research.md`. The spike is deleted when B5 lands.
+- Blockers or follow-up: Dagre ignored a 1 ns ctx timeout, so B5 needs its own wall-clock limit. Ready for P0.6.
 
 ### 2026-10-11 - Claude Sonnet 5.5 (P0.4)
 
