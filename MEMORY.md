@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
 - Last major milestone: P0.2 Makefile + test harness complete (2026-10-11)
-- Next recommended task: P0.3 [H] Lint configs (see `TODO.md`)
+- Next recommended task: P0.3 [S] Lint configs (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -22,7 +22,7 @@ Full log: `agents/Decisions.md`.
 - Go server confirmed 2026-10-11 (single binary, embedded React SPA, native D2). Markdown and Mermaid render client-side.
 - Deployment: Docker Compose on a VM; NAS mounted on the VM and bind-mounted `:ro` into the container (D-11).
 - Per-task Git workflow, YAML lint configs, coverage gates, `build/` artifacts (D-13 to D-15).
-- Multi-agent delivery by model tier (D-12): Haiku/Sonnet/Opus per task tag in `TODO.md`.
+- Model tiers (D-18): Haiku = Git + tool runs only; Sonnet = authoring/research/planning; Opus = big reviews, debates, escalations. Always verify subagent claims independently: Haiku overstated results in P0.1 and P0.2.
 - Future (post-MVP): voice-over script Markdown extensions (see `docs/Requirements.md`, VO-1..VO-8).
 
 ## Milestones
