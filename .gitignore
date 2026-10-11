@@ -114,4 +114,4 @@ yarn-error.log
 /playwright-report/
 /test-results/
 # Generated test fixtures (symlinks created by testdata/mkfixtures.sh)
-/testdata/fixtures/links/
+/testdata/fixtures/generated/
