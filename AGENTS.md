@@ -67,6 +67,22 @@ The `.awb/config.yaml` file auto-loads `api_url` and `project` — only `AWB_AGE
 
 **Fallback (no AWB):** If `.awb/config.yaml` has unresolved placeholders or AWB is unreachable, use `TODO.md` for task tracking.
 
+## Git Workflow
+
+Each task runs branch → work → review → merge, starting from a clean `main` (see "Git Workflow (Per Task)" in `docs/Implementation.md`):
+
+- Before branching, `main` must be clean and `git branch --no-merged main` empty. Otherwise stop and report.
+- Use one branch per task (`<type>/<task-id>-<slug>`) with small, grouped commits. Tests go with the code they cover.
+- Merge only after `make check` passes (lint, tests, coverage) and, when relevant, `make e2e` and a review. Use `git merge --no-ff`, re-run `make check` on `main`, then delete the branch.
+- Update `TODO.md` and `MEMORY.md` on the branch before merging, so state survives session stops.
+- Build artifacts never go in Git: outputs go under `build/`, and the Vite bundle under the ignored `internal/web/dist/`.
+- Prefer YAML for configuration files, and lint them.
+- Do not push to `origin` unless the owner asks.
+
+## Multi-Agent Model Tiers
+
+This project delegates work to subagents by model tier to save tokens: **Haiku** for deterministic work, **Sonnet** for moderate implementation and review, and **Opus** for design, security-critical code, and phase reviews. Each task in `TODO.md` is tagged `[H]`, `[S]`, or `[O]`. Follow the rules in `docs/Implementation.md` ("Multi-Agent Workflow And Model Tiers"): the orchestrator delegates one task per fresh-context subagent with a scoped prompt, validates cheaply, escalates on repeated failure, and commits per task.
+
 ## Status Workflow
 
 Project status is tracked using `awb status`:

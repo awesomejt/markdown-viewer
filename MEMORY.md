@@ -6,9 +6,9 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 ## Current Status
 
-- Current phase: Planning (research complete)
-- Last major milestone: Requirements, tech stack, and architecture drafted (2026-10-11)
-- Next recommended task: Planning: fill `docs/Implementation.md`, finalize API/repo layout, phase the TODO
+- Current phase: Phase 0 Foundation (planning complete)
+- Last major milestone: Phased implementation plan with model tiers (2026-10-11)
+- Next recommended task: P0.1 [H] scaffold repo (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -21,13 +21,21 @@ Full log: `agents/Decisions.md`.
 - Viewer only, with live reload.
 - Go server confirmed 2026-10-11 (single binary, embedded React SPA, native D2). Markdown and Mermaid render client-side.
 - Deployment: Docker Compose on a VM; NAS mounted on the VM and bind-mounted `:ro` into the container (D-11).
+- Per-task Git workflow, YAML lint configs, coverage gates, `build/` artifacts (D-13 to D-15).
+- Multi-agent delivery by model tier (D-12): Haiku/Sonnet/Opus per task tag in `TODO.md`.
 - Future (post-MVP): voice-over script Markdown extensions (see `docs/Requirements.md`, VO-1..VO-8).
 
 ## Milestones
 
 - 2026-10-11: Research phase drafted requirements, stack, and architecture.
+- 2026-10-11: Planning complete: API contract, config, layout, and phased tasks.
 
 ## Important Context
+
+- Resume prompt after `/clear` or a stop: "Read AGENTS.md, MEMORY.md and TODO.md, then continue with the next task using the Git workflow in docs/Implementation.md."
+- Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck run via Docker images; markdownlint-cli2 via npm.
+
+- Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
 
 - D2 Go module path is `github.com/d2lang/d2` (v0.9.0). Do not use `oss.terrastruct.com/d2` (frozen at v0.7.2).
 - `@terrastruct/d2` npm WASM package is stale (Aug 2025) and ~60 MB, so D2 is rendered server-side.
@@ -47,6 +55,20 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Code (Opus 5.5)
+
+- Task: Define Git workflow, quality gates, build-artifact handling; commit plan.
+- Files changed: `.gitignore`, `AGENTS.md`, `docs/Implementation.md`, `docs/Tech-Stack.md`, `TODO.md`, `MEMORY.md`, `agents/Decisions.md`.
+- Result: `.gitignore` covers `web/node_modules`, the Vite bundle, test binaries, and reports. Phase 0 is re-split (P0.1 to P0.5). EX1 example set added.
+- Blockers or follow-up: owner to decide the `.awb/config.yaml` deletion (commit it or restore it) so `main` can be clean.
+
+### 2026-10-11 - Claude Code (Opus 5.5)
+
+- Task: Record Docker Compose deployment; commit decisions; plan implementation.
+- Files changed: `docs/Architecture.md`, `docs/Implementation.md`, `TODO.md`, `AGENTS.md`, `agents/Decisions.md`, `MEMORY.md`, `status.yaml` (deployment docs in commit 59b6cf1).
+- Result: API/config/layout finalized. Phases 0 to 3 broken into tiered tasks.
+- Blockers or follow-up: NAS roots and UID/GID needed before D1/V1.
 
 ### 2026-10-11 - Claude Code (Opus 5.5)
 

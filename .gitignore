@@ -93,7 +93,25 @@ __pycache__/
 venv/
 env/
 
-## Ignore Node.js modules and logs
-/node_modules/
+## Ignore Node.js modules and logs (any depth, e.g. web/node_modules)
+node_modules/
 npm-debug.log
 yarn-error.log
+.eslintcache
+
+## Project build artifacts
+# All build outputs (binary, coverage, test reports) go under /build/ (ignored above).
+# The Vite bundle must live inside the Go package that embeds it; only its placeholder is tracked.
+/internal/web/dist/*
+!/internal/web/dist/.gitkeep
+/web/dist/
+# Go test binaries and stray coverage profiles
+*.test
+*.out
+# Playwright output if run outside the Makefile
+/e2e/test-results/
+/e2e/playwright-report/
+/playwright-report/
+/test-results/
+# Generated test fixtures (symlinks created by testdata/mkfixtures.sh)
+/testdata/fixtures/links/
