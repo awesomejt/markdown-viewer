@@ -18,7 +18,7 @@
 #   stopped - loop permanently halted or project complete
 
 status: active
-phase: planning
+phase: foundation
 reason: ~
 worker: ~
 updated: 2026-10-11
