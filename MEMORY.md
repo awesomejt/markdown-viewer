@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
-- Last major milestone: P0.1 scaffolding complete (2026-10-11)
-- Next recommended task: P0.2 [H] Makefile (see `TODO.md`)
+- Last major milestone: P0.2 Makefile + test harness complete (2026-10-11)
+- Next recommended task: P0.3 [H] Lint configs (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -33,6 +33,7 @@ Full log: `agents/Decisions.md`.
 ## Important Context
 
 - Resume prompt after `/clear` or a stop: "Read AGENTS.md, MEMORY.md and TODO.md, then continue with the next task using the Git workflow in docs/Implementation.md."
+- Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck run via Docker images; markdownlint-cli2 via npm.
 
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
@@ -55,6 +56,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Haiku 4.5 (P0.2)
+
+- Task: Makefile with build/test/check targets, Vitest test harness, covercheck coverage gate tool.
+- Files changed: `web/package.json`, `web/package-lock.json`, `web/vite.config.ts`, `web/src/App.test.tsx`, `web/src/test/setup.ts`, `Makefile`, `.coverage.yaml`, `tools/covercheck/main.go`, `tools/covercheck/main_test.go`.
+- Result: Root Makefile with build/test/check targets; all outputs under `build/` and `internal/web/dist/`. Web harness is Vitest 5 + `@vitest/coverage-v8` + jsdom 30 + Testing Library 16 (no deprecation warnings), coverage to `build/coverage/web` with an 80% lines threshold. `.coverage.yaml` uses a `packages` mapping and prefix `exclude` (cmd/ only). Covercheck is a thin `main` over a tested `run()` at 99.3% coverage and computes coverage from statements, counting duplicate blocks once. Gate verified: `make check` exits 0, and a config with `default: 100` makes covercheck exit 1. `make clean` leaves no artifacts.
+- Blockers or follow-up: None. Ready for P0.3 (lint configs).
 
 ### 2026-10-11 - Claude Code (Opus 5.5) - P0.1 review
 

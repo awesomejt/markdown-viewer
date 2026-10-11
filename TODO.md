@@ -16,7 +16,6 @@ Items that require a human decision, credential, source file, or manual validati
 
 ## Phase 0: Foundation
 
-- [ ] **P0.2** [H] Makefile; all outputs under ignored `build/` (deps: P0.1)
 - [ ] **P0.3** [H] Lint configs (YAML) + `make lint` + coverage gates (deps: P0.2)
 - [ ] **P0.4** [H] Test fixture tree + `testdata/mkfixtures.sh` (deps: P0.1)
 - [ ] **P0.5** [S] Spike: D2 v0.9.0 library render; record API usage (deps: P0.1)
@@ -87,6 +86,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **P0.2** Makefile (build/ outputs), Vitest 5 harness, covercheck gate (99.3% self-coverage, `make check` green).
 - [x] 2026-10-11: **P0.1** Scaffolded Go module, internal packages, Vite React-TS app (outDir internal/web/dist).
 - [x] 2026-10-11: Researched tech stack (D2, Mermaid, Markdown pipeline, desktop wrappers, SMB). Notes in `agents/Research.md`.
 - [x] 2026-10-11: Filled `docs/Requirements.md`, `docs/Tech-Stack.md`, and `docs/Architecture.md`.

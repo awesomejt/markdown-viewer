@@ -133,6 +133,23 @@ Enhancement suggestions are tracked as [GitHub issues](/issues).
 
 
 
+## Make Targets
+
+Common development tasks are available via `make`. Run `make help` to list all targets:
+
+- `make deps` - Install npm dependencies
+- `make web` - Build the web frontend
+- `make build` - Build the entire application (web + Go binary)
+- `make test-go` - Run Go tests with race detection and coverage
+- `make test-web` - Run web tests with coverage
+- `make test` - Run all tests (Go + web)
+- `make cover-check` - Verify coverage meets thresholds
+- `make lint` - Run all linters (go vet, npm lint, npm typecheck)
+- `make check` - Run all checks (lint + test + cover-check)
+- `make run` - Build and run the application
+- `make e2e` - Run end-to-end tests
+- `make clean` - Remove all build artifacts
+
 ## Attribution
 
 This guide is based on the **contributing.md**. [Make your own](https://contributing.md/)!
