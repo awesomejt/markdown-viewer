@@ -8,6 +8,7 @@ ignore ./web
 require (
 	github.com/d2lang/d2 v0.9.0
 	github.com/d2lang/util-go v0.2.0
+	golang.org/x/text v0.41.0
 )
 
 require (
@@ -29,6 +30,5 @@ require (
 	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 )
