@@ -75,8 +75,8 @@ describe('shell', () => {
   });
 
   it('decodes the path on the view route', async () => {
-    renderAt('/view/docs/a%20b/c%23d.md');
-    expect(await screen.findByRole('heading', { name: 'docs/a b/c#d.md' })).toBeInTheDocument();
+    renderAt('/view/docs/a%20b/c%23d.txt');
+    expect(await screen.findByRole('heading', { name: 'docs/a b/c#d.txt' })).toBeInTheDocument();
   });
 });
 
