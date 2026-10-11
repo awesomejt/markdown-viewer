@@ -127,11 +127,23 @@ Common development tasks are available via `make`. Run `make help` to list all t
 - `make test-web` - Run web tests with coverage
 - `make test` - Run all tests (Go + web)
 - `make cover-check` - Verify coverage meets thresholds
-- `make lint` - Run all linters (go vet, npm lint, npm typecheck)
+- `make lint` - Run all linters (the `lint-*` targets below)
+- `make lint-go` - `go vet` plus golangci-lint (`.golangci.yml`)
+- `make lint-web` - ESLint, `tsc` typecheck, and Prettier check (`format:check`)
+- `make lint-yaml` - yamllint (`.yamllint.yaml`)
+- `make lint-md` - markdownlint-cli2 (`.markdownlint-cli2.yaml`)
+- `make lint-docker` - hadolint on `Dockerfile*` (`.hadolint.yaml`); skips when none exist
+- `make lint-shell` - shellcheck on `*.sh` (`.shellcheckrc`); skips when none exist
 - `make check` - Run all checks (lint + test + cover-check)
 - `make run` - Build and run the application
 - `make e2e` - Run end-to-end tests
 - `make clean` - Remove all build artifacts
+
+### Lint tooling
+
+golangci-lint, hadolint, and shellcheck run from pinned Docker images (set at the top of the `Makefile`), so Docker
+must be available. Containers run as your user and keep caches under the ignored `build/.cache/`. yamllint must be
+installed locally. markdownlint-cli2 is a `web/` devDependency, so run `make deps` first.
 
 ## Attribution
 
