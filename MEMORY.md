@@ -56,6 +56,13 @@ Full log: `agents/Decisions.md`.
 
 Newest entries first.
 
+### 2026-10-11 - Claude Code (Opus 5.5) - P0.1 review
+
+- Task: Verify and fix P0.1 before merge.
+- Files changed: `go.mod` (`ignore ./web`), removed `web/README.md` and `web/public/icons.svg`, `docs/Tech-Stack.md`, `agents/Decisions.md` (D-17).
+- Result: `go ./...` no longer scans `node_modules`. TypeScript 6.0 is recorded. Build, lint, and tests pass.
+- Blockers or follow-up: none. Next is P0.2.
+
 ### 2026-10-11 - Claude Haiku 4.5 (P0.1)
 
 - Task: Scaffold Go module, internal packages, Vite React-TS app with outDir configuration.
