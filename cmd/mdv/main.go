@@ -1,3 +1,4 @@
+// Command mdv serves the markdown viewer web application.
 package main
 
 var version = "dev"

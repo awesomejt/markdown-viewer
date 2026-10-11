@@ -4,10 +4,10 @@ Phases map to the requirement priorities in [Requirements](./Requirements.md): *
 
 ## Research And Planning (complete)
 
- - [x] Requirements, tech stack, architecture, and decisions (2026-10-11)
- - [x] Go backend (D-5) and Docker Compose on a VM (D-11) confirmed
- - [x] API contract, config, repo layout, and routes finalized in [Architecture](./Architecture.md)
- - [x] Phased task breakdown with model tiers (this document)
+- [x] Requirements, tech stack, architecture, and decisions (2026-10-11)
+- [x] Go backend (D-5) and Docker Compose on a VM (D-11) confirmed
+- [x] API contract, config, repo layout, and routes finalized in [Architecture](./Architecture.md)
+- [x] Phased task breakdown with model tiers (this document)
 
 ## Multi-Agent Workflow And Model Tiers
 

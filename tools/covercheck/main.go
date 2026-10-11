@@ -30,27 +30,27 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	profileFile, err := os.Open(*profilePath)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error opening profile: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error opening profile: %v\n", err)
 		return 1
 	}
-	defer profileFile.Close()
+	defer func() { _ = profileFile.Close() }()
 
 	blocks, err := parseProfile(profileFile)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error parsing profile: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error parsing profile: %v\n", err)
 		return 1
 	}
 
 	configFile, err := os.Open(*configPath)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error opening config: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error opening config: %v\n", err)
 		return 1
 	}
-	defer configFile.Close()
+	defer func() { _ = configFile.Close() }()
 
 	cfg, err := loadConfig(configFile)
 	if err != nil {
-		fmt.Fprintf(stderr, "Error parsing config: %v\n", err)
+		_, _ = fmt.Fprintf(stderr, "Error parsing config: %v\n", err)
 		return 1
 	}
 
@@ -61,7 +61,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			status = "FAIL"
 			failed = true
 		}
-		fmt.Fprintf(stdout, "%s %s %.1f%% (min %g%%)\n", status, r.Package, r.Coverage, r.MinCoverage)
+		_, _ = fmt.Fprintf(stdout, "%s %s %.1f%% (min %g%%)\n", status, r.Package, r.Coverage, r.MinCoverage)
 	}
 	if failed {
 		return 1
@@ -240,12 +240,12 @@ func evaluate(blocks []CoverageBlock, cfg *CoverageConfig) []CoverageResult {
 		if ps.total == 0 || excluded(pkg, cfg.Exclude) {
 			continue
 		}
-		min := cfg.Default
+		threshold := cfg.Default
 		if v, ok := cfg.Packages[pkg]; ok {
-			min = v
+			threshold = v
 		}
 		cov := float64(ps.covered) / float64(ps.total) * 100
-		results = append(results, CoverageResult{pkg, cov, min, cov >= min})
+		results = append(results, CoverageResult{pkg, cov, threshold, cov >= threshold})
 	}
 	sort.Slice(results, func(i, j int) bool { return results[i].Package < results[j].Package })
 	return results

@@ -162,6 +162,7 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 | `#<slug>` | Heading anchor within a document. |
 
 **Link rewriting in Markdown:**
+
 - A relative `.md`/diagram link becomes `/view/:root/<resolved>` with `ws` preserved.
 - A relative directory link becomes `/browse/...`.
 - A relative image or other asset becomes `/api/file?root=&path=<resolved>`.

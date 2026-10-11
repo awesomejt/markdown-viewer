@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
-- Last major milestone: P0.2 Makefile + test harness complete (2026-10-11)
-- Next recommended task: P0.3 [S] Lint configs (see `TODO.md`)
+- Last major milestone: P0.3 lint configs + per-tool `make lint` complete (2026-10-11)
+- Next recommended task: P0.4 [S] Fixture tree (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 
 Newest entries first.
 
+### 2026-10-11 - Claude Sonnet 5.5 (P0.3)
+
+- Task: Lint configs and per-tool `make lint-*` targets.
+- Files changed: `.golangci.yml`, `.yamllint.yaml`, `.markdownlint-cli2.yaml`, `.hadolint.yaml`, `.shellcheckrc`, `Makefile`, `web/package.json`, `CONTRIBUTING.md`, plus fixes to existing Markdown, Go, and web formatting.
+- Result: golangci-lint, hadolint, and shellcheck run from pinned Docker images as the host user with caches in `build/.cache/`. markdownlint-cli2 is a web devDependency. Docker and shell lint skip when no files exist. No lint rules disabled except MD013 (long table rows) and gosec in tests.
+- Blockers or follow-up: None. Ready for P0.4.
+
 ### 2026-10-11 - Claude Haiku 4.5 (P0.2)
 
 - Task: Makefile with build/test/check targets, Vitest test harness, covercheck coverage gate tool.
@@ -78,28 +85,28 @@ Newest entries first.
 - Result: Go module initialized. All tests pass. `go build`, `go vet`, `go test` succeed. `npm run build` and `npm run lint` pass. Build outputs properly ignored except `.gitkeep` files.
 - Blockers or follow-up: None. Ready for P0.2 (Makefile).
 
-### 2026-10-11 - Claude Code (Opus 5.5)
+### 2026-10-11 - Claude Code (Opus 5.5) - workflow and quality gates
 
 - Task: Define Git workflow, quality gates, build-artifact handling; commit plan.
 - Files changed: `.gitignore`, `AGENTS.md`, `docs/Implementation.md`, `docs/Tech-Stack.md`, `TODO.md`, `MEMORY.md`, `agents/Decisions.md`.
 - Result: `.gitignore` covers `web/node_modules`, the Vite bundle, test binaries, and reports. Phase 0 is re-split (P0.1 to P0.5). EX1 example set added.
 - Blockers or follow-up: resolved. The owner committed the `.awb` deletion (f1ced02) and chose `TODO.md` tracking (D-16).
 
-### 2026-10-11 - Claude Code (Opus 5.5)
+### 2026-10-11 - Claude Code (Opus 5.5) - Docker Compose deployment
 
 - Task: Record Docker Compose deployment; commit decisions; plan implementation.
 - Files changed: `docs/Architecture.md`, `docs/Implementation.md`, `TODO.md`, `AGENTS.md`, `agents/Decisions.md`, `MEMORY.md`, `status.yaml` (deployment docs in commit 59b6cf1).
 - Result: API/config/layout finalized. Phases 0 to 3 broken into tiered tasks.
 - Blockers or follow-up: NAS roots and UID/GID needed before D1/V1.
 
-### 2026-10-11 - Claude Code (Opus 5.5)
+### 2026-10-11 - Claude Code (Opus 5.5) - backend decision
 
 - Task: Record backend decision and future voice-over scope.
 - Files changed: `docs/Requirements.md`, `docs/Tech-Stack.md`, `docs/Architecture.md`, `docs/Implementation.md`, `agents/Decisions.md`, `README.md`, `TODO.md`, `MEMORY.md`, `status.yaml`.
 - Result: Go confirmed. Voice-over extensions added as post-MVP candidates (VO-1..VO-8). Status set to active / planning.
 - Blockers or follow-up: Deployment decided later the same day: Docker Compose on a VM (D-11).
 
-### 2026-10-11 - Claude Code (Opus 5.5)
+### 2026-10-11 - Claude Code (Opus 5.5) - tech stack research
 
 - Task: Research tech stack; fill requirements; collect early decisions.
 - Files changed: `docs/Requirements.md`, `docs/Tech-Stack.md`, `docs/Architecture.md`, `docs/Implementation.md`, `agents/Decisions.md`, `agents/Research.md`, `README.md`, `TODO.md`, `MEMORY.md`, `status.yaml`.
