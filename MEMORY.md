@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B7 watch concurrency review + fixes complete (2026-10-11)
-- Next recommended task: F1 [S] app shell (FIX-1 is low priority, fsnotify roots only)
+- Last major milestone: FIX-1 fsnotify re-arm complete; backend MVP done (2026-10-11)
+- Next recommended task: F1 [S] app shell
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (FIX-1)
+
+- Task: Re-arm fsnotify watches when a watched host directory is deleted and recreated.
+- Files changed: `internal/watch/{fsn,hub}.go`, `internal/watch/hub_test.go` (6 `TestRearm*` tests), `docs/Architecture.md`.
+- Result: Kernel watches are refcounted in `fsnotifier.refs`, shared by armed and ancestor watches. A Remove/Rename of a watched dir disarms every dependent watch and drops its refs; a goroutine (hub WaitGroup, 5 s timeout) walks host dir to root via `Handle.HostPath`, arming the deepest valid real directory, stepping down on Create of the next component. Catch-up: dir key `modified` (+`created` if reported deleted), file key `created` if present. Orchestrator reviewed the diff (lock ordering, ref clearing) and re-ran the new tests with `-race -count=30` and `make check`. 92.6% watch.
+- Blockers or follow-up: If a file's parent is recreated with the file already present, delete + create merge to `modified`. If the root directory itself is deleted, the watch stays disarmed (Warn log). A path missing at subscribe and later created as a dir is still a file key (existing behaviour).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B7)
 
