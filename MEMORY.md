@@ -6,9 +6,9 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 ## Current Status
 
-- Current phase: Phase 0 Foundation (scaffolding in progress)
-- Last major milestone: P0.3 lint configs + per-tool `make lint` complete (2026-10-11)
-- Next recommended task: B1 [S] Config package (env only)
+- Current phase: Phase 1 MVP
+- Last major milestone: B1 config package complete (2026-10-11)
+- Next recommended task: B2 [S] 🔒 Path guard on `os.Root`
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (B1)
+
+- Task: Env-only config package.
+- Files changed: `internal/config/{config.go,config_test.go,doc.go}`.
+- Result: `config.Load(getenv)` / `FromEnv()`. Validates every `MDV_*` var, stats roots (absolute, existing dir), and joins all errors. The `:poll`/`:fsnotify` suffix is split off only when it is a known mode, so other colons stay in the path. 100% coverage; `make check` green. Not yet wired into `main` (B4b).
+- Blockers or follow-up: None. Ready for B2.
 
 ### 2026-10-11 - Claude Sonnet 5.5 (P0.6 apply)
 

@@ -1,0 +1,174 @@
+package config
+
+import (
+	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+func env(m map[string]string) func(string) string {
+	return func(k string) string { return m[k] }
+}
+
+func TestDefaults(t *testing.T) {
+	d := t.TempDir()
+	c, err := Load(env(map[string]string{"MDV_ROOTS": "docs=" + d}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Listen != ":8080" || c.PollInterval != 3*time.Second || c.FSTimeout != 5*time.Second ||
+		c.FSMaxInflight != 4 || c.MaxListEntries != 20000 || c.MaxFileBytes != 5242880 ||
+		c.D2Timeout != 10*time.Second || c.D2Concurrency != 2 || c.D2CacheEntries != 256 ||
+		c.LogLevel != slog.LevelInfo {
+		t.Errorf("unexpected defaults: %+v", c)
+	}
+	if len(c.Roots) != 1 || c.Roots[0] != (Root{"docs", d, WatchPoll}) {
+		t.Errorf("roots: %+v", c.Roots)
+	}
+}
+
+func TestOverrides(t *testing.T) {
+	a, b := t.TempDir(), t.TempDir()
+	c, err := Load(env(map[string]string{
+		"MDV_LISTEN":           "127.0.0.1:9000",
+		"MDV_ROOTS":            " b=" + b + ":fsnotify , a=" + a,
+		"MDV_POLL_INTERVAL":    "10s",
+		"MDV_FS_TIMEOUT":       "1500ms",
+		"MDV_FS_MAX_INFLIGHT":  "9",
+		"MDV_MAX_LIST_ENTRIES": "123",
+		"MDV_MAX_FILE_BYTES":   "99",
+		"MDV_D2_TIMEOUT":       "20s",
+		"MDV_D2_CONCURRENCY":   "7",
+		"MDV_D2_CACHE_ENTRIES": "11",
+		"MDV_LOG_LEVEL":        "DeBuG",
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Listen != "127.0.0.1:9000" || c.PollInterval != 10*time.Second || c.FSTimeout != 1500*time.Millisecond ||
+		c.FSMaxInflight != 9 || c.MaxListEntries != 123 || c.MaxFileBytes != 99 ||
+		c.D2Timeout != 20*time.Second || c.D2Concurrency != 7 || c.D2CacheEntries != 11 ||
+		c.LogLevel != slog.LevelDebug {
+		t.Errorf("unexpected: %+v", c)
+	}
+	if len(c.Roots) != 2 || c.Roots[0].Name != "b" || c.Roots[0].Watch != WatchFSNotify ||
+		c.Roots[1].Name != "a" || c.Roots[1].Watch != WatchPoll {
+		t.Errorf("roots: %+v", c.Roots)
+	}
+}
+
+func TestLogLevels(t *testing.T) {
+	d := t.TempDir()
+	for s, want := range map[string]slog.Level{
+		"debug": slog.LevelDebug, "info": slog.LevelInfo, "WARN": slog.LevelWarn, "Error": slog.LevelError,
+	} {
+		c, err := Load(env(map[string]string{"MDV_ROOTS": "x=" + d, "MDV_LOG_LEVEL": s}))
+		if err != nil || c.LogLevel != want {
+			t.Errorf("%s: %v %v", s, c, err)
+		}
+	}
+}
+
+func TestWatchSuffix(t *testing.T) {
+	d := t.TempDir()
+	colon := filepath.Join(d, "a:b")
+	if err := os.Mkdir(colon, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name, val, path string
+		mode            WatchMode
+	}{
+		{"poll", "x=" + d + ":poll", d, WatchPoll},
+		{"fsnotify", "x=" + d + ":fsnotify", d, WatchFSNotify},
+		{"none", "x=" + d, d, WatchPoll},
+		{"colon path", "x=" + colon, colon, WatchPoll},
+		{"colon path fsnotify", "x=" + colon + ":fsnotify", colon, WatchFSNotify},
+		{"clean", "x=" + d + "/./", d, WatchPoll},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := Load(env(map[string]string{"MDV_ROOTS": tt.val}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if c.Roots[0].Path != tt.path || c.Roots[0].Watch != tt.mode {
+				t.Errorf("got %+v", c.Roots[0])
+			}
+		})
+	}
+}
+
+func TestInvalid(t *testing.T) {
+	d := t.TempDir()
+	file := filepath.Join(d, "f.txt")
+	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	ok := "x=" + d
+	tests := []struct {
+		name string
+		env  map[string]string
+		want string
+	}{
+		{"missing roots", map[string]string{}, "MDV_ROOTS: required"},
+		{"empty entry", map[string]string{"MDV_ROOTS": ok + ",,"}, "is empty"},
+		{"no equals", map[string]string{"MDV_ROOTS": d}, "missing '='"},
+		{"uppercase name", map[string]string{"MDV_ROOTS": "Abc=" + d}, "invalid root name"},
+		{"leading dash", map[string]string{"MDV_ROOTS": "-a=" + d}, "invalid root name"},
+		{"long name", map[string]string{"MDV_ROOTS": strings.Repeat("a", 33) + "=" + d}, "invalid root name"},
+		{"empty name", map[string]string{"MDV_ROOTS": "=" + d}, "invalid root name"},
+		{"relative", map[string]string{"MDV_ROOTS": "x=rel/path"}, "must be absolute"},
+		{"missing path", map[string]string{"MDV_ROOTS": "x=" + filepath.Join(d, "nope")}, "no such file"},
+		{"file root", map[string]string{"MDV_ROOTS": "x=" + file}, "not a directory"},
+		{"duplicate", map[string]string{"MDV_ROOTS": ok + ",x=" + d}, "duplicate root name"},
+		{"bad duration", map[string]string{"MDV_ROOTS": ok, "MDV_FS_TIMEOUT": "abc"}, "MDV_FS_TIMEOUT"},
+		{"zero duration", map[string]string{"MDV_ROOTS": ok, "MDV_POLL_INTERVAL": "0s"}, "MDV_POLL_INTERVAL"},
+		{"negative duration", map[string]string{"MDV_ROOTS": ok, "MDV_D2_TIMEOUT": "-1s"}, "MDV_D2_TIMEOUT"},
+		{"bad int", map[string]string{"MDV_ROOTS": ok, "MDV_FS_MAX_INFLIGHT": "x"}, "MDV_FS_MAX_INFLIGHT"},
+		{"zero int", map[string]string{"MDV_ROOTS": ok, "MDV_MAX_LIST_ENTRIES": "0"}, "MDV_MAX_LIST_ENTRIES"},
+		{"negative int", map[string]string{"MDV_ROOTS": ok, "MDV_D2_CONCURRENCY": "-2"}, "MDV_D2_CONCURRENCY"},
+		{"bad cache", map[string]string{"MDV_ROOTS": ok, "MDV_D2_CACHE_ENTRIES": "1.5"}, "MDV_D2_CACHE_ENTRIES"},
+		{"bad bytes", map[string]string{"MDV_ROOTS": ok, "MDV_MAX_FILE_BYTES": "x"}, "MDV_MAX_FILE_BYTES"},
+		{"negative bytes", map[string]string{"MDV_ROOTS": ok, "MDV_MAX_FILE_BYTES": "-5"}, "MDV_MAX_FILE_BYTES"},
+		{"bad level", map[string]string{"MDV_ROOTS": ok, "MDV_LOG_LEVEL": "trace"}, "MDV_LOG_LEVEL"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := Load(env(tt.env))
+			if err == nil || c != nil {
+				t.Fatalf("expected error, got %+v", c)
+			}
+			if !strings.Contains(err.Error(), tt.want) {
+				t.Errorf("error %q does not contain %q", err, tt.want)
+			}
+		})
+	}
+}
+
+func TestMultipleErrors(t *testing.T) {
+	_, err := Load(env(map[string]string{
+		"MDV_ROOTS":            "BAD=/nonexistent-zzz",
+		"MDV_FS_TIMEOUT":       "nope",
+		"MDV_D2_CACHE_ENTRIES": "-1",
+		"MDV_LOG_LEVEL":        "loud",
+	}))
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	for _, w := range []string{"MDV_ROOTS", "MDV_FS_TIMEOUT", "MDV_D2_CACHE_ENTRIES", "MDV_LOG_LEVEL"} {
+		if !strings.Contains(err.Error(), w) {
+			t.Errorf("missing %s in %q", w, err)
+		}
+	}
+}
+
+func TestFromEnv(t *testing.T) {
+	t.Setenv("MDV_ROOTS", "x="+t.TempDir())
+	if _, err := FromEnv(); err != nil {
+		t.Fatal(err)
+	}
+}
