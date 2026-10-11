@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B1 config package complete (2026-10-11)
-- Next recommended task: B2 [S] 🔒 Path guard on `os.Root`
+- Last major milestone: B2 path guard complete (2026-10-11)
+- Next recommended task: B3 [S] Listing + reads with timeouts, in-flight cap, NFC/NFD retry
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (B2)
+
+- Task: Path guard on `os.Root` (🔒).
+- Files changed: `internal/fsroot/{guard.go,guard_test.go,doc.go}`, `docs/Architecture.md`, `docs/Implementation.md`, `agents/Decisions.md` (D-22).
+- Result: `Resolve(rel)` lexical prechecks (400) plus guarded `Open`/`Stat`/`Lstat`/`ReadDir` returning `*PathError` with `Kind`, sentinels, and `KindOf`. Escapes are matched on `os.Root`'s unexported "path escapes from parent" text (pinned by `TestEscapeErrorContract`, fail-closed to 500). `Open` uses `O_NONBLOCK` + fstat and refuses FIFOs/devices (403). The Opus review found no blockers; all 7 findings were fixed on the branch. 98.2% coverage; `make check` green.
+- Blockers or follow-up: B4a must send only `PathError.PublicMessage()` to clients (`Error()`, `File.Name()` and file-method errors contain host paths). B3 should add context-aware wrappers, not change these signatures.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (B1)
 

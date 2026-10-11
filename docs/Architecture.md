@@ -65,7 +65,7 @@ sequenceDiagram
 | Component | Responsibility |
 | --- | --- |
 | Config | Loads roots (name → absolute path), listen address, poll interval, size limits, and per-root mount hints (watch vs. poll) from environment variables only. |
-| Root/path guard | Built on Go `os.Root` (`OpenRoot`, then `Open`/`Stat`/`Lstat`/`ReadDir` via the root). Lexical prechecks produce the 400 cases. `Lstat` + `Readlink` are used only to tell 403 from 404. Rejects `..`, absolute paths, and symlinks that resolve outside the root. Every file access goes through this. Per-root in-flight fs-op cap; a root that times out is marked `unavailable` and probed with one stat at a time. |
+| Root/path guard | Built on Go `os.Root` (`OpenRoot`, then `Open`/`Stat`/`Lstat`/`ReadDir` via the root). `Resolve(rel)` lexical prechecks produce the 400 cases (raw `..` anywhere, absolute, backslash, NUL/control/bidi characters, too long). Symlink escapes are detected from `os.Root`'s own error (403, fail-closed to 500 if Go changes it). Special files (FIFO, device, socket) are refused with 403 via `O_NONBLOCK` + fstat. Permission denied is 403; ELOOP and ENOTDIR are 404. Errors carry `PublicMessage()`, the only text safe for clients. Every file access goes through this. Per-root in-flight fs-op cap; a root that times out is marked `unavailable` and probed with one stat at a time. |
 | Listing API | Directory entries with type, size, mtime. No pagination in MVP: capped at `MDV_MAX_LIST_ENTRIES` with a `truncated` flag. Applies timeouts. |
 | File API | Serves raw bytes by allowlist (raster images and text kinds only), with ETag/Last-Modified and range support for media. Everything else, including SVG/HTML, is an attachment or sandboxed. |
 | D2 renderer | Compiles D2 source to SVG with dagre/ELK, with an empty `fs.FS` (no imports). Bounded concurrency (slot held until the render goroutine returns) and timeout per render. LRU cache keyed by hash, including compile errors and timeouts. |
@@ -201,3 +201,4 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - Markdown HTML is sanitized. Diagram SVG is sanitized or isolated. User-supplied HTML files never run in the app origin.
 - Container hardening (D1): `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`, and a `user:` matching the NAS mount's `uid=`/`gid=`.
 - Binds to a configured address. The README warns against port-forwarding it or exposing it publicly.
+- `os.Root` crosses mount points and hard links, so bind-mounting something under a root exposes it.
