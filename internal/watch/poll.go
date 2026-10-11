@@ -13,11 +13,12 @@ import (
 // pollState is one observation of a watched path.
 type pollState struct {
 	exists bool
+	isDir  bool
 	// File fields.
 	size  int64
 	ino   uint64
 	mtime int64 // ns; also the directory's own mtime
-	// Directory field: the child name set; nil for files.
+	// Directory field: the child name set; nil for files and absent paths.
 	names map[string]struct{}
 }
 
@@ -28,7 +29,6 @@ type pollState struct {
 type poller struct {
 	h        *fsroot.Handle
 	path     string // normalized: "" is the root
-	isDir    bool
 	interval time.Duration
 	co       *coalescer
 	prev     pollState
@@ -47,14 +47,14 @@ func observeDir(ds *fsroot.DirState) pollState {
 	for _, n := range ds.Names {
 		names[n] = struct{}{}
 	}
-	return pollState{exists: true, mtime: ds.ModTime.UnixNano(), names: names}
+	return pollState{exists: true, isDir: true, mtime: ds.ModTime.UnixNano(), names: names}
 }
 
-func startPoller(parent context.Context, wg *sync.WaitGroup, h *fsroot.Handle, p string, isDir bool,
+func startPoller(parent context.Context, wg *sync.WaitGroup, h *fsroot.Handle, p string,
 	interval time.Duration, co *coalescer, base pollState,
 ) *poller {
 	ctx, cancel := context.WithCancel(parent)
-	pl := &poller{h: h, path: p, isDir: isDir, interval: interval, co: co, prev: base,
+	pl := &poller{h: h, path: p, interval: interval, co: co, prev: base,
 		cancel: cancel, done: make(chan struct{})}
 	wg.Add(1)
 	go func() {
@@ -87,25 +87,13 @@ func (pl *poller) run(ctx context.Context) {
 	}
 }
 
-// observe reads the current state. ok is false when the filesystem could not
-// answer (timeout, unavailable, other error): the previous state is kept, so
-// an outage never looks like a deletion.
+// observe reads the current state, following the path's kind: it reads names
+// while the path is a directory and stats otherwise, switching when the kind
+// changes underneath it. ok is false when the filesystem could not answer
+// (timeout, unavailable, other error): the previous state is kept, so an
+// outage never looks like a deletion.
 func (pl *poller) observe(ctx context.Context) (pollState, bool) {
-	var (
-		st  pollState
-		err error
-	)
-	if pl.isDir {
-		var ds *fsroot.DirState
-		if ds, err = pl.h.ReadNames(ctx, pl.path); err == nil {
-			st = observeDir(ds)
-		}
-	} else {
-		var fi fs.FileInfo
-		if fi, err = pl.h.Stat(ctx, pl.path); err == nil {
-			st = observeFile(fi)
-		}
-	}
+	st, err := pl.observeOnce(ctx)
 	switch {
 	case err == nil:
 		return st, true
@@ -114,6 +102,31 @@ func (pl *poller) observe(ctx context.Context) (pollState, bool) {
 	default:
 		return pollState{}, false
 	}
+}
+
+func (pl *poller) observeOnce(ctx context.Context) (pollState, error) {
+	if pl.prev.isDir {
+		ds, err := pl.h.ReadNames(ctx, pl.path)
+		if err == nil {
+			return observeDir(ds), nil
+		}
+		if fsroot.KindOf(err) != fsroot.KindBadRequest {
+			return pollState{}, err
+		}
+		// No longer a directory: fall through to Stat.
+	}
+	fi, err := pl.h.Stat(ctx, pl.path)
+	if err != nil {
+		return pollState{}, err
+	}
+	if !fi.IsDir() {
+		return observeFile(fi), nil
+	}
+	ds, err := pl.h.ReadNames(ctx, pl.path)
+	if err != nil {
+		return pollState{}, err // including a swap back to a file mid-poll: retry next tick
+	}
+	return observeDir(ds), nil
 }
 
 func (pl *poller) diff(cur pollState) {
@@ -126,6 +139,11 @@ func (pl *poller) diff(cur pollState) {
 		return
 	case !cur.exists:
 		pl.co.add(pl.path, OpDeleted)
+		return
+	case prev.isDir != cur.isDir:
+		// Kind swap: report the path as replaced, without per-child events.
+		pl.co.add(pl.path, OpDeleted)
+		pl.co.add(pl.path, OpCreated)
 		return
 	}
 	if prev.size != cur.size || prev.mtime != cur.mtime || prev.ino != cur.ino {

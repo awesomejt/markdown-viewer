@@ -3,6 +3,7 @@ package fsroot
 import (
 	"context"
 	"io/fs"
+	"path"
 	"path/filepath"
 	"sort"
 	"time"
@@ -68,4 +69,31 @@ func (h *Handle) HostPath(ctx context.Context, rel string) (string, fs.FileInfo,
 		return "", nil, err
 	}
 	return filepath.Join(h.hostDir, filepath.FromSlash(name)), fi, nil
+}
+
+// HostPathMissing is [Handle.HostPath] for a path that does not exist yet. It
+// validates the parent through the guard (it must exist and be a directory,
+// else KindNotFound) and returns the host path the child would have. The same
+// restriction applies: the result must never reach a client. The root itself
+// always exists, so rel "" is a KindBadRequest.
+func (h *Handle) HostPathMissing(ctx context.Context, rel string) (string, error) {
+	name, err := Resolve(rel)
+	if err != nil {
+		return "", err
+	}
+	if name == "." {
+		return "", &PathError{Kind: KindBadRequest, Op: "hostpath", Path: rel, Reason: "the root always exists"}
+	}
+	parent := path.Dir(name)
+	if parent == "." {
+		parent = ""
+	}
+	host, fi, err := h.HostPath(ctx, parent)
+	if err != nil {
+		return "", err
+	}
+	if !fi.IsDir() {
+		return "", &PathError{Kind: KindNotFound, Op: "hostpath", Path: rel}
+	}
+	return filepath.Join(host, path.Base(name)), nil
 }

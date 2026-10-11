@@ -103,3 +103,36 @@ func TestInode(t *testing.T) {
 		t.Skip("platform without inode numbers")
 	}
 }
+
+func TestHostPathMissing(t *testing.T) {
+	h, dir := openTemp(t)
+	ctx := context.Background()
+	if err := os.Mkdir(filepath.Join(dir, "sub"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "f.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(t.TempDir(), filepath.Join(dir, "esc")); err != nil {
+		t.Fatal(err)
+	}
+	for rel, want := range map[string]string{
+		"new.md":     filepath.Join(dir, "new.md"),
+		"sub/new.md": filepath.Join(dir, "sub", "new.md"),
+	} {
+		if p, err := h.HostPathMissing(ctx, rel); err != nil || p != want {
+			t.Fatalf("%q: got %q %v, want %q", rel, p, err, want)
+		}
+	}
+	for rel, kind := range map[string]Kind{
+		"nodir/new.md": KindNotFound,   // parent missing
+		"f.md/new.md":  KindNotFound,   // parent is a file
+		"esc/new.md":   KindForbidden,  // parent escapes
+		"../x":         KindBadRequest, // traversal
+		"":             KindBadRequest, // the root always exists
+	} {
+		if _, err := h.HostPathMissing(ctx, rel); KindOf(err) != kind {
+			t.Fatalf("%q: got %v, want kind %v", rel, err, kind)
+		}
+	}
+}
