@@ -26,7 +26,6 @@ All backend tasks are done.
 
 Frontend (each F-task adds its own e2e scenario):
 
-- [ ] **F1** [S] App shell: routes, API client, layout, theme (deps: P0.3, B4a)
 - [ ] **F2** [S] Browse views (deps: F1)
 - [ ] **F3** [S] 🔒 Markdown pipeline + link rewriting + sanitizing (deps: F1)
 - [ ] **F3b** [S] Shiki highlighting, lazy languages (deps: F3)
@@ -80,6 +79,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **F1** App shell: React Router 8.4 routes, typed API client + TanStack Query 5.104 hooks (4xx never retried), sidebar drawer < 900 px, theme (system/light/dark, `mdv-theme`), error-model states, one-shot `vite:preloadError` reload; 96.2% `src/api`. E2E deferred to T0 (scaffold depends on F1).
 - [x] 2026-10-11: **FIX-1** fsnotify re-arms deleted-then-recreated host dirs: waits on the nearest existing ancestor (never above the root), re-validates via `Handle` off the reader goroutine (escaping symlinks never re-armed), catch-up `created`/`modified`; 92.6% watch.
 - [x] 2026-10-11: **B7** Watch concurrency review: no races (`-race -count=20`); fixed per-write SSE deadline, 405 on non-GET, missing sub paths accepted (later `created`), poll kind swaps, 256-key watch cap (503); fsnotify recreate deferred to FIX-1.
 - [x] 2026-10-11: **B6** `internal/watch` hub (ref-counted, 250 ms coalescing, poll + fsnotify) + `GET /api/events` SSE; streams end on shutdown; 94.8% watch / 94.2% api.
