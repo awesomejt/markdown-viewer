@@ -105,5 +105,7 @@ docker:
 
 ## clean: remove build artifacts
 clean:
+	@# The Go module cache under build/.cache is read-only; make it writable first.
+	@if [ -d build ]; then chmod -R u+w build; fi
 	rm -rf build
 	find internal/web/dist -mindepth 1 ! -name .gitkeep -delete
