@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
-- Last major milestone: P0.1 scaffolding complete (2026-10-11)
-- Next recommended task: P0.2 [H] Makefile (see `TODO.md`)
+- Last major milestone: P0.2 Makefile + test harness complete (2026-10-11)
+- Next recommended task: P0.3 [H] Lint configs (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -55,6 +55,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Haiku 4.5 (P0.2)
+
+- Task: Makefile with build/test/check targets, Vitest test harness, covercheck coverage gate tool.
+- Files changed: `web/package.json`, `web/vite.config.ts`, `web/src/App.test.tsx`, `web/src/test/setup.ts`, `Makefile`, `.coverage.yaml`, `tools/covercheck/main.go`, `tools/covercheck/main_test.go`.
+- Result: Root Makefile with 15 targets (build, test-go, test-web, cover-check, lint, check, run, clean, etc.). Vitest 1.0 + jsdom + testing-library configured. Coverage reporting to build/coverage/web with 80% threshold. Covercheck tool parses Go profiles and enforces thresholds (69.9% covered). `make build && ./build/mdv` succeeds. `make clean` removes all artifacts.
+- Blockers or follow-up: None. Ready for P0.3 (lint configs).
 
 ### 2026-10-11 - Claude Code (Opus 5.5) - P0.1 review
 
