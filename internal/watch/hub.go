@@ -330,3 +330,10 @@ func (s *Subscription) Close() {
 }
 
 func (s *Subscription) finish() { s.once.Do(func() { close(s.done) }) }
+
+// Watching reports how many distinct (root, path) keys are being watched.
+func (h *Hub) Watching() int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return len(h.entries)
+}

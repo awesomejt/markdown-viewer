@@ -194,17 +194,11 @@ func TestSubscribeErrors(t *testing.T) {
 					t.Errorf("%v: got %v, want kind %v", tc.sub, err, tc.kind)
 				}
 			}
-			if n := hubKeys(hub); n != 0 {
+			if n := hub.Watching(); n != 0 {
 				t.Fatalf("%d keys left registered after failed subscribes", n)
 			}
 		})
 	}
-}
-
-func hubKeys(h *Hub) int {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	return len(h.entries)
 }
 
 func TestRefCounting(t *testing.T) {
@@ -215,11 +209,11 @@ func TestRefCounting(t *testing.T) {
 			write(t, filepath.Join(dir, "b.md"), "x")
 			s1 := subscribe(t, hub, "a.md", "b.md", "a.md") // duplicate collapses
 			s2 := subscribe(t, hub, "a.md")
-			if n := hubKeys(hub); n != 2 {
+			if n := hub.Watching(); n != 2 {
 				t.Fatalf("keys = %d, want 2", n)
 			}
 			s1.Close()
-			if n := hubKeys(hub); n != 1 {
+			if n := hub.Watching(); n != 1 {
 				t.Fatalf("after first close keys = %d, want 1 (a.md still has a subscriber)", n)
 			}
 			// The remaining subscriber still hears about a.md.
@@ -227,7 +221,7 @@ func TestRefCounting(t *testing.T) {
 			expect(t, s2, ev("a.md", OpModified))
 			s2.Close()
 			s2.Close() // idempotent
-			if n := hubKeys(hub); n != 0 {
+			if n := hub.Watching(); n != 0 {
 				t.Fatalf("after last close keys = %d, want 0", n)
 			}
 			select {
@@ -324,7 +318,7 @@ func TestFSNotifyAddFailureRollsBack(t *testing.T) {
 	if err == nil {
 		t.Fatal("want error adding a watch on a missing directory")
 	}
-	if n := hubKeys(hub); n != 0 {
+	if n := hub.Watching(); n != 0 {
 		t.Fatalf("keys = %d", n)
 	}
 	// And the hub still works afterwards.
