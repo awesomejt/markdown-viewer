@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -159,20 +160,89 @@ func TestBlockedForeverIsBounded(t *testing.T) {
 	}
 }
 
-func TestInflightCapFailsFastWithoutUnavailable(t *testing.T) {
+func TestInflightWaitExpiresWithoutUnavailable(t *testing.T) {
+	f := &fakeFS{block: make(chan struct{}), entered: make(chan struct{}, 4)}
+	h := newFakeHandle(f, 50*time.Millisecond, 1)
+	first := make(chan error, 1)
+	go func() { _, err := h.Stat(context.Background(), "a"); first <- err }()
+	<-f.entered
+	// Second call waits for the slot, then its own budget runs out. The first
+	// call (same timeout) is what marks the root unavailable, so check the
+	// waiter's error text rather than availability here.
+	_, err := h.Stat(context.Background(), "b")
+	wantTimeout(t, err)
+	close(f.block)
+	<-first
+	eventually(t, "slots released", func() bool { return len(h.sem) == 0 })
+}
+
+func TestSlotWaitExpiryDoesNotMarkUnavailable(t *testing.T) {
+	f := &fakeFS{}
+	h := newFakeHandle(f, 30*time.Millisecond, 1)
+	h.sem <- struct{}{} // slot held by something that never calls run
+	_, err := h.Stat(context.Background(), "b")
+	wantTimeout(t, err)
+	if !strings.Contains(err.Error(), "too many operations in flight") {
+		t.Fatalf("err %v", err)
+	}
+	if h.unavailable.Load() || f.calls.Load() != 0 {
+		t.Fatal("slot wait expiry must not mark unavailable or spawn work")
+	}
+	<-h.sem
+}
+
+func TestWaiterGetsSlotOnceReleased(t *testing.T) {
 	f := &fakeFS{block: make(chan struct{}), entered: make(chan struct{}, 4)}
 	h := newFakeHandle(f, time.Minute, 1)
 	first := make(chan error, 1)
 	go func() { _, err := h.Stat(context.Background(), "a"); first <- err }()
 	<-f.entered
-	_, err := h.Stat(context.Background(), "b")
-	wantTimeout(t, err)
-	if !h.Available() {
-		t.Fatal("a full cap must not mark the root unavailable")
+	second := make(chan error, 1)
+	go func() { _, err := h.Stat(context.Background(), "b"); second <- err }()
+	select {
+	case err := <-second:
+		t.Fatalf("waiter returned early: %v", err)
+	case <-time.After(30 * time.Millisecond):
+	}
+	if f.calls.Load() != 1 {
+		t.Fatal("waiter spawned work before getting a slot")
 	}
 	close(f.block)
 	if err := <-first; err != nil {
 		t.Fatal(err)
+	}
+	if err := <-second; err != nil {
+		t.Fatalf("waiter: %v", err)
+	}
+}
+
+func TestCancelWhileWaitingForSlot(t *testing.T) {
+	f := &fakeFS{}
+	h := newFakeHandle(f, time.Minute, 1)
+	h.sem <- struct{}{}
+	ctx, cancel := context.WithCancel(context.Background())
+	res := make(chan error, 1)
+	go func() { _, err := h.Stat(ctx, "a"); res <- err }()
+	time.Sleep(20 * time.Millisecond)
+	cancel()
+	err := <-res
+	wantTimeout(t, err)
+	if !errors.Is(err, context.Canceled) || h.unavailable.Load() {
+		t.Fatalf("err %v unavailable %v", err, h.unavailable.Load())
+	}
+	<-h.sem
+}
+
+func TestFileStat(t *testing.T) {
+	tmp, err := os.CreateTemp(t.TempDir(), "fs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = tmp.Close() }()
+	h := newFakeHandle(&fakeFS{}, time.Second, 1)
+	fi, err := h.FileStat(context.Background(), tmp)
+	if err != nil || fi.IsDir() {
+		t.Fatalf("%v %v", fi, err)
 	}
 }
 

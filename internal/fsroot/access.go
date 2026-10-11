@@ -22,12 +22,15 @@ type FS interface {
 var _ FS = (*Root)(nil)
 
 // Handle wraps one root's filesystem with a per-operation timeout, a
-// non-blocking in-flight cap, and availability tracking.
+// bounded in-flight cap, and availability tracking.
 //
 // Every filesystem call runs in its own goroutine; the caller selects on its
 // context. A goroutine stuck on a dead mount cannot be killed, so the cap
 // bounds how many can ever accumulate: the semaphore slot is released only
-// when the fs call actually returns, never when the caller gives up.
+// when the fs call actually returns, never when the caller gives up. Callers
+// that find the cap full wait for a slot (spawning no goroutine) within the
+// same budget as the operation itself, MDV_FS_TIMEOUT; a wait that expires is a
+// [KindTimeout] but does not mark the root unavailable.
 //
 // Availability: when an operation exceeds the handle's timeout the root is
 // marked unavailable. While unavailable, calls fail immediately with
@@ -39,8 +42,9 @@ var _ FS = (*Root)(nil)
 // timeout) returns [KindTimeout] too, wrapping the context error, but does
 // NOT mark the root unavailable: it says nothing about the mount's health.
 //
-// Limitation: reads from a file returned by Open happen outside this
-// machinery, so a mount that dies after Open can still block the reader.
+// Reads: the file returned by Open is not itself covered, but [Handle.Reader]
+// wraps it so each Read runs under the same timeout and slot machinery. Use it
+// for any read of a file that may live on a network mount.
 type Handle struct {
 	name       string
 	watch      config.WatchMode
@@ -111,6 +115,19 @@ func (h *Handle) tryAcquire() bool {
 	}
 }
 
+// acquire takes a slot, waiting until ctx is done if none is free.
+func (h *Handle) acquire(ctx context.Context) bool {
+	if h.tryAcquire() {
+		return true
+	}
+	select {
+	case h.sem <- struct{}{}:
+		return true
+	case <-ctx.Done():
+		return false
+	}
+}
+
 func (h *Handle) release() { <-h.sem }
 
 func (h *Handle) probe() {
@@ -151,7 +168,13 @@ func run[T any](ctx context.Context, h *Handle, op, rel string, fn func() (T, er
 		h.probe()
 		return zero, timeoutErr(op, rel, "root unavailable", nil)
 	}
-	if !h.tryAcquire() {
+	// One budget covers both the slot wait and the operation.
+	tctx, cancel := context.WithTimeout(ctx, h.timeout)
+	defer cancel()
+	if !h.acquire(tctx) {
+		if cerr := ctx.Err(); cerr != nil {
+			return zero, timeoutErr(op, rel, "request canceled", cerr)
+		}
 		return zero, timeoutErr(op, rel, "too many operations in flight", nil)
 	}
 	const (
@@ -176,8 +199,6 @@ func run[T any](ctx context.Context, h *Handle, op, rel string, fn func() (T, er
 		}
 	}()
 
-	tctx, cancel := context.WithTimeout(ctx, h.timeout)
-	defer cancel()
 	select {
 	case r := <-done:
 		return r.val, r.err
