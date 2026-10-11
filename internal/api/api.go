@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/awesomejt/markdown-viewer/internal/config"
+	"github.com/awesomejt/markdown-viewer/internal/d2render"
 	"github.com/awesomejt/markdown-viewer/internal/fsroot"
 )
 
@@ -21,6 +22,9 @@ const (
 	codeFSTimeout  = "fs_timeout"
 	codeInternal   = "internal"
 	codeMethod     = "method_not_allowed"
+	codeRender     = "render_error"
+	codeBusy       = "busy"
+	codeRenderTO   = "render_timeout"
 )
 
 // Server holds the API dependencies and the route table. Later tasks mount the
@@ -30,6 +34,7 @@ type Server struct {
 	cfg    *config.Config
 	logger *slog.Logger
 	mux    *http.ServeMux
+	d2     d2Renderer
 }
 
 // New builds a Server with the core routes registered. A nil logger discards
@@ -39,10 +44,14 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 		logger = slog.New(slog.DiscardHandler)
 	}
 	s := &Server{reg: reg, cfg: cfg, logger: logger, mux: http.NewServeMux()}
+	s.d2 = d2render.New(d2render.Options{
+		Timeout: cfg.D2Timeout, Concurrency: cfg.D2Concurrency, CacheEntries: cfg.D2CacheEntries,
+	})
 	s.mux.HandleFunc("/healthz", s.get(s.healthz))
 	s.mux.HandleFunc("/api/roots", s.get(s.roots))
 	s.mux.HandleFunc("/api/list", s.get(s.list))
 	s.mux.HandleFunc("/api/file", fileHeaders(s.get(s.file)))
+	s.mux.HandleFunc("/api/render/d2", s.post(s.renderD2))
 	s.mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "unknown API endpoint")
 	})
@@ -63,6 +72,18 @@ func (s *Server) get(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
+			writeError(w, http.StatusMethodNotAllowed, codeMethod, "method not allowed")
+			return
+		}
+		h(w, r)
+	}
+}
+
+// post restricts a handler to POST with a JSON 405 otherwise.
+func (s *Server) post(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", "POST")
 			writeError(w, http.StatusMethodNotAllowed, codeMethod, "method not allowed")
 			return
 		}
