@@ -16,7 +16,6 @@ Items that require a human decision, credential, source file, or manual validati
 
 ## Phase 0: Foundation
 
-- [ ] **P0.5** [S] Spike: D2 v0.9.0 library render; record API usage (deps: P0.1)
 - [ ] **P0.6** [O] Debate/challenge the architecture and Phase 1 plan; apply accepted changes (deps: P0.5)
 
 ## Phase 1: MVP
@@ -84,6 +83,8 @@ Move blocked tasks here with the reason and exact next action needed.
 ## Done
 
 Move completed tasks here with a brief result note.
+
+- [x] 2026-10-11: **P0.5** D2 v0.9.0 library spike; findings in agents/Research.md.
 
 - [x] 2026-10-11: **P0.4** Fixture tree + testdata/mkfixtures.sh (symlinks, large file generated).
 - [x] 2026-10-11: **P0.3** Lint configs (golangci-lint, ESLint/Prettier, yamllint, markdownlint, hadolint, shellcheck) + per-tool make lint targets.
