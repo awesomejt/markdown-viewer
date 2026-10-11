@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-1 fsnotify re-arm complete; backend MVP done (2026-10-11)
-- Next recommended task: F1 [S] app shell
+- Last major milestone: F1 app shell complete (2026-10-11)
+- Next recommended task: T0 [S] Playwright scaffold + smoke test (then F2/F3)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F1)
+
+- Task: App shell.
+- Files changed: `web/src/api/{types,client,hooks}.ts` + test, `web/src/app/{App,routes,Layout,views,states,theme,preloadError}.tsx/ts`, `app.css` + test, `web/{index.html,vite.config.ts,eslint.config.js,package.json}`, `web/src/{main.tsx,test/setup.ts}`, `docs/Architecture.md`.
+- Result: Route hrefs encode each segment; the API `path` goes through `URLSearchParams`. `ApiError` has `status`/`code` (client codes `network`, `unknown`); aborts are rethrown, not wrapped. Query keys are `['roots']`, `['list', root, path]`, `['file', root, path, force]`. Root list at `/` is `<h1>Roots</h1>` + `<ul aria-label="Available roots">` (T0 target). Browse/view are placeholders for F2/F5. Dev proxy `/api`, `/healthz` to `:8080`. ESLint: base `no-undef`/`no-unused-vars` off in favour of the TS rule; RTL `cleanup()` registered in setup. Orchestrator reviewed the diff, re-ran `make check`, and smoke-tested the embedded build. 96.2% `src/api`.
+- Blockers or follow-up: F1's e2e scenario moves to T0 (T0 depends on F1). The drawer breakpoint is checked only by jsdom so far; T0/T1 should check it in a real viewport. F6 may want to tune `staleTime`/`refetchOnWindowFocus` (TanStack defaults now).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (FIX-1)
 

@@ -24,6 +24,10 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
+      // TypeScript handles undefined names; use the TS-aware unused-vars rule.
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'react/react-in-jsx-scope': 'off',
       'react-hooks/rules-of-hooks': 'error',
     },
