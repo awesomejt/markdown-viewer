@@ -35,7 +35,6 @@ Frontend (each F-task adds its own e2e scenario):
 
 Packaging, tests, review:
 
-- [ ] **T0** [S] Playwright scaffold + smoke test; `make e2e` real (deps: F1)
 - [ ] **EX1** [S] Example Markdown set in `examples/` (GFM, Mermaid, D2, cross-links) (deps: F4)
 - [ ] **D1** [S] Dockerfile + compose.yaml, hardened, hadolint/yamllint clean (deps: B4b, F1)
 - [ ] **T1** [S] Complete cross-browser e2e suite + iPad viewport (deps: T0, F6, D1, EX1)
@@ -79,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **T0** Playwright 1.64.0 in the pinned `mcr.microsoft.com/playwright:v1.64.0-noble` image against `build/mdv` + fixtures; `make e2e` real (smoke, traversal, F1 drawer/theme scenarios; 5 pass); `lint-e2e` in `make lint`.
 - [x] 2026-10-11: **F1** App shell: React Router 8.4 routes, typed API client + TanStack Query 5.104 hooks (4xx never retried), sidebar drawer < 900 px, theme (system/light/dark, `mdv-theme`), error-model states, one-shot `vite:preloadError` reload; 96.2% `src/api`. E2E deferred to T0 (scaffold depends on F1).
 - [x] 2026-10-11: **FIX-1** fsnotify re-arms deleted-then-recreated host dirs: waits on the nearest existing ancestor (never above the root), re-validates via `Handle` off the reader goroutine (escaping symlinks never re-armed), catch-up `created`/`modified`; 92.6% watch.
 - [x] 2026-10-11: **B7** Watch concurrency review: no races (`-race -count=20`); fixed per-write SSE deadline, 405 on non-GET, missing sub paths accepted (later `created`), poll kind swaps, 256-key watch cap (503); fsnotify recreate deferred to FIX-1.
