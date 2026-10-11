@@ -1,6 +1,6 @@
 # Project TODO
 
-Prioritized project task list. When Agent Workbench is configured, use `awb task next` / `awb task list` instead of reading this file directly. This file serves as the fallback when AWB is not available and as the initial task list before tasks are imported into AWB.
+Prioritized project task list. **This file is the authoritative task tracker** for the project (D-16). Agent Workbench is not used.
 
 Task details, dependencies, and acceptance criteria are in `docs/Implementation.md`. The tag after each ID is the model tier: **[H]** Haiku, **[S]** Sonnet, **[O]** Opus (see "Multi-Agent Workflow And Model Tiers" there). 🔒 = Sonnet code review before commit. Work top to bottom; a task is ready when its deps are done. Every task uses the Git workflow in `docs/Implementation.md` (fresh branch from a clean `main`, then the quality gate, then a `--no-ff` merge, then re-validation), and updates this file and `MEMORY.md` before merging.
 
@@ -9,7 +9,6 @@ Task details, dependencies, and acceptance criteria are in `docs/Implementation.
 Items that require a human decision, credential, source file, or manual validation before work can continue.
 
 - [ ] Provide the initial NAS roots (VM mount paths) and the UID/GID that can read them (needed by D1/V1).
-- [ ] Reconfigure AWB (`awb init`) or keep using this file. `.awb/config.yaml` is currently deleted (uncommitted).
 
 ## In Progress
 
@@ -93,4 +92,5 @@ Move completed tasks here with a brief result note.
 - [x] 2026-10-11: Filled `docs/Requirements.md`, `docs/Tech-Stack.md`, and `docs/Architecture.md`.
 - [x] 2026-10-11: Owner decisions: host mounts only, no auth, viewer + live reload, Go backend (D-5), Docker Compose on a VM (D-11).
 - [x] 2026-10-11: Git workflow, quality gates (YAML lint configs, coverage targets), and build-artifact layout defined (`docs/Implementation.md`).
+- [x] 2026-10-11: AWB dropped; `TODO.md` is the task tracker (D-16).
 - [x] 2026-10-11: Planning: finalized API/config/layout/routes in `docs/Architecture.md`; phased plan with model tiers in `docs/Implementation.md`.

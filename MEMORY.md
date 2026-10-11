@@ -40,7 +40,7 @@ Full log: `agents/Decisions.md`.
 - D2 Go module path is `github.com/d2lang/d2` (v0.9.0). Do not use `oss.terrastruct.com/d2` (frozen at v0.7.2).
 - `@terrastruct/d2` npm WASM package is stale (Aug 2025) and ~60 MB, so D2 is rendered server-side.
 - SMB/NFS mounts often emit no fsnotify events, so a polling fallback is required.
-- AWB is not configured (`.awb/config.yaml` removed by owner); use `TODO.md` and `status.yaml`.
+- Task tracking is `TODO.md` and state is `status.yaml` (D-16). No AWB.
 
 ## Open Questions
 
@@ -61,7 +61,7 @@ Newest entries first.
 - Task: Define Git workflow, quality gates, build-artifact handling; commit plan.
 - Files changed: `.gitignore`, `AGENTS.md`, `docs/Implementation.md`, `docs/Tech-Stack.md`, `TODO.md`, `MEMORY.md`, `agents/Decisions.md`.
 - Result: `.gitignore` covers `web/node_modules`, the Vite bundle, test binaries, and reports. Phase 0 is re-split (P0.1 to P0.5). EX1 example set added.
-- Blockers or follow-up: owner to decide the `.awb/config.yaml` deletion (commit it or restore it) so `main` can be clean.
+- Blockers or follow-up: resolved. The owner committed the `.awb` deletion (f1ced02) and chose `TODO.md` tracking (D-16).
 
 ### 2026-10-11 - Claude Code (Opus 5.5)
 
