@@ -1,0 +1,12 @@
+# Agent Workbench per-repo configuration.
+#
+# To connect this project to your AWB instance:
+#   1. Install the awb CLI (see your AWB server's README or agent-workbench docs).
+#   2. Run: awb init --project <your-project-slug> --url https://your-awb-api.example.com
+#      This file will be updated with the correct values.
+#   3. Set per session: export AWB_AGENT=<your-agent-name>
+#
+# If AWB is not configured or unreachable, agents fall back to TODO.md and status.yaml.
+
+project: "{{PROJECT_SLUG}}"
+api_url: "https://your-awb-api.example.com"

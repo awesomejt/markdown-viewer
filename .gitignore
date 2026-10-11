@@ -1,0 +1,99 @@
+# Git Ignore - Files and folders to be ignored by Git
+
+## Ignore compiled files
+*.o
+*.so
+*.dll
+*.exe
+
+## Ignore log files
+*.log
+
+## Ignore generated agent chat transcripts
+/.agents/chats/*.md
+!/.agents/chats/.gitkeep
+
+## Ignore temporary files
+*.tmp
+*.swp
+*.bak
+/tmp/
+/temp/
+/working/
+
+## Ignore IDE and editor files
+.vscode/
+.idea/
+.agent/
+.claude/
+.codex/
+.cursor/
+.continue/
+.aider*
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+
+## Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+## Ignore Go build artifacts
+/bin/
+/pkg/
+
+## Build and cache directories
+/build/
+/cache/
+.cache/
+
+## Secret files
+*.env
+*.key
+*.pem
+*.crt
+.env
+
+## Ignore archives
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+
+## Ignore test output
+/test-output/
+/output/
+
+## Ignore coverage reports
+/coverage/
+
+## Ignore Maven and Gradle files
+/target/
+/build/
+.mvn/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+build.gradle.backup
+build.gradle.orig
+
+
+## Ignore Python bytecode and virtual environments
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+## Ignore Node.js modules and logs
+/node_modules/
+npm-debug.log
+yarn-error.log

@@ -1,0 +1,24 @@
+# status.yaml — FALLBACK ONLY
+#
+# Project status is tracked via the Agent Workbench API when AWB is configured.
+# Use the awb CLI instead of editing this file directly:
+#
+#   awb status show                          # view current status
+#   awb status create --status active ...    # create a new record
+#   awb status update <id> --version <n> ... # update existing record
+#
+# Edit this file only when AWB is unreachable or not yet configured.
+#
+# status values (used by both AWB and this fallback file):
+#   active  - work may proceed
+#   paused  - temporary hold; automated agents should wait
+#   blocked - blocked on a decision, resource, credential, or validation
+#   working - a human or agent is actively editing; other agents should skip
+#   error   - repo or automation state is unsafe; human recovery needed
+#   stopped - loop permanently halted or project complete
+
+status: active
+phase: ~
+reason: ~
+worker: ~
+updated: ~
