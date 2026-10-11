@@ -26,7 +26,8 @@ This document lists the chosen languages, frameworks, and libraries, with the re
 | Server tests | `go test` (table tests, `httptest`) | stdlib |
 | Frontend tests | Vitest | 5.0 |
 | End-to-end tests | Playwright (Chromium, Firefox, **WebKit** to approximate iPad Safari) | 1.64 |
-| Build/release | `make` (or Taskfile); GoReleaser for cross-platform binaries | GoReleaser v2.18 |
+| Build | `make`; all outputs under the ignored `build/` | — |
+| Linting | golangci-lint (Docker image), ESLint + Prettier, yamllint, markdownlint-cli2, hadolint and shellcheck (Docker images) | v2.14 / 9 / 1.38 / 0.23 / 2.15.1 / 0.11 |
 | Packaging | Docker image (multi-stage: Node build, then Go build, then minimal runtime) run with **Docker Compose** on a VM | — |
 
 ## Architecture In One Paragraph
