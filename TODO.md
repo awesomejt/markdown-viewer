@@ -22,7 +22,6 @@ All Phase 0 tasks are done.
 
 Backend:
 
-- [ ] **B3** [S] Listing + reads with timeouts, in-flight cap, NFC/NFD retry (deps: B2)
 - [ ] **B4a** [S] 🔒 HTTP API core, error model, allowlist file serving (deps: B3)
 - [ ] **B4b** [S] SPA embed + fallback/caching, graceful shutdown, `mdv healthcheck` (deps: B4a)
 - [ ] **B5** [S] D2 render endpoint + cache (deps: B4a, P0.5)
@@ -85,6 +84,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **B3** `fsroot.Handle` (timeouts, in-flight cap, unavailable + probe), `List`, NFC/NFD retry, `Registry`; 98.7% coverage.
 - [x] 2026-10-11: **B2** `internal/fsroot` path guard on `os.Root`; Opus review fixes applied (D-22); 98.2% coverage.
 - [x] 2026-10-11: **B1** `internal/config` env-only loader; all errors joined; 100% coverage.
 - [x] 2026-10-11: **P0.6** Opus plan challenge; 15 findings applied (D-19–D-21).

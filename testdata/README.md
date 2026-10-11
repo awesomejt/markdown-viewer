@@ -12,7 +12,8 @@ Markdownlint ignores it because the fixtures intentionally break rules.
 ## Generated
 
 `testdata/fixtures/generated/` is created by `testdata/mkfixtures.sh` and ignored by Git.
-It holds symlinks (inside the root, escaping it, and dangling) and a ~6 MiB `large.md`
+It holds symlinks (inside the root, escaping it, and dangling), a file with an NFD (decomposed Unicode)
+name, `cafe` plus U+0301 `.md`, for the NFC/NFD retry test, and a ~6 MiB `large.md`
 that exceeds the default `MDV_MAX_FILE_BYTES`.
 
 Regenerate and verify with:

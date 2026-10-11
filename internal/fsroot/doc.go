@@ -4,4 +4,12 @@
 // into filesystem access. Every access goes through an [os.Root], so symlinks
 // that leave the root are refused by the kernel-assisted os.Root checks, and a
 // lexical precheck ([Resolve]) rejects hostile input before any syscall.
+//
+// On top of the guard, [Handle] (access.go, ops.go) adds context-aware Stat,
+// Open and List: each fs call runs in a goroutine under MDV_FS_TIMEOUT with a
+// non-blocking per-root in-flight cap, a root that times out is marked
+// unavailable and probed with one stat at a time, and a not-found path is
+// retried once in its alternate NFC/NFD form. [Registry] holds one Handle per
+// configured root. [ClassifyName] maps file names to the kinds used by
+// /api/list and the file allowlist.
 package fsroot

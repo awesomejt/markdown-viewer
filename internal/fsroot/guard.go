@@ -26,6 +26,9 @@ const (
 	KindNotFound
 	// KindInternal is an unexpected filesystem failure (HTTP 500).
 	KindInternal
+	// KindTimeout is a filesystem operation that timed out, was refused because
+	// the root's in-flight cap is full, or hit a root marked unavailable (HTTP 504).
+	KindTimeout
 )
 
 // String returns a short stable name for the kind.
@@ -39,6 +42,8 @@ func (k Kind) String() string {
 		return "not_found"
 	case KindInternal:
 		return "internal"
+	case KindTimeout:
+		return "fs_timeout"
 	default:
 		return "unknown"
 	}
@@ -50,6 +55,7 @@ var (
 	ErrForbidden  = errors.New("forbidden")
 	ErrNotFound   = errors.New("not found")
 	ErrInternal   = errors.New("internal error")
+	ErrTimeout    = errors.New("filesystem timeout")
 )
 
 // PathError is the typed error returned by the guard. Use errors.As to get
@@ -102,6 +108,8 @@ func (e *PathError) sentinel() error {
 		return ErrForbidden
 	case KindNotFound:
 		return ErrNotFound
+	case KindTimeout:
+		return ErrTimeout
 	default:
 		return ErrInternal
 	}

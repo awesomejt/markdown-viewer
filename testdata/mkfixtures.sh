@@ -10,6 +10,8 @@
 #   link-escape          symlink -> /etc (escapes the root)
 #   link-escape-file.md  symlink -> ../../../README.md (escapes the fixtures root)
 #   link-dangling        symlink -> a target that does not exist
+#   cafe<U+0301>.md      NFD-named file ("cafe" then combining acute U+0301, decomposed),
+#                        so an NFC request for "caf<U+00E9>.md" must find it
 #   large.md             ~6 MiB Markdown, above the 5 MiB MDV_MAX_FILE_BYTES default
 #
 # Usage:
@@ -23,6 +25,10 @@ gen="$here/fixtures/generated"
 large_min=$((6 * 1024 * 1024))
 
 # name:target pairs for the symlinks.
+# NFD file name: "cafe" with a decomposed e (U+0065 U+0301), as UTF-8 bytes.
+# Written with printf escapes so this script stays ASCII.
+nfd_name="$(printf 'cafe\xcc\x81.md')"
+
 links=(
   "link-inside.md:../docs/guide.md"
   "link-dir:../docs"
@@ -30,6 +36,10 @@ links=(
   "link-escape-file.md:../../../README.md"
   "link-dangling:does-not-exist-target"
 )
+
+make_nfd() {
+  printf '# NFD fixture\n\nThis file name is stored decomposed (NFD).\n' >"$gen/$nfd_name"
+}
 
 make_large() {
   # Deterministic: fixed line repeated; no timestamps or randomness.
@@ -53,6 +63,7 @@ create() {
   for pair in "${links[@]}"; do
     ln -sfn "${pair#*:}" "$gen/${pair%%:*}"
   done
+  make_nfd
   local size=0
   if [ -f "$gen/large.md" ]; then
     size="$(wc -c <"$gen/large.md")"
@@ -84,6 +95,10 @@ verify() {
   done
   if [ -e "$gen/link-dangling" ]; then
     echo "verify: link-dangling unexpectedly resolves" >&2
+    rc=1
+  fi
+  if [ ! -f "$gen/$nfd_name" ] || [ -L "$gen/$nfd_name" ]; then
+    echo "verify: NFD-named file is missing or not a regular file" >&2
     rc=1
   fi
   if [ ! -f "$gen/large.md" ] || [ -L "$gen/large.md" ]; then
