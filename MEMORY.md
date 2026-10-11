@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B4b SPA embed + `mdv` lifecycle complete (2026-10-11)
-- Next recommended task: B5 [S] D2 render endpoint + cache (or B6 watch hub + SSE; both depend only on B4a)
+- Last major milestone: B5 D2 render endpoint complete (2026-10-11)
+- Next recommended task: B6 [S] watch hub + SSE (`sub=` streams); F1 app shell is also ready
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B5)
+
+- Task: D2 render endpoint + cache.
+- Files changed: `internal/d2render/{render,cache,errors,doc}.go` + tests, `internal/api/{api,render}.go` + tests, `docs/Architecture.md`, `agents/Research.md`; `cmd/spike-d2` deleted.
+- Result: Verified in D2 v0.9.0 that `CompileOptions.FS` nil falls back to `os.Open` (`d2ir/import.go`), so an explicit `emptyFS` is always passed; all import forms tested fail with 422. One `textmeasure.Ruler` per slot. Cache key = sha256 of length-prefixed (version, layout, theme ID, source). Identical concurrent requests share one detached render (singleflight), so a cancelled client cannot poison the cache. Theme defaults to light, layout to dagre; `elk` also accepted. Orchestrator reviewed the diff and re-ran `make check` plus 10x `-race` runs of the new tests. 94.4% d2render / 95.7% api; `make check` green.
+- Blockers or follow-up: A cached timeout persists until LRU eviction or restart (per spec). The SVG response has no CSP; F4 must insert it sanitized or via `<img src=blob:>`.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B4b)
 
