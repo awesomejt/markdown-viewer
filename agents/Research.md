@@ -45,16 +45,16 @@ Track AI-assisted research and references - saved for later reference if needed.
 
 ### Sources
 
-- D2 Go module: https://pkg.go.dev/github.com/d2lang/d2
-- D2 library packages: https://pkg.go.dev/github.com/d2lang/d2/d2lib
-- D2.js README: https://cdn.jsdelivr.net/npm/@terrastruct/d2@0.1.33/README.md
-- D2 WASM package: https://pkg.go.dev/github.com/d2lang/d2/d2js/d2wasm
-- Mermaid releases: https://gittrend.io/repo/mermaid-js/mermaid
-- Mermaid CLI (Arch package): https://archlinux.org/packages/extra/any/mermaid-cli/
-- Desktop framework comparison (2026): https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026
-- Wails vs Tauri: https://toolradar.com/compare/wails-vs-tauri
-- Hads: https://github.com/Julienbideau/hads
-- mdview: https://pkg.go.dev/github.com/jere-mie/mdview
-- MarkdownManager: https://piefed.nullspace.lol/post/77547
-- Markbrowse: https://peerlist.io/anantshri/project/markbrowse
-- Veldoc: https://awesome.ecosyste.ms/projects/github.com%2Faredoff%2Fveldoc
+- D2 Go module: <https://pkg.go.dev/github.com/d2lang/d2>
+- D2 library packages: <https://pkg.go.dev/github.com/d2lang/d2/d2lib>
+- D2.js README: <https://cdn.jsdelivr.net/npm/@terrastruct/d2@0.1.33/README.md>
+- D2 WASM package: <https://pkg.go.dev/github.com/d2lang/d2/d2js/d2wasm>
+- Mermaid releases: <https://gittrend.io/repo/mermaid-js/mermaid>
+- Mermaid CLI (Arch package): <https://archlinux.org/packages/extra/any/mermaid-cli/>
+- Desktop framework comparison (2026): <https://www.digitalapplied.com/blog/desktop-apps-web-stack-tauri-electron-deno-wails-2026>
+- Wails vs Tauri: <https://toolradar.com/compare/wails-vs-tauri>
+- Hads: <https://github.com/Julienbideau/hads>
+- mdview: <https://pkg.go.dev/github.com/jere-mie/mdview>
+- MarkdownManager: <https://piefed.nullspace.lol/post/77547>
+- Markbrowse: <https://peerlist.io/anantshri/project/markbrowse>
+- Veldoc: <https://awesome.ecosyste.ms/projects/github.com%2Faredoff%2Fveldoc>

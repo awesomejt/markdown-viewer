@@ -1,8 +1,8 @@
-# AI Chat about <topic>
+# AI Chat about `<topic>`
 
-Topic: <topic-name>
+Topic: `<topic-name>`
 Date: MMM-DD-YYYY at HH:MM:SS A/PM
-Model: <model-name>
+Model: `<model-name>`
 Location: <cloud|local>
 
 ## Prompt
