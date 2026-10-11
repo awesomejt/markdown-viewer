@@ -1,6 +1,17 @@
-# AI Ready Project Template
+# LAN Markdown Viewer
 
-General-purpose starter template for AI-assisted projects. Use it for interactive work with coding assistants, research-heavy projects, documentation projects, or as a light baseline for agentic workflows.
+A self-hosted, read-only Markdown viewer for the local network. A single server on a host machine lets any LAN device (iPad, phone, desktop) browse that host's folders and mounted network shares, open folders as workspaces, and read Markdown with Mermaid and D2 diagrams. Pages reload live when files change.
+
+**Status:** planning phase. Stack chosen: Go server + React/TypeScript UI. No code yet.
+
+- Requirements: [docs/Requirements.md](docs/Requirements.md)
+- Tech stack and rationale: [docs/Tech-Stack.md](docs/Tech-Stack.md)
+- Architecture: [docs/Architecture.md](docs/Architecture.md)
+- Decisions: [agents/Decisions.md](agents/Decisions.md)
+
+> Intended for a trusted home LAN only. It has no authentication. Do not expose it to the internet.
+
+This repository uses the AI-ready project template conventions described below.
 
 ## Root Contract
 

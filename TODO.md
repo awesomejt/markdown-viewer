@@ -6,27 +6,25 @@ Prioritized project task list. When Agent Workbench is configured, use `awb task
 
 Items that require a human decision, credential, source file, or manual validation before work can continue.
 
-- [ ] Replace template placeholders with project-specific details.
+- [ ] Provide the initial NAS roots (VM mount paths) and the UID/GID that can read them (needed before Deployment).
+- [ ] Reconfigure AWB (`awb init`) or keep using this file. `.awb/config.yaml` is currently deleted.
 
 ## Research
 
-- [ ] Read `README.md`, `MEMORY.md`, `TODO.md`, `status.yaml`, and `docs/Requirements.md`.
-- [ ] Identify missing requirements, constraints, and success criteria.
-- [ ] Research version-sensitive or external facts using reliable sources.
+- [ ] (Post-MVP) Research voice-over script conventions (Fountain, SSML, CriticMarkup, `remark-directive`) and choose syntax for VO-1..VO-8 in `docs/Requirements.md`.
+- [ ] (Optional) Spike: render a sample D2 block with `github.com/d2lang/d2` v0.9.0 and a Mermaid block in iPad Safari to confirm both paths before MVP.
 
 ## Planning
 
-- [ ] Fill in `docs/Requirements.md`.
-- [ ] Fill in `docs/Tech-Stack.md`.
-- [ ] Fill in or intentionally skip `docs/Architecture.md`.
-- [ ] Update `docs/Implementation.md` with project phases.
-- [ ] Convert open questions into actionable tasks or blockers.
+- [ ] Write `docs/Implementation.md`: MVP / Refinement / Finalization phases mapped to FR IDs in `docs/Requirements.md`.
+- [ ] Finalize the API contract and repo layout (`cmd/`, `internal/`, `web/`) in `docs/Architecture.md`.
+- [ ] Define the config file format and defaults.
+- [ ] Define the test strategy and the iPad manual test checklist.
+- [ ] Break MVP into ordered implementation tasks in this file (or AWB).
 
 ## Implementation
 
-- [ ] Implement the highest-priority unblocked task.
-- [ ] Add or update tests appropriate to the change.
-- [ ] Update project documentation for changed behavior or setup.
+- [ ] (Populated during Planning.)
 
 ## Validation
 
@@ -49,4 +47,9 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
-- [ ]
+- [x] 2026-10-11: Read project template files and replaced placeholders in README and docs.
+- [x] 2026-10-11: Researched tech stack (D2, Mermaid, Markdown pipeline, desktop wrappers, SMB). Notes in `agents/Research.md`.
+- [x] 2026-10-11: Filled `docs/Requirements.md`, `docs/Tech-Stack.md`, and `docs/Architecture.md`.
+- [x] 2026-10-11: Owner confirmed Go backend (D-5).
+- [x] 2026-10-11: Owner chose Docker Compose on a VM with NAS bind mounts (D-11).
+- [x] 2026-10-11: Collected owner decisions: host mounts only, no auth, viewer + live reload (`agents/Decisions.md`).

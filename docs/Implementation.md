@@ -1,12 +1,12 @@
 # Implementation Plan
 
-[Update implementation plan for specific project needs]
+Phases below map to the requirement priorities in [Requirements](./Requirements.md): **M** goes into MVP, **S** into Refinement, **C** into Finalization or later. The detailed task breakdown is produced in the Planning phase.
 
 ## Research
 
- - Identify gaps in requirements, architecture, tech stack, etc
- - Research gaps and make recommendations
- - Finalize decisions 
+ - [x] Identify gaps in requirements, architecture, tech stack, etc (2026-10-11)
+ - [x] Research gaps and make recommendations: see [Tech Stack](./Tech-Stack.md) and [agents/Research.md](../agents/Research.md)
+ - [x] Finalize decisions: Go backend confirmed 2026-10-11 (see [agents/Decisions.md](../agents/Decisions.md))
 
 ## Planning
 
