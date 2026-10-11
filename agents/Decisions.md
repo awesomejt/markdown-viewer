@@ -24,3 +24,4 @@ This file contains a log of important decisions.
 | D-14 | YAML preferred for config; all config/code linted (golangci-lint, ESLint, yamllint, markdownlint, hadolint, shellcheck); coverage ≥ 80% (fsroot ≥ 90%) | Decided (owner) | Owner preference for YAML and high test coverage. Missing host tools run as pinned Docker images. |
 | D-15 | Build outputs under ignored `build/`; Vite bundle in ignored `internal/web/dist/` | Decided | `go:embed` cannot reference paths outside its package, so the bundle lives beside the embedding package. |
 | D-16 | Track tasks in `TODO.md` and state in `status.yaml`; no Agent Workbench | Decided (owner) | Simpler for a single-owner project. `.awb/config.yaml` removed (f1ced02). |
+| D-17 | Use TypeScript 6.0 (Vite template default) instead of 7.0 for now; `go.mod` uses `ignore ./web` | Decided | `typescript-eslint` 8.x pins TS 6. npm `flatted` ships Go files that `./...` would otherwise build and lint. |
