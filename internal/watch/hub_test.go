@@ -391,3 +391,204 @@ func TestDefaultMaxWatches(t *testing.T) {
 		t.Fatalf("MaxWatches = %d", hub.opts.MaxWatches)
 	}
 }
+
+// waitArmed blocks until every fsnotify watch is armed on its host directory,
+// i.e. a re-arm after a delete and recreate has completed.
+func waitArmed(t *testing.T, hub *Hub) {
+	t.Helper()
+	hub.mu.Lock()
+	f := hub.fsn
+	hub.mu.Unlock()
+	deadline := time.Now().Add(waitFor)
+	for time.Now().Before(deadline) {
+		f.mu.Lock()
+		ok := true
+		for _, set := range f.dirs {
+			for w := range set {
+				ok = ok && w.armed
+			}
+		}
+		f.mu.Unlock()
+		if ok {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatal("timed out waiting for watches to re-arm")
+}
+
+func mkdirAll(t *testing.T, p string) {
+	t.Helper()
+	if err := os.MkdirAll(p, 0o750); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRearmDirKey(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	s := subscribe(t, hub, "sub")
+	if err := os.RemoveAll(filepath.Join(dir, "sub")); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, s, ev("sub", OpDeleted))
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	waitArmed(t, hub)
+	write(t, filepath.Join(dir, "sub", "c.md"), "x")
+	expect(t, s, ev("sub/c.md", OpCreated))
+}
+
+func TestRearmFileKey(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	write(t, filepath.Join(dir, "sub", "f.md"), "x")
+	s := subscribe(t, hub, "sub/f.md")
+	if err := os.RemoveAll(filepath.Join(dir, "sub")); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, s, ev("sub/f.md", OpDeleted))
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	waitArmed(t, hub)
+	write(t, filepath.Join(dir, "sub", "f.md"), "again")
+	expect(t, s, ev("sub/f.md", OpCreated))
+}
+
+func TestRearmFileCreatedBeforeArm(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	write(t, filepath.Join(dir, "sub", "f.md"), "x")
+	s := subscribe(t, hub, "sub/f.md")
+	if err := os.RemoveAll(filepath.Join(dir, "sub")); err != nil {
+		t.Fatal(err)
+	}
+	// Recreate with the file already inside: only the catch-up stat sees it.
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	write(t, filepath.Join(dir, "sub", "f.md"), "again")
+	// The delete and the re-creation may merge into modified, but the final
+	// state must be reported as present, not deleted.
+	timeout := time.After(waitFor)
+	for last := OpDeleted; last == OpDeleted; {
+		select {
+		case <-s.Notify():
+			for _, e := range s.Drain() {
+				last = e.Op
+			}
+		case <-timeout:
+			t.Fatal("timed out waiting for the file to be reported present")
+		}
+	}
+}
+
+func TestRearmNested(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	mkdirAll(t, filepath.Join(dir, "a", "b", "c"))
+	sd := subscribe(t, hub, "a/b/c")
+	sf := subscribe(t, hub, "a/b/c/f.md")
+	if err := os.RemoveAll(filepath.Join(dir, "a")); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, sd, ev("a/b/c", OpDeleted))
+	mkdirAll(t, filepath.Join(dir, "a", "b", "c"))
+	waitArmed(t, hub)
+	write(t, filepath.Join(dir, "a", "b", "c", "f.md"), "x")
+	expect(t, sd, ev("a/b/c/f.md", OpCreated))
+	expect(t, sf, ev("a/b/c/f.md", OpCreated))
+
+	// Step down level by level, with a pause between levels.
+	if err := os.RemoveAll(filepath.Join(dir, "a")); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, sd, ev("a/b/c", OpDeleted))
+	mkdirAll(t, filepath.Join(dir, "a"))
+	mkdirAll(t, filepath.Join(dir, "a", "b"))
+	mkdirAll(t, filepath.Join(dir, "a", "b", "c"))
+	waitArmed(t, hub)
+	write(t, filepath.Join(dir, "a", "b", "c", "g.md"), "x")
+	expect(t, sd, ev("a/b/c/g.md", OpCreated))
+}
+
+func TestRearmRejectsEscapingSymlink(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	outside := t.TempDir()
+	mkdirAll(t, filepath.Join(dir, "sub"))
+	s := subscribe(t, hub, "sub")
+	if err := os.RemoveAll(filepath.Join(dir, "sub")); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, s, ev("sub", OpDeleted))
+	if err := os.Symlink(outside, filepath.Join(dir, "sub")); err != nil {
+		t.Fatal(err)
+	}
+	// Let the re-arm pass settle on the ancestor, then touch the outside dir.
+	hub.mu.Lock()
+	f := hub.fsn
+	hub.mu.Unlock()
+	deadline := time.Now().Add(waitFor)
+	for {
+		f.mu.Lock()
+		settled := false
+		for _, set := range f.dirs {
+			for w := range set {
+				settled = settled || (!w.armed && w.anc != "" && !w.busy)
+			}
+		}
+		f.mu.Unlock()
+		if settled {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("watch never settled on the ancestor")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	write(t, filepath.Join(outside, "leak.md"), "x")
+	time.Sleep(100 * time.Millisecond) // several coalesce windows
+	for _, e := range s.Drain() {
+		t.Fatalf("event from outside the root: %v", e)
+	}
+	f.mu.Lock()
+	for _, set := range f.dirs {
+		for w := range set {
+			if w.armed {
+				t.Fatal("watch re-armed through an escaping symlink")
+			}
+		}
+	}
+	f.mu.Unlock()
+}
+
+func TestRearmCleanup(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	mkdirAll(t, filepath.Join(dir, "a", "b"))
+	s := subscribe(t, hub, "a/b", "a/b/f.md")
+	if err := os.RemoveAll(filepath.Join(dir, "a")); err != nil {
+		t.Fatal(err)
+	}
+	expect(t, s, ev("a/b", OpDeleted))
+	// Disarmed and waiting on an ancestor: unsubscribing must release it.
+	deadline := time.Now().Add(waitFor)
+	for {
+		hub.fsn.mu.Lock()
+		n := len(hub.fsn.refs)
+		busy := false
+		for _, set := range hub.fsn.dirs {
+			for w := range set {
+				busy = busy || w.busy
+			}
+		}
+		hub.fsn.mu.Unlock()
+		if n > 0 && !busy {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("watch never settled on an ancestor")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	s.Close()
+	hub.fsn.mu.Lock()
+	defer hub.fsn.mu.Unlock()
+	if len(hub.fsn.dirs) != 0 || len(hub.fsn.refs) != 0 || len(hub.fsn.w.WatchList()) != 0 {
+		t.Fatalf("left behind: %v %v %v", hub.fsn.dirs, hub.fsn.refs, hub.fsn.w.WatchList())
+	}
+}

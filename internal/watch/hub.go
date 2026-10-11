@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"path"
 	"path/filepath"
 	"sort"
 	"sync"
@@ -206,15 +207,19 @@ func (h *Hub) startLocked(t target) (*entry, error) {
 	co := newCoalescer(t.key.root, h.opts.Coalesce, func(ev Event) { h.dispatch(e, ev) })
 	if t.h.Watch() == config.WatchFSNotify {
 		if h.fsn == nil {
-			f, err := newFSNotifier(h.logger, &h.wg)
+			f, err := newFSNotifier(h.ctx, h.logger, &h.wg)
 			if err != nil {
 				return nil, err
 			}
 			h.fsn = f
 		}
-		w := &fsWatch{fsn: h.fsn, co: co, path: t.key.path, host: t.host, isDir: t.isDir, exists: !t.gone}
+		w := &fsWatch{fsn: h.fsn, co: co, h: t.h, path: t.key.path, hostRel: t.key.path,
+			host: t.host, isDir: t.isDir, exists: !t.gone}
 		if !t.isDir {
 			w.host, w.base = filepath.Dir(t.host), filepath.Base(t.host)
+			if w.hostRel = path.Dir(t.key.path); w.hostRel == "." {
+				w.hostRel = ""
+			}
 		}
 		if err := h.fsn.add(w); err != nil {
 			return nil, err
