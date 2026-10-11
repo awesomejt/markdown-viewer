@@ -22,7 +22,6 @@ All Phase 0 tasks are done.
 
 Backend:
 
-- [ ] **B1** [S] Config package (env only) (deps: P0.3, P0.6)
 - [ ] **B2** [S] 🔒 Path guard on `os.Root` (deps: B1, P0.4)
 - [ ] **B3** [S] Listing + reads with timeouts, in-flight cap, NFC/NFD retry (deps: B2)
 - [ ] **B4a** [S] 🔒 HTTP API core, error model, allowlist file serving (deps: B3)
@@ -87,6 +86,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **B1** `internal/config` env-only loader; all errors joined; 100% coverage.
 - [x] 2026-10-11: **P0.6** Opus plan challenge; 15 findings applied (D-19–D-21).
 - [x] 2026-10-11: **P0.5** D2 v0.9.0 library spike; findings in agents/Research.md.
 

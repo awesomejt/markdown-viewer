@@ -9,7 +9,7 @@
 #   stopped - loop permanently halted or project complete
 
 status: active
-phase: foundation
+phase: mvp
 reason: ~
 worker: ~
 updated: 2026-10-11
