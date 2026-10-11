@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B6 watch hub + SSE complete (2026-10-11)
-- Next recommended task: B7 [S] concurrency review of B6; F1 app shell is also ready
+- Last major milestone: B7 watch concurrency review + fixes complete (2026-10-11)
+- Next recommended task: F1 [S] app shell (FIX-1 is low priority, fsnotify roots only)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B7)
+
+- Task: Concurrency review of the B6 watch hub + SSE.
+- Files changed: `internal/watch/{hub,poll}.go` + tests, `internal/fsroot/watchops.go` (`HostPathMissing`) + test, `internal/api/{api,events}.go` + tests, `docs/Architecture.md`.
+- Result: Sonnet review found no races (`go test -race -count=20`), sound lock ordering and shutdown ordering. Fixed: each SSE write/ping gets a 10 s deadline (a non-reading client could pin the handler); non-GET on `/api/events` is 405 (HEAD opened an endless stream); a missing `sub` path is accepted with a not-present baseline and later emits `created` (fsnotify needs the parent dir; poll accepts any); poll follows kind swaps (reported as `modified`); `Options.MaxWatches` (256 distinct keys) returns 503 `busy`. Orchestrator reviewed the diff and re-ran race ×5 and `make check`. 94.9% watch / 94.2% api / 98.2% fsroot.
+- Blockers or follow-up: FIX-1 (fsnotify recreated dir stays silent). F6: EventSource treats any non-200 (503 cap/shutdown) as fatal, so the client must reopen with backoff itself. Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B6)
 

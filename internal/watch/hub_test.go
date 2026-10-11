@@ -182,10 +182,20 @@ func TestSubscribeErrors(t *testing.T) {
 				kind fsroot.Kind
 			}{
 				{Sub{"nope", "ok.md"}, fsroot.KindNotFound},
-				{Sub{"r", "missing.md"}, fsroot.KindNotFound},
 				{Sub{"r", "../x"}, fsroot.KindBadRequest},
 				{Sub{"r", "/abs"}, fsroot.KindBadRequest},
 				{Sub{"r", "esc"}, fsroot.KindForbidden},
+			}
+			if mode == config.WatchFSNotify { // the parent must exist to be watched
+				tests = append(tests,
+					struct {
+						sub  Sub
+						kind fsroot.Kind
+					}{Sub{"r", "nodir/missing.md"}, fsroot.KindNotFound},
+					struct {
+						sub  Sub
+						kind fsroot.Kind
+					}{Sub{"r", "ok.md/child"}, fsroot.KindNotFound})
 			}
 			for _, tc := range tests {
 				// A good sub alongside must not stay registered.
@@ -325,4 +335,59 @@ func TestFSNotifyAddFailureRollsBack(t *testing.T) {
 	s := subscribe(t, hub, "a.md")
 	write(t, filepath.Join(dir, "a.md"), "changed")
 	expect(t, s, ev("a.md", OpModified))
+}
+
+func TestMissingPathCreated(t *testing.T) {
+	for _, mode := range modes {
+		t.Run(string(mode), func(t *testing.T) {
+			hub, dir := newEnv(t, mode)
+			s := subscribe(t, hub, "later.md")
+			write(t, filepath.Join(dir, "later.md"), "x")
+			expect(t, s, ev("later.md", OpCreated))
+			write(t, filepath.Join(dir, "later.md"), "changed, longer")
+			expect(t, s, ev("later.md", OpModified))
+			if err := os.Remove(filepath.Join(dir, "later.md")); err != nil {
+				t.Fatal(err)
+			}
+			expect(t, s, ev("later.md", OpDeleted))
+			write(t, filepath.Join(dir, "later.md"), "again")
+			expect(t, s, ev("later.md", OpCreated))
+		})
+	}
+}
+
+func TestMaxWatches(t *testing.T) {
+	for _, mode := range modes {
+		t.Run(string(mode), func(t *testing.T) {
+			hub, dir := newEnv(t, mode)
+			hub.opts.MaxWatches = 2
+			for _, n := range []string{"a.md", "b.md", "c.md"} {
+				write(t, filepath.Join(dir, n), "x")
+			}
+			sa := subscribe(t, hub, "a.md", "b.md")
+			// Existing keys cost nothing, duplicates count once.
+			subscribe(t, hub, "a.md", "b.md", "a.md")
+			// One new key would be the third; nothing of the request stays.
+			_, err := hub.Subscribe(context.Background(), []Sub{{"r", "a.md"}, {"r", "c.md"}})
+			if !errors.Is(err, ErrTooManyWatches) {
+				t.Fatalf("err = %v, want ErrTooManyWatches", err)
+			}
+			if n := hub.Watching(); n != 2 {
+				t.Fatalf("watching %d, want 2", n)
+			}
+			// The second subscription still holds both keys, so room appears
+			// only once both are gone.
+			sa.Close()
+			if _, err := hub.Subscribe(context.Background(), []Sub{{"r", "c.md"}}); !errors.Is(err, ErrTooManyWatches) {
+				t.Fatalf("err = %v, want ErrTooManyWatches", err)
+			}
+		})
+	}
+}
+
+func TestDefaultMaxWatches(t *testing.T) {
+	hub, _ := newEnv(t, config.WatchPoll)
+	if hub.opts.MaxWatches != DefaultMaxWatches {
+		t.Fatalf("MaxWatches = %d", hub.opts.MaxWatches)
+	}
 }

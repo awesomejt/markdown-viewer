@@ -16,16 +16,22 @@ import (
 // ErrClosed is returned by [Hub.Subscribe] after [Hub.Close].
 var ErrClosed = errors.New("watch: hub closed")
 
+// ErrTooManyWatches is returned by [Hub.Subscribe] when registering the
+// request would push the hub past [Options.MaxWatches] distinct keys.
+var ErrTooManyWatches = errors.New("watch: too many watched paths")
+
 // Defaults for [Options] fields left zero.
 const (
 	DefaultPollInterval = 2 * time.Second
 	DefaultCoalesce     = 250 * time.Millisecond
+	DefaultMaxWatches   = 256
 )
 
 // Options configures a [Hub].
 type Options struct {
 	PollInterval time.Duration // poll roots; default [DefaultPollInterval]
 	Coalesce     time.Duration // per-path event window; default [DefaultCoalesce]
+	MaxWatches   int           // distinct (root, path) keys; default [DefaultMaxWatches]
 	Logger       *slog.Logger  // nil discards
 }
 
@@ -70,6 +76,9 @@ func New(reg *fsroot.Registry, opts Options) *Hub {
 	if opts.Coalesce <= 0 {
 		opts.Coalesce = DefaultCoalesce
 	}
+	if opts.MaxWatches <= 0 {
+		opts.MaxWatches = DefaultMaxWatches
+	}
 	logger := opts.Logger
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
@@ -84,6 +93,7 @@ type target struct {
 	h     *fsroot.Handle
 	isDir bool
 	host  string    // fsnotify roots: host path of the path itself
+	gone  bool      // the path does not exist yet; a later creation is reported
 	base  pollState // poll roots: baseline observation
 }
 
@@ -105,6 +115,13 @@ func (h *Hub) prepare(ctx context.Context, s Sub) (target, error) {
 	t := target{key: key{s.Root, rel}, h: fh}
 	if fh.Watch() == config.WatchFSNotify {
 		host, fi, err := fh.HostPath(ctx, rel)
+		if fsroot.KindOf(err) == fsroot.KindNotFound {
+			// Watch the parent for the path to appear.
+			if host, err = fh.HostPathMissing(ctx, rel); err == nil {
+				t.host, t.gone = host, true
+				return t, nil
+			}
+		}
 		if err != nil {
 			return target{}, err
 		}
@@ -112,6 +129,10 @@ func (h *Hub) prepare(ctx context.Context, s Sub) (target, error) {
 		return t, nil
 	}
 	fi, err := fh.Stat(ctx, rel)
+	if fsroot.KindOf(err) == fsroot.KindNotFound {
+		t.gone = true // zero baseline: not present
+		return t, nil
+	}
 	if err != nil {
 		return target{}, err
 	}
@@ -151,6 +172,16 @@ func (h *Hub) Subscribe(ctx context.Context, subs []Sub) (*Subscription, error) 
 		h.mu.Unlock()
 		return nil, ErrClosed
 	}
+	fresh := 0
+	for _, t := range targets {
+		if h.entries[t.key] == nil {
+			fresh++
+		}
+	}
+	if len(h.entries)+fresh > h.opts.MaxWatches {
+		h.mu.Unlock()
+		return nil, ErrTooManyWatches
+	}
 	for _, t := range targets {
 		e := h.entries[t.key]
 		if e == nil {
@@ -181,7 +212,7 @@ func (h *Hub) startLocked(t target) (*entry, error) {
 			}
 			h.fsn = f
 		}
-		w := &fsWatch{fsn: h.fsn, co: co, path: t.key.path, host: t.host, isDir: t.isDir, exists: true}
+		w := &fsWatch{fsn: h.fsn, co: co, path: t.key.path, host: t.host, isDir: t.isDir, exists: !t.gone}
 		if !t.isDir {
 			w.host, w.base = filepath.Dir(t.host), filepath.Base(t.host)
 		}
@@ -190,7 +221,7 @@ func (h *Hub) startLocked(t target) (*entry, error) {
 		}
 		e.w = w
 	} else {
-		e.w = startPoller(h.ctx, &h.wg, t.h, t.key.path, t.isDir, h.opts.PollInterval, co, t.base)
+		e.w = startPoller(h.ctx, &h.wg, t.h, t.key.path, h.opts.PollInterval, co, t.base)
 	}
 	h.entries[t.key] = e
 	return e, nil

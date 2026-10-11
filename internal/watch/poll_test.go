@@ -99,3 +99,39 @@ func TestPollRecreatedAsDirectory(t *testing.T) {
 	}
 	expect(t, s, ev("x", OpCreated))
 }
+
+func TestPollKindSwaps(t *testing.T) {
+	t.Run("file to dir", func(t *testing.T) {
+		hub, dir := newEnv(t, config.WatchPoll)
+		p := dir + "/x"
+		write(t, p, "file")
+		s := subscribe(t, hub, "x")
+		if err := os.Remove(p); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Mkdir(p, 0o750); err != nil {
+			t.Fatal(err)
+		}
+		expect(t, s, ev("x", OpModified))
+		// The poller now follows it as a directory.
+		write(t, p+"/child", "c")
+		expect(t, s, ev("x/child", OpCreated))
+	})
+	t.Run("dir to file", func(t *testing.T) {
+		hub, dir := newEnv(t, config.WatchPoll)
+		p := dir + "/x"
+		if err := os.Mkdir(p, 0o750); err != nil {
+			t.Fatal(err)
+		}
+		write(t, p+"/child", "c")
+		s := subscribe(t, hub, "x")
+		if err := os.RemoveAll(p); err != nil {
+			t.Fatal(err)
+		}
+		write(t, p, "file")
+		expect(t, s, ev("x", OpModified))
+		// ...and as a file: content changes are seen.
+		write(t, p, "file, now longer")
+		expect(t, s, ev("x", OpModified))
+	})
+}
