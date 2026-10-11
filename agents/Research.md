@@ -61,7 +61,7 @@ Track AI-assisted research and references - saved for later reference if needed.
 
 ## 2026-10-11: D2 Library Spike (P0.5)
 
-Spike code: `cmd/spike-d2` (throwaway, deleted when B5 lands).
+Spike code: `cmd/spike-d2` (throwaway; deleted in B5, whose implementation is `internal/d2render`).
 
 **Module and imports.** `go.mod` of v0.9.0 declares `module github.com/d2lang/d2` (Go 1.27). Imports used:
 `github.com/d2lang/d2/{d2lib, d2graph, d2renderers/d2svg, d2layouts/d2dagrelayout, d2layouts/d2elklayout, d2themes/d2themescatalog, lib/log, lib/textmeasure}` and `github.com/d2lang/util-go/go2` (for `go2.Pointer`).
