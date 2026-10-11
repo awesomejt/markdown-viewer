@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
-- Last major milestone: P0.2 Makefile + test harness complete (2026-10-11)
-- Next recommended task: P0.3 [S] Lint configs (see `TODO.md`)
+- Last major milestone: P0.3 lint configs + per-tool `make lint` complete (2026-10-11)
+- Next recommended task: P0.4 [S] Fixture tree (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -56,6 +56,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 (P0.3)
+
+- Task: Lint configs and per-tool `make lint-*` targets.
+- Files changed: `.golangci.yml`, `.yamllint.yaml`, `.markdownlint-cli2.yaml`, `.hadolint.yaml`, `.shellcheckrc`, `Makefile`, `web/package.json`, `CONTRIBUTING.md`, plus fixes to existing Markdown, Go, and web formatting.
+- Result: golangci-lint, hadolint, and shellcheck run from pinned Docker images as the host user with caches in `build/.cache/`. markdownlint-cli2 is a web devDependency. Docker and shell lint skip when no files exist. No lint rules disabled except MD013 (long table rows) and gosec in tests.
+- Blockers or follow-up: None. Ready for P0.4.
 
 ### 2026-10-11 - Claude Haiku 4.5 (P0.2)
 
