@@ -235,3 +235,92 @@ a:focus-visible {
     transition: none;
   }
 }
+
+/* Markdown documents */
+.markdown-body {
+  max-width: 50rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body h1,
+.markdown-body h2 {
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-body table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 0.4em 0.8em;
+  border: 1px solid var(--border);
+}
+
+.markdown-body tr:nth-child(even) {
+  background: var(--bg-alt);
+}
+
+.markdown-body code {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background: var(--bg-alt);
+  font-size: 0.9em;
+}
+
+.markdown-body pre {
+  padding: 0.8em 1em;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+  overflow-x: auto;
+}
+
+.markdown-body pre code {
+  padding: 0;
+  background: none;
+}
+
+.markdown-body blockquote {
+  margin-inline: 0;
+  padding-inline: 1em;
+  border-inline-start: 4px solid var(--border);
+  color: var(--muted);
+}
+
+.markdown-body ul:has(> li.task-list-item) {
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.markdown-body .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.markdown-body .link-blocked {
+  color: var(--muted);
+  text-decoration: line-through dotted;
+  cursor: not-allowed;
+}
+
+.markdown-body .diagram-placeholder {
+  border-style: dashed;
+}
+
+.markdown-body [id] {
+  scroll-margin-top: calc(var(--header-h) + 8px);
+}
