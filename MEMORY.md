@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 0 Foundation (scaffolding in progress)
 - Last major milestone: P0.3 lint configs + per-tool `make lint` complete (2026-10-11)
-- Next recommended task: P0.4 [S] Fixture tree (see `TODO.md`)
+- Next recommended task: P0.5 [S] D2 spike (see `TODO.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -56,6 +56,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 (P0.4)
+
+- Task: Test fixture tree and generator script.
+- Files changed: `testdata/fixtures/**`, `testdata/mkfixtures.sh`, `testdata/README.md`, `Makefile`, `.gitignore`.
+- Result: Committed edge-case fixtures; `testdata/fixtures/generated/` (symlinks, ~6 MiB `large.md`) is created by an idempotent script with `--verify`. `make fixtures` runs it, and `test-go` depends on it. The generated dir replaces the `links/` name in `.gitignore`.
+- Blockers or follow-up: None. Ready for P0.5.
 
 ### 2026-10-11 - Claude Sonnet 5.5 (P0.3)
 
