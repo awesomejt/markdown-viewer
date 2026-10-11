@@ -15,7 +15,7 @@ Before planning or editing, read:
 - `README.md`
 - `MEMORY.md`
 - `docs/Requirements.md`
-- Run `awb task next` to get the next recommended task, or read `TODO.md` if AWB is not configured.
+- `TODO.md` (task list; pick the next ready task)
 - `docs/Tech-Stack.md`
 - Any files directly related to the requested task
 
@@ -27,10 +27,9 @@ The root files are the durable handoff contract:
 
 - `AGENTS.md` - AI assistant instructions.
 - `README.md` - human-facing project overview.
-- `TODO.md` - task tracking, priorities, blockers, and completed work (fallback when AWB is not configured).
+- `TODO.md` - task tracking, priorities, blockers, and completed work (authoritative).
 - `MEMORY.md` - persistent decisions, milestones, context, and run notes.
-- `status.yaml` - project state fallback (used when AWB is not configured).
-- `.awb/config.yaml` - Agent Workbench per-repo config (API URL and project slug).
+- `status.yaml` - current project state.
 - `.gitmessage` - Conventional Commit template with AI attribution fields.
 
 ## Working Rules
@@ -47,25 +46,13 @@ The root files are the durable handoff contract:
 
 ## Task Workflow
 
-Task state is tracked using Agent Workbench (`awb`). Set your agent name once per session:
+This project tracks tasks in **`TODO.md`** in the repo (owner decision D-16). Agent Workbench (`awb`) is not used.
 
-```bash
-export AWB_AGENT=<your-agent-name>
-```
-
-Then use standard AWB commands:
-
-```bash
-awb task next                                                  # get the next recommended task
-awb task claim <task-id>                                       # claim it
-awb task complete <task-id> --summary "What was done"          # mark complete
-awb task block <task-id> --reason "<exact blocker>"            # mark blocked
-awb task create --title "..." --priority high                  # add a new task
-```
-
-The `.awb/config.yaml` file auto-loads `api_url` and `project` — only `AWB_AGENT` needs to be set per session.
-
-**Fallback (no AWB):** If `.awb/config.yaml` has unresolved placeholders or AWB is unreachable, use `TODO.md` for task tracking.
+- Next task: the first unchecked task in `TODO.md` whose dependencies are all in **Done**.
+- Start: move it to **In Progress** on the task branch.
+- Finish: move it to **Done** with the date and a one-line result.
+- Blocked: move it to **Blocked** with the exact reason and the next human action, set `status.yaml` to `blocked`, and record the blocker in `MEMORY.md`.
+- New work (fixes, follow-ups): add it under the right phase with an ID and model tier.
 
 ## Git Workflow
 
@@ -81,19 +68,11 @@ Each task runs branch → work → review → merge, starting from a clean `main
 
 ## Multi-Agent Model Tiers
 
-This project delegates work to subagents by model tier to save tokens: **Haiku** for deterministic work, **Sonnet** for moderate implementation and review, and **Opus** for design, security-critical code, and phase reviews. Each task in `TODO.md` is tagged `[H]`, `[S]`, or `[O]`. Follow the rules in `docs/Implementation.md` ("Multi-Agent Workflow And Model Tiers"): the orchestrator delegates one task per fresh-context subagent with a scoped prompt, validates cheaply, escalates on repeated failure, and commits per task.
+This project delegates work to subagents by model tier to save tokens: **Haiku** for deterministic work, **Sonnet** for moderate implementation and review, and **Opus** for design, security-critical code, and phase reviews. Each task in `TODO.md` is tagged `[H]`, `[S]`, or `[O]`. Follow the rules in `docs/Implementation.md` ("Multi-Agent Workflow And Model Tiers"): the orchestrator delegates one task per fresh-context subagent with a scoped prompt, validates cheaply, escalates on repeated failure, and commits small grouped changesets per task.
 
 ## Status Workflow
 
-Project status is tracked using `awb status`:
-
-```bash
-awb status show                                                            # view current status
-awb status create --status active --phase <phase> --summary "..."          # create a record
-awb status update <id> --version <n> --status blocked --reason "..."       # update a record
-```
-
-**Fallback (no AWB):** Edit `status.yaml` directly. Status values:
+Project status lives in `status.yaml`. Edit it directly. Status values:
 
 - `active` - work may proceed.
 - `paused` - do not perform automated work.
