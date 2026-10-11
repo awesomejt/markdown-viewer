@@ -43,6 +43,9 @@ describe('href builders', () => {
   it('appends an encoded workspace', () => {
     expect(viewHref('r', 'x.md', 'my docs/sub')).toBe('/view/r/x.md?ws=my%20docs%2Fsub');
     expect(browseHref('r', '', 'w')).toBe('/browse/r?ws=w');
+    expect(browseHref('r', 'a', '')).toBe('/browse/r/a?ws=');
+    expect(viewHref('r', 'x.md', '')).toBe('/view/r/x.md?ws=');
+    expect(viewHref('r', 'x.md', undefined)).toBe('/view/r/x.md');
   });
 
   it('builds file urls with query encoding', () => {

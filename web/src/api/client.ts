@@ -22,8 +22,9 @@ export function encodePath(path: string): string {
   return path.split('/').map(encodeURIComponent).join('/');
 }
 
+/** `ws === ''` is the root folder as workspace (`?ws=`); `undefined` means no workspace. */
 function withWorkspace(href: string, ws?: string): string {
-  return ws ? `${href}?ws=${encodeURIComponent(ws)}` : href;
+  return ws !== undefined ? `${href}?ws=${encodeURIComponent(ws)}` : href;
 }
 
 export function browseHref(root: string, path: string, ws?: string): string {
