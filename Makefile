@@ -33,8 +33,9 @@ test-web:
 ## test: run all tests (Go + web)
 test: test-go test-web
 
-## cover-check: verify coverage meets thresholds
-cover-check:
+## cover-check: verify coverage meets thresholds (runs Go tests first)
+# Real dependency on test-go keeps this correct under parallel make (-j).
+cover-check: test-go
 	go run ./tools/covercheck -profile build/coverage/go.out -config .coverage.yaml
 
 ## lint: run all linters (P0.3 will extend this target)
