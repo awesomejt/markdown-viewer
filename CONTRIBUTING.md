@@ -136,8 +136,17 @@ Common development tasks are available via `make`. Run `make help` to list all t
 - `make lint-shell` - shellcheck on `*.sh` (`.shellcheckrc`); skips when none exist
 - `make check` - Run all checks (lint + test + cover-check)
 - `make run` - Build and run the application
-- `make e2e` - Run end-to-end tests
+- `make e2e` - Run Playwright end-to-end tests (see below)
+- `make lint-e2e` - ESLint, `tsc` typecheck, and Prettier check for `e2e/`
 - `make clean` - Remove all build artifacts
+
+### End-to-end tests
+
+`make e2e` builds the app and fixtures, installs `e2e/` npm dependencies, then runs Playwright inside the pinned
+`mcr.microsoft.com/playwright` Docker image (the tag in the `Makefile` must match `@playwright/test` in
+`e2e/package.json`). No browsers are needed on the host, only Docker. The test config starts `build/mdv` against
+`testdata/fixtures`. Results go to the ignored `build/e2e/`; view the HTML report with
+`npx --prefix e2e playwright show-report build/e2e/report`. `make e2e` is not part of `make check`.
 
 ### Lint tooling
 

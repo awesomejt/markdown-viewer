@@ -60,7 +60,7 @@ Every task follows branch → work → review → merge. Nothing is pushed to `o
 | Markdown | markdownlint-cli2 0.23 (web devDependency) | `.markdownlint-cli2.yaml` |
 | Dockerfile | hadolint 2.15.1 via the `hadolint/hadolint:v2.15.1` image | `.hadolint.yaml` |
 | Shell scripts | shellcheck 0.11 via the `koalaman/shellcheck:v0.11.0` image | `.shellcheckrc` |
-| E2E | Playwright 1.64 | `playwright.config.ts` |
+| E2E | Playwright 1.64.0, run via the `mcr.microsoft.com/playwright:v1.64.0-noble` image (`make e2e`); `e2e/` is linted by `make lint-e2e` | `e2e/playwright.config.ts` |
 
 **Coverage targets** (enforced by `make check`):
 
