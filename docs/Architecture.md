@@ -207,6 +207,14 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 
 **Client resilience:** the SPA handles `vite:preloadError` by reloading once.
 
+**Frontend shell (F1):**
+
+- Theme: modes `system|light|dark` stored in `localStorage` key `mdv-theme`; the resolved theme is set as `data-theme` on `<html>` and `system` follows `prefers-color-scheme` live.
+- Query keys (`web/src/api/hooks.ts`, invalidate by prefix): `['roots']`, `['list', root, path]`, `['file', root, path, force]`.
+- Retry policy: 4xx is never retried; network errors, 5xx and 504 retry at most twice. Client-side network failures surface as `ApiError` with `code: 'network'`.
+- The sidebar is persistent at 900 px and wider and a drawer below that. `vite:preloadError` reloads once, guarded by the `mdv-preload-reloaded` sessionStorage flag.
+- Dev: `npm --prefix web run dev` proxies `/api` and `/healthz` to `http://localhost:8080` (run `mdv` there).
+
 ## Security Model
 
 - Trusted LAN, no authentication (owner decision). Read-only. Host paths are never shown to clients, only `root` names and relative paths.
