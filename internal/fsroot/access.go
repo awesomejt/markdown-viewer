@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -48,6 +49,7 @@ var _ FS = (*Root)(nil)
 type Handle struct {
 	name       string
 	watch      config.WatchMode
+	hostDir    string // absolute host path of the root; empty for test handles
 	fs         FS
 	closer     func() error
 	timeout    time.Duration
@@ -78,6 +80,9 @@ func OpenHandle(root config.Root, cfg *config.Config) (*Handle, error) {
 	}
 	h := NewHandle(root.Name, root.Watch, r, cfg.FSTimeout, cfg.FSMaxInflight, cfg.MaxListEntries)
 	h.closer = r.Close
+	if abs, aerr := filepath.Abs(root.Path); aerr == nil {
+		h.hostDir = abs
+	}
 	return h, nil
 }
 
