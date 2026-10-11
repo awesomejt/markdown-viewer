@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: B4a HTTP API core complete (2026-10-11)
-- Next recommended task: B4b [S] SPA embed + fallback/caching, graceful shutdown, `mdv healthcheck`
+- Last major milestone: B4b SPA embed + `mdv` lifecycle complete (2026-10-11)
+- Next recommended task: B5 [S] D2 render endpoint + cache (or B6 watch hub + SSE; both depend only on B4a)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (B4b)
+
+- Task: SPA embed and lifecycle.
+- Files changed: `internal/web/{web.go,web_test.go,doc.go}`, `cmd/mdv/{main.go,main_test.go}`, `docs/Architecture.md`.
+- Result: `web.Handler()` / `web.NewHandler(fs.FS)` serve the embedded `dist` (works empty: plain-text 503 "web UI not built"). Non-asset static files are `no-cache`; trailing-slash paths fall back to `index.html`; never lists directories. `cmd/mdv`: `run(ctx, args, getenv, stdout, stderr)`; `serve` mounts the SPA on `api.Server.Mux()` at `/`, JSON slog, `ReadHeaderTimeout` 10 s, no `WriteTimeout`, 10 s shutdown drain. `healthcheck` reads only `MDV_LISTEN`. Smoke test against a real binary passed. Orchestrator reviewed the diff (no separate reviewer: small, non-🔒). 95.2% coverage; `make check` green.
+- Blockers or follow-up: B6 must end SSE streams on shutdown (`srv.RegisterOnShutdown` or a server-scoped ctx), because `http.Server.Shutdown` waits for active connections and would hit the 10 s drain. SPA index.html has no ETag (refetched each load; small).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (B4a)
 
