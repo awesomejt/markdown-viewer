@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: T0 Playwright e2e scaffold complete (2026-10-11)
-- Next recommended task: F2 [S] browse views (F3 is also ready)
+- Last major milestone: F2 browse views complete (2026-10-11)
+- Next recommended task: F3 [S] 🔒 Markdown pipeline (needs an Opus review before merge)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F2)
+
+- Task: Browse views.
+- Files changed: `web/src/browse/{logic,RootsView,BrowseView,Breadcrumbs,KindIcon}.tsx/ts` + tests, `browse.css`, `web/src/app/views.tsx`, `web/src/api/client.ts` + test, `e2e/tests/browse.spec.ts`.
+- Result: `withWorkspace` now checks `ws !== undefined`, so `?ws=` (empty) means the whole root is the workspace, distinct from no workspace. "Open as workspace" goes to README.md, then index.md (case-insensitive), else the folder listing. The markdown-only toggle is stored under `mdv-md-only`. Dot-files are always hidden (the toggle comes in R2.1). The filter is component state. The orchestrator fixed two defects on review: the filter persisted across folders (the folder view is now keyed by path), and breadcrumbs kept `ws` above the workspace folder (`isWithin`). `make check` and `make e2e` are green (46 unit, 10 e2e).
+- Blockers or follow-up: entry links inside a browse view that is itself outside the workspace keep `ws`. This is only reachable by a hand-typed URL; F5 should apply `isWithin` in general when it owns workspace navigation.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (T0)
 

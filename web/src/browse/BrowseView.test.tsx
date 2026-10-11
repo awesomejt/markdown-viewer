@@ -1,0 +1,130 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { createMemoryRouter, RouterProvider } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { routes } from '../app/routes';
+
+const mtime = '2026-01-02T03:04:05Z';
+const listing = (path: string, entries: object[], truncated = false) => ({
+  root: 'r',
+  path,
+  truncated,
+  entries,
+});
+const f = (name: string, kind: string) => ({ name, type: 'file', kind, size: 2048, mtime });
+
+const bodies: Record<string, unknown> = {
+  '': listing('', [
+    { name: 'docs', type: 'dir', kind: 'other', size: 0, mtime },
+    { name: '.git', type: 'dir', kind: 'other', size: 0, mtime },
+    f('README.md', 'markdown'),
+    f('data.bin', 'other'),
+  ]),
+  docs: listing('docs', [f('a.md', 'markdown')]),
+  empty: listing('empty', []),
+  big: listing('big', [f('x.md', 'markdown')], true),
+};
+
+beforeEach(() => {
+  window.localStorage.clear();
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (url.startsWith('/api/roots')) {
+        return Response.json({ roots: [{ name: 'r', watch: 'poll', available: true }] });
+      }
+      const p = new URL(url, 'http://x').searchParams.get('path') ?? '';
+      return p in bodies ? Response.json(bodies[p]) : new Response('', { status: 404 });
+    }),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
+
+function renderAt(path: string) {
+  const router = createMemoryRouter(routes, { initialEntries: [path] });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
+  return router;
+}
+
+describe('BrowseView', () => {
+  it('lists entries, hides dot-files, links dirs and files', async () => {
+    renderAt('/browse/r?ws=x');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    expect(within(list).queryByText('.git')).toBeNull();
+    expect(within(list).getByRole('link', { name: 'docs' })).toHaveAttribute(
+      'href',
+      '/browse/r/docs?ws=x',
+    );
+    expect(within(list).getByRole('link', { name: 'README.md' })).toHaveAttribute(
+      'href',
+      '/view/r/README.md?ws=x',
+    );
+    expect(within(list).getAllByText('2 KB')).toHaveLength(2);
+  });
+
+  it('filters by name and by markdown-only (persisted)', async () => {
+    const user = userEvent.setup();
+    renderAt('/browse/r');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    await user.type(screen.getByRole('searchbox', { name: 'Filter by name' }), 'DATA');
+    expect(within(list).getAllByRole('link')).toHaveLength(1);
+    await user.clear(screen.getByRole('searchbox', { name: 'Filter by name' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Markdown/diagrams only' }));
+    expect(within(list).queryByText('data.bin')).toBeNull();
+    expect(window.localStorage.getItem('mdv-md-only')).toBe('1');
+  });
+
+  it('resets the filter when navigating to another folder', async () => {
+    const user = userEvent.setup();
+    renderAt('/browse/r');
+    await screen.findByRole('list', { name: 'Entries' });
+    await user.type(screen.getByRole('searchbox', { name: 'Filter by name' }), 'do');
+    await user.click(screen.getByRole('link', { name: 'docs' }));
+    await screen.findByRole('link', { name: 'a.md' });
+    expect(screen.getByRole('searchbox', { name: 'Filter by name' })).toHaveValue('');
+  });
+
+  it('shows the empty state', async () => {
+    renderAt('/browse/r/empty');
+    expect(await screen.findByText('This folder is empty.')).toBeInTheDocument();
+  });
+
+  it('shows a truncation notice', async () => {
+    renderAt('/browse/r/big');
+    expect(await screen.findByText(/only the first entries/)).toBeInTheDocument();
+  });
+
+  it('opens a workspace on the README, or on the folder, with ws set', async () => {
+    const user = userEvent.setup();
+    const router = renderAt('/browse/r');
+    await user.click(await screen.findByRole('button', { name: 'Open as workspace' }));
+    expect(router.state.location.pathname + router.state.location.search).toBe(
+      '/view/r/README.md?ws=',
+    );
+  });
+
+  it('opens a workspace on the folder when it has no README', async () => {
+    const user = userEvent.setup();
+    const router = renderAt('/browse/r/docs');
+    await user.click(await screen.findByRole('button', { name: 'Open as workspace' }));
+    expect(router.state.location.pathname + router.state.location.search).toBe(
+      '/browse/r/docs?ws=docs',
+    );
+    expect(await screen.findByText(/Workspace:/)).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Exit workspace' }));
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('renders breadcrumbs with the current page marked', async () => {
+    renderAt('/browse/r/docs');
+    const nav = await screen.findByRole('navigation', { name: 'Breadcrumb' });
+    expect(within(nav).getByRole('link', { name: 'r' })).toHaveAttribute('href', '/browse/r');
+    expect(within(nav).getByText('docs')).toHaveAttribute('aria-current', 'page');
+  });
+});

@@ -1,0 +1,160 @@
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumbs li {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.breadcrumbs li + li::before {
+  content: '›';
+  margin-right: 4px;
+  color: var(--muted);
+}
+
+.breadcrumbs [aria-current='page'] {
+  font-weight: 600;
+}
+
+.ws-indicator {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.filter-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 0 10px;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.filter-input:focus-visible,
+.toggle input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--touch);
+}
+
+.toggle input {
+  width: 20px;
+  height: 20px;
+}
+
+.notice {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg-alt);
+}
+
+.entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border);
+}
+
+.entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 12px;
+  min-height: var(--touch);
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.entry:hover {
+  background: var(--bg-alt);
+}
+
+.entry:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.entry.is-markdown {
+  background: var(--bg-alt);
+  border-left: 4px solid var(--accent);
+}
+
+.entry.is-markdown .entry-name {
+  font-weight: 600;
+}
+
+.entry-name {
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+/* Stretch the name link over the whole row. */
+.entry-name::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.entry-name:focus-visible {
+  outline: none;
+}
+
+.entry-size,
+.entry-time {
+  color: var(--muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.kind-icon {
+  color: var(--muted);
+}
+
+.kind-dir,
+.kind-markdown {
+  color: var(--accent);
+}
+
+@media (max-width: 599.98px) {
+  .entry {
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+  }
+
+  .entry-time {
+    grid-column: 2 / -1;
+    grid-row: 2;
+  }
+}
