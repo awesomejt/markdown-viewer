@@ -58,6 +58,11 @@ Full log: `agents/Decisions.md`.
 
 Newest entries first.
 
+### 2026-10-11 - Claude Code (Opus 5.5) - P0.5 review
+
+- Task: Verify P0.5 and fix `make clean` (read-only Go module cache under `build/.cache`).
+- Result: `make check` and `make clean` verified on the branch. For B5: dagre ignores ctx, so it needs its own wall-clock limit; `Ruler` concurrency safety is unverified.
+
 ### 2026-10-11 - Claude Sonnet 5.5 (P0.5)
 
 - Task: Spike the D2 Go library.
