@@ -16,11 +16,19 @@ const (
 	maxSubs = 32
 	// pingInterval keeps idle streams alive through proxies.
 	pingInterval = 25 * time.Second
+	// writeTimeout bounds each write to a stream, so a client that stops
+	// reading cannot hold the handler (and its watchers) forever.
+	writeTimeout = 10 * time.Second
 )
 
 // events serves GET /api/events: a Server-Sent Events stream of change events
 // for the requested root:path subscriptions.
 func (s *Server) events(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Allow", "GET")
+		writeError(w, http.StatusMethodNotAllowed, codeMethod, "method not allowed")
+		return
+	}
 	raw := r.URL.Query()["sub"]
 	if len(raw) == 0 || len(raw) > maxSubs {
 		writeError(w, http.StatusBadRequest, codeBadRequest, fmt.Sprintf("want 1 to %d sub parameters", maxSubs))
@@ -41,15 +49,28 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusServiceUnavailable, codeBusy, "server is shutting down")
 			return
 		}
+		if errors.Is(err, watch.ErrTooManyWatches) {
+			writeError(w, http.StatusServiceUnavailable, codeBusy, "too many paths are being watched, retry later")
+			return
+		}
 		s.fsError(w, r, err)
 		return
 	}
 	defer sub.Close()
 
-	// The stream outlives any server write timeout.
+	// The stream outlives any server write timeout, so each write gets its
+	// own deadline instead.
 	rc := http.NewResponseController(w)
-	if err := rc.SetWriteDeadline(time.Time{}); err != nil && !errors.Is(err, http.ErrNotSupported) {
-		s.logger.WarnContext(r.Context(), "clear write deadline", "err", err)
+	deadline := func() bool {
+		err := rc.SetWriteDeadline(time.Now().Add(s.writeTimeout))
+		if err != nil && !errors.Is(err, http.ErrNotSupported) {
+			s.logger.WarnContext(r.Context(), "set write deadline", "err", err)
+			return false
+		}
+		return true
+	}
+	if !deadline() {
+		return
 	}
 	h := w.Header()
 	h.Set("Content-Type", "text/event-stream")
@@ -69,10 +90,16 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 		case <-sub.Done():
 			return
 		case <-ping.C:
+			if !deadline() {
+				return
+			}
 			if _, err := w.Write([]byte(": ping\n\n")); err != nil || rc.Flush() != nil {
 				return
 			}
 		case <-sub.Notify():
+			if !deadline() {
+				return
+			}
 			for _, ev := range sub.Drain() {
 				data, err := json.Marshal(ev)
 				if err != nil {

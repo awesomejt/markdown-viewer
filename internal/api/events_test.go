@@ -127,7 +127,6 @@ func TestEventsBadRequests(t *testing.T) {
 		{"no colon", []string{"r"}, 400, "bad_request"},
 		{"empty root", []string{":x"}, 400, "bad_request"},
 		{"unknown root", []string{"zz:"}, 404, "not_found"},
-		{"missing path", []string{"r:nope.md"}, 404, "not_found"},
 		{"traversal", []string{"r:../x"}, 400, "bad_request"},
 		{"escape", []string{"r:esc"}, 403, "forbidden"},
 	}
@@ -261,5 +260,128 @@ func TestEventsAfterCloseIs503(t *testing.T) {
 	rec := do(s.Handler(), http.MethodGet, "/api/events?sub=r:a.md")
 	if rec.Code != http.StatusServiceUnavailable {
 		t.Fatalf("status %d: %s", rec.Code, rec.Body)
+	}
+}
+
+func TestEventsMissingPathStreams(t *testing.T) {
+	_, ts, dir := eventServer(t)
+	st := openStream(t, eventsURL(ts, "r:later.md"))
+	if st.resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d for a missing path", st.resp.StatusCode)
+	}
+	write(t, filepath.Join(dir, "later.md"), "hi")
+	for {
+		if st.change(t) == (watch.Event{Root: "r", Path: "later.md", Op: watch.OpCreated}) {
+			return
+		}
+	}
+}
+
+func TestEventsHeadAndOtherMethods(t *testing.T) {
+	s, ts, _ := eventServer(t)
+	for _, m := range []string{http.MethodHead, http.MethodPut, http.MethodDelete} {
+		req, _ := http.NewRequest(m, eventsURL(ts, "r:"), nil)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusMethodNotAllowed || resp.Header.Get("Allow") != "GET" {
+			t.Errorf("%s: status %d, Allow %q", m, resp.StatusCode, resp.Header.Get("Allow"))
+		}
+	}
+	if n := s.hub.Watching(); n != 0 {
+		t.Fatalf("%d keys watched after rejected methods", n)
+	}
+}
+
+func TestEventsTooManyWatchesIs503(t *testing.T) {
+	s, ts, dir := eventServer(t)
+	s.hub.Close()
+	s.hub = watch.New(s.reg, watch.Options{PollInterval: 5 * time.Millisecond, MaxWatches: 1})
+	t.Cleanup(s.hub.Close)
+	write(t, filepath.Join(dir, "a.md"), "x")
+	write(t, filepath.Join(dir, "b.md"), "x")
+	st := openStream(t, eventsURL(ts, "r:a.md"))
+	if st.resp.StatusCode != http.StatusOK {
+		t.Fatalf("first stream: %d", st.resp.StatusCode)
+	}
+	resp, err := http.Get(eventsURL(ts, "r:b.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var body errorBody
+	_ = json.NewDecoder(resp.Body).Decode(&body)
+	if resp.StatusCode != http.StatusServiceUnavailable || body.Error.Code != "busy" || body.Error.Message == "" {
+		t.Fatalf("got %d %+v", resp.StatusCode, body)
+	}
+	// A key that is already watched costs nothing.
+	st2 := openStream(t, eventsURL(ts, "r:a.md"))
+	if st2.resp.StatusCode != http.StatusOK {
+		t.Fatalf("shared key: %d", st2.resp.StatusCode)
+	}
+}
+
+// deadlineWriter records write deadlines and fails them after okCalls.
+type deadlineWriter struct {
+	*httptest.ResponseRecorder
+	okCalls   int
+	deadlines []time.Time
+}
+
+func (d *deadlineWriter) SetWriteDeadline(t time.Time) error {
+	d.deadlines = append(d.deadlines, t)
+	if len(d.deadlines) > d.okCalls {
+		return os.ErrDeadlineExceeded
+	}
+	return nil
+}
+
+func TestEventsWriteDeadline(t *testing.T) {
+	s, _, dir := eventServer(t)
+	write(t, filepath.Join(dir, "a.md"), "x")
+	s.writeTimeout = time.Minute
+	// The deadline is set before the headers and before the first ping, which
+	// is refused: the handler must end the stream.
+	dw := &deadlineWriter{ResponseRecorder: httptest.NewRecorder(), okCalls: 1}
+	req := httptest.NewRequest(http.MethodGet, "/api/events?sub=r:a.md", nil)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.events(dw, req)
+	}()
+	select {
+	case <-done:
+	case <-time.After(evWait):
+		t.Fatal("stream survived a failing write deadline")
+	}
+	if len(dw.deadlines) != 2 {
+		t.Fatalf("%d deadlines set, want 2", len(dw.deadlines))
+	}
+	if d := time.Until(dw.deadlines[0]); d < 30*time.Second || d > time.Minute {
+		t.Fatalf("deadline %v ahead, want about writeTimeout", d)
+	}
+	if strings.Contains(dw.Body.String(), "ping") {
+		t.Fatal("wrote after the deadline failed")
+	}
+}
+
+func TestEventsUnsupportedDeadlineStillStreams(t *testing.T) {
+	s, _, dir := eventServer(t)
+	write(t, filepath.Join(dir, "a.md"), "x")
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodGet, "/api/events?sub=r:a.md", nil).WithContext(ctx)
+	rec := httptest.NewRecorder() // no SetWriteDeadline: ErrNotSupported
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.events(rec, req)
+	}()
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+	<-done
+	if !strings.Contains(rec.Body.String(), ": ping") {
+		t.Fatalf("no ping written: %q", rec.Body.String())
 	}
 }
