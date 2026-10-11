@@ -59,8 +59,8 @@ Newest entries first.
 ### 2026-10-11 - Claude Haiku 4.5 (P0.2)
 
 - Task: Makefile with build/test/check targets, Vitest test harness, covercheck coverage gate tool.
-- Files changed: `web/package.json`, `web/vite.config.ts`, `web/src/App.test.tsx`, `web/src/test/setup.ts`, `Makefile`, `.coverage.yaml`, `tools/covercheck/main.go`, `tools/covercheck/main_test.go`.
-- Result: Root Makefile with 15 targets (build, test-go, test-web, cover-check, lint, check, run, clean, etc.). Vitest 1.0 + jsdom + testing-library configured. Coverage reporting to build/coverage/web with 80% threshold. Covercheck tool parses Go profiles and enforces thresholds (69.9% covered). `make build && ./build/mdv` succeeds. `make clean` removes all artifacts.
+- Files changed: `web/package.json`, `web/package-lock.json`, `web/vite.config.ts`, `web/src/App.test.tsx`, `web/src/test/setup.ts`, `Makefile`, `.coverage.yaml`, `tools/covercheck/main.go`, `tools/covercheck/main_test.go`.
+- Result: Root Makefile with build/test/check targets; all outputs under `build/` and `internal/web/dist/`. Web harness is Vitest 5 + `@vitest/coverage-v8` + jsdom 30 + Testing Library 16 (no deprecation warnings), coverage to `build/coverage/web` with an 80% lines threshold. `.coverage.yaml` uses a `packages` mapping and prefix `exclude` (cmd/ only). Covercheck is a thin `main` over a tested `run()` at 99.3% coverage and computes coverage from statements, counting duplicate blocks once. Gate verified: `make check` exits 0, and a config with `default: 100` makes covercheck exit 1. `make clean` leaves no artifacts.
 - Blockers or follow-up: None. Ready for P0.3 (lint configs).
 
 ### 2026-10-11 - Claude Code (Opus 5.5) - P0.1 review
