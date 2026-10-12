@@ -298,6 +298,68 @@ a:focus-visible {
   color: var(--muted);
 }
 
+.markdown-body .markdown-alert {
+  --alert: var(--accent);
+  margin-block: 1em;
+  padding: 0.5em 1em;
+  border-inline-start: 4px solid var(--alert);
+}
+
+.markdown-body .markdown-alert > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body .markdown-alert > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body .markdown-alert-title {
+  color: var(--alert);
+  font-weight: 600;
+}
+
+.markdown-body .markdown-alert-note {
+  --alert: #0969da;
+}
+.markdown-body .markdown-alert-tip {
+  --alert: #1a7f37;
+}
+.markdown-body .markdown-alert-important {
+  --alert: #8250df;
+}
+.markdown-body .markdown-alert-warning {
+  --alert: #9a6700;
+}
+.markdown-body .markdown-alert-caution {
+  --alert: #d1242f;
+}
+:root[data-theme='dark'] .markdown-body .markdown-alert-note {
+  --alert: #4493f8;
+}
+:root[data-theme='dark'] .markdown-body .markdown-alert-tip {
+  --alert: #3fb950;
+}
+:root[data-theme='dark'] .markdown-body .markdown-alert-important {
+  --alert: #ab7df8;
+}
+:root[data-theme='dark'] .markdown-body .markdown-alert-warning {
+  --alert: #d29922;
+}
+:root[data-theme='dark'] .markdown-body .markdown-alert-caution {
+  --alert: #f85149;
+}
+
+/* Wide display math scrolls on its own instead of widening the page. */
+.markdown-body .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.2em;
+}
+
+.markdown-body .katex-error {
+  color: var(--danger);
+}
+
 .markdown-body ul:has(> li.task-list-item) {
   padding-inline-start: 0;
   list-style: none;

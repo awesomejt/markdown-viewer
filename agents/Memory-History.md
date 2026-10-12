@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.5)
+
+- Task: Syntax highlighting for standalone text/code files (FR-1.5); done in the orchestrator without a subagent.
+- Files changed: `web/src/markdown/highlight.ts` (`languageForFile`: extension → fence alias/id, plus `h`/`hpp`/`jsonc`/`kts`/`pyi`...), new `web/src/fileview/CodeFile.tsx` (lazy `CodeBlock` reuse, plain above 100,000 chars), `ViewFileView.tsx`, `fileview.css`, unit/component tests, `e2e/tests/workspace.spec.ts`, `docs/Architecture.md`, `README.md`.
+- Result: new e2e red (chromium) with the old plain view. `make check` exit 0 (215 unit), `make e2e` 184 passed; logs `build/r25-*.log`.
+- Blockers or follow-up: Extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.4)
 
 - Task: Web-app manifest and home-screen icons (FR-6.3); done in the orchestrator without a subagent.

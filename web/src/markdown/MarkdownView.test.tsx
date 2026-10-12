@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ListEntry } from '../api/types';
 import MarkdownView, { detectDiagram } from './MarkdownView';
+import { mayHaveMath } from './math';
 import { rehypePlugins, remarkPlugins, sanitizeSchema } from './pipeline';
 import { scrollToHash } from './scroll';
 
@@ -41,14 +42,21 @@ function renderMd(text: string, opts: { ws?: string; at?: string } = {}) {
 describe('pipeline', () => {
   it('uses the exact plugin order', () => {
     const name = (p: unknown) => (Array.isArray(p) ? p[0] : p).name;
-    expect(remarkPlugins.map(name)).toEqual(['remarkGfm', 'remarkFrontmatter']);
+    expect(remarkPlugins.map(name)).toEqual([
+      'remarkGfm',
+      'remarkFrontmatter',
+      'remarkMath',
+      'remarkAlerts',
+    ]);
     expect(rehypePlugins.map(name)).toEqual(['rehypeRaw', 'rehypeSanitize', 'rehypeSlug']);
     expect(rehypePlugins[1]).toEqual([expect.any(Function), sanitizeSchema]);
   });
 
-  it('keeps the default clobber prefix and allows language-* classes on code', () => {
+  it('keeps the default clobber prefix and allows language-* and math classes on code', () => {
     expect(sanitizeSchema.clobberPrefix).toBe('user-content-');
-    expect(sanitizeSchema.attributes?.code).toContainEqual(['className', /^language-./]);
+    expect(sanitizeSchema.attributes?.code).toEqual([
+      ['className', /^language-./, 'math-inline', 'math-display'],
+    ]);
   });
 });
 
@@ -451,5 +459,132 @@ describe('table of contents', () => {
     expect((renderMd(doc).container.querySelector('details.toc') as HTMLDetailsElement).open).toBe(
       false,
     );
+  });
+});
+
+describe('math (KaTeX)', () => {
+  const katexIn = async (body: HTMLElement) =>
+    waitFor(() => {
+      expect(body.getAttribute('aria-busy')).toBeNull();
+      expect(body.querySelector('.katex')).not.toBeNull();
+    });
+
+  it('detects documents that may contain math', () => {
+    expect(mayHaveMath('costs $5')).toBe(true);
+    expect(mayHaveMath('```math\nx\n```')).toBe(true);
+    expect(mayHaveMath('~~~ Math\nx\n~~~')).toBe(true);
+    expect(mayHaveMath('# plain\n\n```js\nmath()\n```')).toBe(false);
+  });
+
+  it('renders inline, display and ```math fences', async () => {
+    const { body } = renderMd(
+      [
+        'Inline $E=mc^2$ here.',
+        '',
+        '$$',
+        '\\int_0^1 x\\,dx',
+        '$$',
+        '',
+        '```math',
+        'a^2+b^2',
+        '```',
+      ].join('\n'),
+    );
+    await katexIn(body);
+    const tex = [...body.querySelectorAll('annotation[encoding="application/x-tex"]')].map((a) =>
+      a.textContent?.trim(),
+    );
+    expect(tex).toEqual(['E=mc^2', '\\int_0^1 x\\,dx', 'a^2+b^2']);
+    expect(body.querySelectorAll('.katex-display')).toHaveLength(2);
+    expect(body.querySelector('.katex-display')?.closest('p')).toBeNull();
+    // Math fences are not code blocks (no copy button, no Shiki).
+    expect(body.querySelector('.code-block')).toBeNull();
+  });
+
+  it('shows a parse error inline instead of failing the document', async () => {
+    const { body } = renderMd('Bad $\\frac{1}{$ math and a [link](./other.md).');
+    await waitFor(() => expect(body.querySelector('.katex-error')).not.toBeNull());
+    expect(body.querySelector('a[href="/view/r/docs/other.md"]')).not.toBeNull();
+  });
+
+  it('keeps \\href and \\url disabled; raw HTML math only through code classes', async () => {
+    const { body } = renderMd(
+      [
+        '$\\href{javascript:alert(1)}{x}$ and $\\url{https://example.com}$ and $y$',
+        '',
+        '<span class="math-inline">z^2</span> <code class="math-display">w</code>',
+      ].join('\n'),
+    );
+    await katexIn(body);
+    expect(body.querySelector('a')).toBeNull();
+    // `span.math-inline` loses its class; `code.math-display` is allowed, like `$$`.
+    expect(body.querySelectorAll('annotation')).toHaveLength(4);
+    expect(body.querySelector('span:not([class])')?.textContent).toBe('z^2');
+  });
+
+  it('uses the TeX source for heading slugs and TOC text', async () => {
+    const { container, body } = renderMd('# Energy $E=mc^2$\n\n## Second\n');
+    await katexIn(body);
+    expect(body.querySelector('h1')?.id).toBe('energy-emc2');
+    const first = container.querySelector('.toc a');
+    expect(first?.textContent).toBe('Energy E=mc^2');
+    expect(first?.getAttribute('href')).toBe('#energy-emc2');
+  });
+});
+
+describe('GitHub alerts', () => {
+  it('renders every alert type with a title and its content', () => {
+    const types = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'];
+    const { body } = renderMd(types.map((t) => `> [!${t}]\n> About ${t}.`).join('\n\n'));
+    const alerts = [...body.querySelectorAll('div.markdown-alert')];
+    expect(alerts.map((a) => a.className)).toEqual(
+      types.map((t) => `markdown-alert markdown-alert-${t.toLowerCase()}`),
+    );
+    expect(alerts.map((a) => a.querySelector('p.markdown-alert-title')?.textContent)).toEqual([
+      'Note',
+      'Tip',
+      'Important',
+      'Warning',
+      'Caution',
+    ]);
+    expect(alerts[0].querySelectorAll('p')[1].textContent).toBe('About NOTE.');
+    expect(body.querySelector('blockquote')).toBeNull();
+  });
+
+  it('accepts any case, a hard break, and several blocks of content', () => {
+    const { body } = renderMd(
+      '> [!tip]  \n> **Bold** start\n>\n> - item\n\n> [!Warning]\n>\n> Next para',
+    );
+    const [tip, warning] = body.querySelectorAll('div.markdown-alert');
+    expect(tip.className).toContain('markdown-alert-tip');
+    expect(tip.querySelector('p:nth-of-type(2) strong')?.textContent).toBe('Bold');
+    expect(tip.querySelector('li')?.textContent).toBe('item');
+    expect(warning.querySelector('p:nth-of-type(2)')?.textContent).toBe('Next para');
+  });
+
+  it('leaves other blockquotes alone', () => {
+    const { body } = renderMd(
+      [
+        '> [!NOTE] same line',
+        '',
+        '> [!NOTE] *emphasis*',
+        '',
+        '> [!NOTE]',
+        '',
+        '> [!HINT]\n> unknown type',
+        '',
+        '> text\n> [!NOTE]',
+      ].join('\n'),
+    );
+    expect(body.querySelector('.markdown-alert')).toBeNull();
+    expect(body.querySelectorAll('blockquote')).toHaveLength(5);
+  });
+
+  it('only keeps the alert classes on raw HTML', () => {
+    const { body } = renderMd(
+      '<div class="markdown-alert markdown-alert-note evil">x</div>\n\n<p class="markdown-alert-title other">t</p>',
+    );
+    expect(body.querySelector('div')?.className).toBe('markdown-alert markdown-alert-note');
+    expect(body.querySelector('p')?.className).toBe('markdown-alert-title');
   });
 });

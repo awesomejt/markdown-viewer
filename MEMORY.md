@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-19 recent e2e flake fixed (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.7) meanwhile
+- Last major milestone: R2.7 KaTeX math + GitHub alerts (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.8) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -57,7 +57,9 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Watchers: fsnotify `Add`/`Remove` bypass the FS timeouts (local disks only). A deleted root stays unwatched until restart. Delete + create of a parent with the file present merges to `modified`. Poll treats a file-to-dir swap as `modified` (B6/B7).
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
-- Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
+- Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit` items in the markdownlint-cli2 chain are FIX-20.
+- Code view (R2.5): extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
+- Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and switches within ~2 s of the mount appearing (FIX-16); `:fsnotify` roots may still miss events after a remount (host-path inotify watches are not re-added). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
@@ -78,6 +80,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.7)
+
+- Task: KaTeX math (FR-3.6) and GitHub alerts (FR-3.7); done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/alerts.ts`, `math.ts` (`useMathPlugin`, `mayHaveMath`), `katex.ts` (lazy chunk + CSS); `pipeline.ts` (remark-math, remarkAlerts, schema classes), `MarkdownView.tsx` (body waits on `ready`), `toc.ts` (TeX annotation text), `app.css`, `package.json` (`overrides.katex`), unit tests, `testdata/fixtures/docs/math.md`, `e2e/tests/markdown.spec.ts`, `examples/gfm-tour.md`, `docs/Architecture.md`, `README.md`.
+- Result: 7 unit tests red with the plugins removed. `make check` exit 0 (229 unit), `make e2e` 196 passed; logs `build/r27-*.log`.
+- Blockers or follow-up: FIX-20 (dev-tooling audit: smol-toml override, braces unfixed upstream).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-19)
 
 - Task: Recent e2e flake; done in the orchestrator without a subagent.
@@ -91,10 +100,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/markdown/toc.ts` (`collectHeadings` from the rendered DOM, `mdv-toc-open`), `Toc.tsx`, `MarkdownView.tsx` (`.markdown-doc` wrapper, layout-effect heading read), `app/app.css` (sticky column at ≥ 1400 px), unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`, `README.md`.
 - Result: `make check` exit 0 (220 unit), `make e2e` 192 passed twice; logs `build/r26-*.log`.
 - Blockers or follow-up: First e2e run hit an unrelated `recent.spec.ts` race (logged as FIX-19). With the panel open above the body, a live reload that changes the heading count can shift the restored scroll.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.5)
-
-- Task: Syntax highlighting for standalone text/code files (FR-1.5); done in the orchestrator without a subagent.
-- Files changed: `web/src/markdown/highlight.ts` (`languageForFile`: extension → fence alias/id, plus `h`/`hpp`/`jsonc`/`kts`/`pyi`...), new `web/src/fileview/CodeFile.tsx` (lazy `CodeBlock` reuse, plain above 100,000 chars), `ViewFileView.tsx`, `fileview.css`, unit/component tests, `e2e/tests/workspace.spec.ts`, `docs/Architecture.md`, `README.md`.
-- Result: new e2e red (chromium) with the old plain view. `make check` exit 0 (215 unit), `make e2e` 184 passed; logs `build/r25-*.log`.
-- Blockers or follow-up: Extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.

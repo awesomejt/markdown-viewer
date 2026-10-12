@@ -3,6 +3,7 @@ import {
   isValidElement,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ComponentProps,
@@ -16,6 +17,7 @@ import CodeBlock from './CodeBlock';
 import CopyButton from './CopyButton';
 import { extractFrontMatter } from './frontMatter';
 import MarkdownImage from './MarkdownImage';
+import { useMathPlugin } from './math';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
 import Toc from './Toc';
@@ -152,6 +154,12 @@ function makeComponents(ctx: LinkContext): Components {
 export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewProps) {
   const { hash } = useLocation();
   const components = makeComponents({ root, docPath, ws });
+  const math = useMathPlugin(text);
+  const ready = math.ready;
+  const plugins = useMemo(
+    () => (math.plugin ? [...rehypePlugins, math.plugin] : rehypePlugins),
+    [math.plugin],
+  );
 
   // Live reload: when the text changes under a mounted view, keep the heading nearest the viewport
   // top at the same offset. The snapshot is taken in render, while the DOM still shows the old text.
@@ -164,13 +172,14 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
     snapshot.current = bodyRef.current ? captureScroll(bodyRef.current) : null;
   }
   useLayoutEffect(() => {
+    if (!ready) return; // keep the snapshot until the body renders
     const snap = snapshot.current;
     snapshot.current = null;
     if (snap && bodyRef.current) {
       restoreScroll(bodyRef.current, snap);
       restored.current = true;
     }
-  }, [text]);
+  }, [text, ready]);
 
   // The TOC is read from the rendered headings, so its ids always match the document's.
   const [toc, setToc] = useState<TocEntry[]>([]);
@@ -178,16 +187,17 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
     if (!bodyRef.current) return;
     const next = collectHeadings(bodyRef.current);
     setToc((prev) => (sameEntries(prev, next) ? prev : next));
-  }, [text]);
+  }, [text, ready]);
 
   // After content renders, and again on every hash change (but not over a live-reload restore).
   useEffect(() => {
+    if (!ready) return;
     if (restored.current) {
       restored.current = false;
       return;
     }
     scrollToHash(hash || window.location.hash);
-  }, [hash, text]);
+  }, [hash, text, ready]);
   useEffect(() => {
     const onHash = () => scrollToHash(window.location.hash);
     window.addEventListener('hashchange', onHash);
@@ -207,15 +217,17 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
           </pre>
         </details>
       )}
-      <div className="markdown-body" ref={bodyRef}>
-        <Markdown
-          remarkPlugins={remarkPlugins}
-          rehypePlugins={rehypePlugins}
-          remarkRehypeOptions={{ clobberPrefix: '' }}
-          components={components}
-        >
-          {text}
-        </Markdown>
+      <div className="markdown-body" ref={bodyRef} aria-busy={ready ? undefined : true}>
+        {ready && (
+          <Markdown
+            remarkPlugins={remarkPlugins}
+            rehypePlugins={plugins}
+            remarkRehypeOptions={{ clobberPrefix: '' }}
+            components={components}
+          >
+            {text}
+          </Markdown>
+        )}
       </div>
     </div>
   );
