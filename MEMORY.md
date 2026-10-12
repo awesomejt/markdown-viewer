@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-18 live Markdown images (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.1) meanwhile
+- Last major milestone: R2.1 hidden-files toggle (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.2) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -78,6 +78,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.1)
+
+- Task: Hidden-files toggle (FR-1.4); small enough to do in the orchestrator without a subagent.
+- Files changed: new `web/src/browse/showHidden.ts` (shared `useSyncExternalStore` store, `mdv-show-hidden`, follows the `storage` event, works in memory when storage throws), `browse/logic.ts` (`filterEntries` `showHidden`), `BrowseView.tsx` (checkbox), `workspace/logic.ts` + `WorkspaceTree.tsx`, unit/component tests, `e2e/tests/browse.spec.ts`, `docs/Architecture.md`.
+- Result: 5 new unit/component tests red with the filter forced on, green with it. `make check` exit 0 (184 unit), `make e2e` 160 passed; logs `build/r21-*.log`.
+- Blockers or follow-up: None. Tests that render the store must call `resetShowHiddenCache()` (module cache survives `localStorage.clear()`).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-18)
 
 - Task: Live reload for images embedded in Markdown; done in the orchestrator without a subagent.
@@ -91,10 +98,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/fsroot/lazy.go` (`get` claims a check at most every `rootCheckInterval` (2 s); `revalidate` stats `cfg.Path` and compares `fileID` dev/ino with the opened dir; `reopen` swaps and retires the old root, closed at the next swap or `Close`; a failed reopen clears the root so the next call retries; a failed host stat keeps the root), `inode_unix.go`/`inode_other.go` (`fileIdentity`), tests in `lazy_test.go` (dir replacement simulates a mount), README, `docs/Deployment.md`, `docs/Architecture.md`.
 - Result: `TestOpenHandleMountsLater` and `TestLazyRootReopensReplacedDir` red with detection disabled, green with it (`-race -count=3`). `make check` exit 0 (fsroot 98.1%), `make e2e` 152 passed; logs `build/fix16-*.log`.
 - Blockers or follow-up: Not tested against a real CIFS/NFS mount (V1 can: start mdv before mounting). `:fsnotify` roots keep their host-path inotify watches on the old directory after a swap.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-14)
-
-- Task: Mermaid temp ids vs heading slugs; small enough to fix in the orchestrator without a subagent.
-- Files changed: `web/src/diagrams/mermaid.ts` (id `mdv-mermaid-N` → `mdvMermaid-N`; slugs are lowercase, raw-HTML ids are `user-content-` prefixed), `web/src/diagrams/mermaid.test.tsx`, look-alike headings appended to `testdata/fixtures/diagrams/inline.md` (no new fixture file, so Go list counts are unchanged), `e2e/tests/diagrams.spec.ts`.
-- Result: Unit test (headings survive) and e2e (4/4 projects) red without the fix, green with it. `make check` exit 0 (172 unit), `make e2e` 152 passed; logs `build/fix14-*.log`.
-- Blockers or follow-up: None. Mermaid also removes existing `#id` elements before rendering, so any future temp id must stay outside the slug alphabet (uppercase) and be CSS-selector safe.

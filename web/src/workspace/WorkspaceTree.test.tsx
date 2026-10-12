@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { resetShowHiddenCache } from '../browse/showHidden';
 
 const mtime = '2026-01-02T03:04:05Z';
 const ent = (name: string, type: string, kind = 'other') => ({ name, type, kind, size: 1, mtime });
@@ -14,6 +15,8 @@ const bodies: Record<string, object[]> = {
 };
 
 beforeEach(() => {
+  window.localStorage.clear();
+  resetShowHiddenCache();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
@@ -62,6 +65,14 @@ describe('WorkspaceTree', () => {
     expect(router.state.location.search).toBe('?ws=');
     await userEvent.click(screen.getByRole('button', { name: 'Collapse docs' }));
     expect(within(tree()).queryByRole('link', { name: 'a.md' })).not.toBeInTheDocument();
+  });
+
+  it('follows the browse view show-hidden toggle', async () => {
+    renderAt('/browse/r?ws=');
+    await within(tree()).findByRole('link', { name: 'top.md' });
+    expect(within(tree()).queryByRole('link', { name: '.git' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Show hidden files' }));
+    expect(within(tree()).getByRole('link', { name: '.git' })).toBeInTheDocument();
   });
 
   it('keeps the roots list without ws', async () => {

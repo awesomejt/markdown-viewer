@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.1** [S] Hidden-files toggle (date sort moved to FIX-11)
 - [ ] **R2.2** [S] Copy-code button; front-matter panel
 - [ ] **R2.3** [S] Recent files/folders
 - [ ] **R2.4** [S] Web-app manifest + home-screen icons
@@ -69,6 +68,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.1** [S] "Show hidden files" checkbox in the browse toolbar (default off, persisted as `mdv-show-hidden`) shared with the workspace tree via one store; unit/component tests red without it; `make check` green (184 unit), `make e2e` 160 passed.
 - [x] 2026-10-12: **FIX-18** [S] Root-relative Markdown images carry `v=<mtime>-<size>` from their folder listing and subscribe to the image file (low priority, so past the 32-sub cap they are dropped before the document's own sub); e2e red (4/4) with no version or a folder sub; `make check` green (175 unit), `make e2e` 156 passed.
 - [x] 2026-10-12: **FIX-16** [S] `lazyRoot` compares host-path `st_dev`/`st_ino` with the open root at most every 2 s and reopens on a mismatch (later mount or unmount, replaced dir); old root retired, closed at the next swap or Close; tests red without detection; `make check` green (fsroot 98.1%), `make e2e` 152 passed.
 - [x] 2026-10-12: **FIX-14** [S] Mermaid temp id is `mdvMermaid-N` (uppercase, so no lowercase heading slug can equal it; raw-HTML ids are prefixed); look-alike headings in `inline.md` survive; unit + e2e red (4/4) without the fix; `make check` green (172 unit), `make e2e` 152 passed.

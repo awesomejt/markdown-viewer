@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-14)
+
+- Task: Mermaid temp ids vs heading slugs; small enough to fix in the orchestrator without a subagent.
+- Files changed: `web/src/diagrams/mermaid.ts` (id `mdv-mermaid-N` → `mdvMermaid-N`; slugs are lowercase, raw-HTML ids are `user-content-` prefixed), `web/src/diagrams/mermaid.test.tsx`, look-alike headings appended to `testdata/fixtures/diagrams/inline.md` (no new fixture file, so Go list counts are unchanged), `e2e/tests/diagrams.spec.ts`.
+- Result: Unit test (headings survive) and e2e (4/4 projects) red without the fix, green with it. `make check` exit 0 (172 unit), `make e2e` 152 passed; logs `build/fix14-*.log`.
+- Blockers or follow-up: None. Mermaid also removes existing `#id` elements before rendering, so any future temp id must stay outside the slug alphabet (uppercase) and be CSS-selector safe.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-13)
 
 - Task: `HostPath` NFC/NFD join; small enough to fix in the orchestrator without a subagent.

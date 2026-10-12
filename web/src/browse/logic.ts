@@ -3,6 +3,7 @@ import type { EntryKind, ListEntry } from '../api/types';
 
 export const MD_ONLY_STORAGE_KEY = 'mdv-md-only';
 export const SORT_STORAGE_KEY = 'mdv-sort';
+export const SHOW_HIDDEN_STORAGE_KEY = 'mdv-show-hidden';
 
 export type SortKey = 'name' | 'date';
 
@@ -13,13 +14,18 @@ export function isHidden(name: string): boolean {
 export interface FilterOptions {
   query: string;
   mdOnly: boolean;
+  /** Keep dot-files and dot-folders (FR-1.4); hidden by default. */
+  showHidden?: boolean;
 }
 
-/** Hides dot-files, applies the case-insensitive name filter and the markdown/diagrams toggle. */
-export function filterEntries(entries: ListEntry[], { query, mdOnly }: FilterOptions): ListEntry[] {
+/** Hides dot-files unless `showHidden`, applies the case-insensitive name filter and the markdown/diagrams toggle. */
+export function filterEntries(
+  entries: ListEntry[],
+  { query, mdOnly, showHidden = false }: FilterOptions,
+): ListEntry[] {
   const q = query.trim().toLowerCase();
   return entries.filter((e) => {
-    if (isHidden(e.name)) return false;
+    if (!showHidden && isHidden(e.name)) return false;
     if (mdOnly && e.type !== 'dir' && e.kind !== 'markdown' && e.kind !== 'diagram') return false;
     return q === '' || e.name.toLowerCase().includes(q);
   });
