@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-7)
+
+- Task: SSE limits.
+- Files changed: `internal/watch/hub.go` (`MaxMissing`, `entry.missing` kept for the entry's life), `internal/api/events.go` + `api.go` (stream limiter keyed by `RemoteAddr` host), tests, `docs/Architecture.md`.
+- Result: No new env vars. The orchestrator reviewed the diff and re-ran `go test -race -count=3` (watch, api), `make check` and `make e2e` (124 passed, 16 workers); all exit 0, logs in `build/fix7/`.
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-6)
 
 - Task: D2 cache byte bound.
