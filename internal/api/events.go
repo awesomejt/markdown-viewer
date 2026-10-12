@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -14,6 +15,10 @@ import (
 const (
 	// maxSubs is the most sub parameters one event stream may carry.
 	maxSubs = 32
+	// maxStreams and maxStreamsPerIP cap concurrent event streams, so open
+	// streams cannot exhaust the hub's watches or the server's goroutines.
+	maxStreams      = 64
+	maxStreamsPerIP = 16
 	// pingInterval keeps idle streams alive through proxies.
 	pingInterval = 25 * time.Second
 	// writeTimeout bounds each write to a stream, so a client that stops
@@ -43,6 +48,12 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 		}
 		subs[i] = watch.Sub{Root: root, Path: p}
 	}
+	ip := remoteIP(r)
+	if !s.acquireStream(ip) {
+		writeError(w, http.StatusServiceUnavailable, codeBusy, "too many open event streams, retry later")
+		return
+	}
+	defer s.releaseStream(ip)
 	sub, err := s.hub.Subscribe(r.Context(), subs)
 	if err != nil {
 		if errors.Is(err, watch.ErrClosed) {
@@ -113,6 +124,37 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+	}
+}
+
+// remoteIP is the host part of the TCP peer address. X-Forwarded-For is
+// ignored, because any client can forge it.
+func remoteIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// acquireStream reserves a stream slot for ip, or reports that a cap is hit.
+func (s *Server) acquireStream(ip string) bool {
+	s.streamsMu.Lock()
+	defer s.streamsMu.Unlock()
+	if s.streams >= s.maxStreams || s.streamsByIP[ip] >= s.maxStreamsPerIP {
+		return false
+	}
+	s.streams++
+	s.streamsByIP[ip]++
+	return true
+}
+
+func (s *Server) releaseStream(ip string) {
+	s.streamsMu.Lock()
+	defer s.streamsMu.Unlock()
+	s.streams--
+	if s.streamsByIP[ip]--; s.streamsByIP[ip] <= 0 {
+		delete(s.streamsByIP, ip)
 	}
 }
 

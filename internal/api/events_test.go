@@ -385,3 +385,103 @@ func TestEventsUnsupportedDeadlineStillStreams(t *testing.T) {
 		t.Fatalf("no ping written: %q", rec.Body.String())
 	}
 }
+
+// streamCounts reads the limiter's totals.
+func streamCounts(s *Server) (total, ips int) {
+	s.streamsMu.Lock()
+	defer s.streamsMu.Unlock()
+	return s.streams, len(s.streamsByIP)
+}
+
+// holdStream runs the events handler for a client at addr until stop is
+// called, and returns once the stream is open.
+func holdStream(t *testing.T, s *Server, addr, query string) (stop func()) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodGet, "/api/events?"+query, nil).WithContext(ctx)
+	req.RemoteAddr = addr
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.events(rec, req)
+	}()
+	t.Cleanup(func() { cancel(); <-done })
+	before, _ := streamCounts(s)
+	deadline := time.Now().Add(evWait)
+	for {
+		if n, _ := streamCounts(s); n > before {
+			return func() { cancel(); <-done }
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("stream did not open")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+// busyEvents issues one events request and returns the response.
+func busyEvents(s *Server, addr, query string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, "/api/events?"+query, nil)
+	req.RemoteAddr = addr
+	rec := httptest.NewRecorder()
+	s.events(rec, req)
+	return rec
+}
+
+func wantBusy(t *testing.T, rec *httptest.ResponseRecorder) {
+	t.Helper()
+	var body errorBody
+	_ = json.NewDecoder(rec.Body).Decode(&body)
+	if rec.Code != http.StatusServiceUnavailable || body.Error.Code != "busy" || body.Error.Message == "" {
+		t.Fatalf("got %d %+v", rec.Code, body)
+	}
+}
+
+func TestEventsPerIPStreamCap(t *testing.T) {
+	s, _, _ := eventServer(t)
+	s.maxStreamsPerIP = 2
+	holdStream(t, s, "192.0.2.1:1000", "sub=r:a.md")
+	stop := holdStream(t, s, "192.0.2.1:1001", "sub=r:a.md") // same host, new port
+	wantBusy(t, busyEvents(s, "192.0.2.1:1002", "sub=r:a.md"))
+	// Another client is unaffected.
+	holdStream(t, s, "192.0.2.2:1000", "sub=r:a.md")
+	// Closing a stream frees its slot.
+	stop()
+	holdStream(t, s, "192.0.2.1:1003", "sub=r:a.md")
+}
+
+func TestEventsGlobalStreamCap(t *testing.T) {
+	s, _, _ := eventServer(t)
+	s.maxStreams = 2
+	holdStream(t, s, "192.0.2.1:1000", "sub=r:a.md")
+	holdStream(t, s, "192.0.2.2:1000", "sub=r:a.md")
+	wantBusy(t, busyEvents(s, "192.0.2.3:1000", "sub=r:a.md"))
+}
+
+func TestEventsRemoteAddrWithoutPort(t *testing.T) {
+	s, _, _ := eventServer(t)
+	s.maxStreamsPerIP = 1
+	holdStream(t, s, "pipe", "sub=r:a.md")
+	wantBusy(t, busyEvents(s, "pipe", "sub=r:a.md"))
+}
+
+func TestEventsStreamSlotReleasedOnSubscribeError(t *testing.T) {
+	s, _, _ := eventServer(t)
+	rec := busyEvents(s, "192.0.2.1:1000", "sub=nope:a.md")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("status %d, want 404", rec.Code)
+	}
+	if n, ips := streamCounts(s); n != 0 || ips != 0 {
+		t.Fatalf("streams = %d, ips = %d, want 0", n, ips)
+	}
+}
+
+func TestEventsStreamSlotsReleasedAfterClose(t *testing.T) {
+	s, _, _ := eventServer(t)
+	stop := holdStream(t, s, "192.0.2.1:1000", "sub=r:a.md")
+	stop()
+	if n, ips := streamCounts(s); n != 0 || ips != 0 {
+		t.Fatalf("streams = %d, ips = %d, want 0", n, ips)
+	}
+}

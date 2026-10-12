@@ -9,6 +9,7 @@ import (
 	"net/netip"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/awesomejt/markdown-viewer/internal/config"
@@ -45,6 +46,12 @@ type Server struct {
 
 	pingInterval time.Duration // SSE keep-alive; tests shorten it
 	writeTimeout time.Duration // per-write SSE deadline; tests shorten it
+
+	maxStreams      int // concurrent event streams overall; tests shrink it
+	maxStreamsPerIP int // concurrent event streams per remote IP; tests shrink it
+	streamsMu       sync.Mutex
+	streams         int
+	streamsByIP     map[string]int
 }
 
 // New builds a Server with the core routes registered. A nil logger discards
@@ -53,7 +60,8 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
-	s := &Server{reg: reg, cfg: cfg, logger: logger, mux: http.NewServeMux(), pingInterval: pingInterval, writeTimeout: writeTimeout}
+	s := &Server{reg: reg, cfg: cfg, logger: logger, mux: http.NewServeMux(), pingInterval: pingInterval, writeTimeout: writeTimeout,
+		maxStreams: maxStreams, maxStreamsPerIP: maxStreamsPerIP, streamsByIP: make(map[string]int)}
 	s.hub = watch.New(reg, watch.Options{PollInterval: cfg.PollInterval, Logger: logger})
 	s.d2 = d2render.New(d2render.Options{
 		Timeout: cfg.D2Timeout, Concurrency: cfg.D2Concurrency, CacheEntries: cfg.D2CacheEntries,
