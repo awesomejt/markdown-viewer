@@ -376,6 +376,61 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Table of contents: a collapsed panel above the document, a sticky column beside it on wide screens. */
+.toc {
+  max-width: 50rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.toc summary {
+  padding: 0.4em 0.8em;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0.4em 0.8em;
+  border-top: 1px solid var(--border);
+}
+
+.toc a {
+  display: block;
+  padding: 0.25em 0;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.toc a:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 1400px) {
+  .markdown-doc {
+    display: grid;
+    grid-template-columns: minmax(0, 50rem) 16rem;
+    grid-template-rows: auto 1fr;
+    column-gap: 2rem;
+  }
+
+  .markdown-doc > :not(.toc) {
+    grid-column: 1;
+  }
+
+  .markdown-doc > .toc {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: calc(var(--header-h) + 8px);
+    align-self: start;
+    max-height: calc(100dvh - var(--header-h) - 16px);
+    overflow-y: auto;
+  }
+}
+
 /* Shiki dual themes: light colors are inline, dark ones come from --shiki-dark variables. */
 .markdown-body .shiki {
   padding: 0.8em 1em;

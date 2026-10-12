@@ -4,6 +4,7 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
   type ComponentProps,
   type ReactNode,
 } from 'react';
@@ -17,6 +18,8 @@ import { extractFrontMatter } from './frontMatter';
 import MarkdownImage from './MarkdownImage';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
+import Toc from './Toc';
+import { collectHeadings, sameEntries, type TocEntry } from './toc';
 import { captureScroll, restoreScroll, type ScrollSnapshot } from '../live/scrollAnchor';
 
 export type { DiagramKind };
@@ -169,6 +172,14 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
     }
   }, [text]);
 
+  // The TOC is read from the rendered headings, so its ids always match the document's.
+  const [toc, setToc] = useState<TocEntry[]>([]);
+  useLayoutEffect(() => {
+    if (!bodyRef.current) return;
+    const next = collectHeadings(bodyRef.current);
+    setToc((prev) => (sameEntries(prev, next) ? prev : next));
+  }, [text]);
+
   // After content renders, and again on every hash change (but not over a live-reload restore).
   useEffect(() => {
     if (restored.current) {
@@ -186,7 +197,8 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
   const frontMatter = extractFrontMatter(text);
 
   return (
-    <>
+    <div className="markdown-doc">
+      {toc.length >= 2 && <Toc entries={toc} />}
       {frontMatter?.trim() && (
         <details className="front-matter">
           <summary>Front matter</summary>
@@ -205,6 +217,6 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
           {text}
         </Markdown>
       </div>
-    </>
+    </div>
   );
 }

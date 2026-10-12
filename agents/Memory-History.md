@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.3)
+
+- Task: Recent files/folders (FR-2.6); done in the orchestrator without a subagent.
+- Files changed: new `web/src/recent/recent.ts` (`pushRecent`/`parseRecent`, shared `useSyncExternalStore` store, `mdv-recent`, 10 items, follows `storage`, in-memory fallback), `RecentList.tsx` (`useRecordRecent`, list + "Clear recent"), `BrowseView.tsx`/`ViewFileView.tsx` (record dir once listed, file once in its parent listing), `RootsView.tsx` + `Layout.tsx` (home page; sidebar outside a workspace except on `/`), `app/app.css`, `recent.test.tsx`, `e2e/tests/recent.spec.ts`, `docs/Architecture.md`.
+- Result: component test red with recording disabled. `make check` exit 0 (207 unit), `make e2e` 172 passed twice; logs `build/r23-*.log`.
+- Blockers or follow-up: None. A recent item whose file was later deleted stays listed (its link shows the normal not-found state).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.2)
 
 - Task: Copy-code button and front matter panel (FR-3.2, FR-3.4); done in the orchestrator without a subagent.
