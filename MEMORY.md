@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-4 D2 render CSRF guard merged (2026-10-11)
-- Next recommended task: FIX-5 🔒 [S] DNS rebinding Host allowlist, then FIX-6 to FIX-11, then DOC1
+- Last major milestone: FIX-5 Host allowlist merged (2026-10-11)
+- Next recommended task: FIX-6 [S] D2 cache byte bound, then FIX-7 to FIX-11, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -36,6 +36,7 @@ Full log: `agents/Decisions.md`.
 - Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
+- Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work. DOC1 must say so.
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
 
 - D2 Go module path is `github.com/d2lang/d2` (v0.9.0). Do not use `oss.terrastruct.com/d2` (frozen at v0.7.2).
@@ -72,19 +73,19 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-5)
+
+- Task: DNS rebinding Host allowlist (🔒).
+- Files changed: `internal/config/config.go` (`MDV_ALLOWED_HOSTS`), `internal/api/api.go` (`hostGuard`, 421 `host_not_allowed`), `cmd/mdv/main.go` (healthcheck `Host: localhost`, `*` warning), `compose.yaml`, tests in config/api/web/cmd, `docs/Architecture.md`.
+- Result: Opus review found no bypass (odd IPv4 forms, brackets, trailing dots, absolute-form requests checked) and approved; its follow-ups were applied. `TestServeAndShutdown` hung 5 s because `Shutdown` treats a pooled but unused (`StateNew`) conn as idle only after 5 s; the test now closes idle client conns. `make check` exit 0, `make e2e` 124 passed.
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-4)
 
 - Task: D2 render CSRF + CSP (🔒).
 - Files changed: `internal/api/render.go`, `internal/api/api.go` (`codeUnsupported`), `internal/api/render_test.go`, `web/src/api/client.test.ts`, `docs/Architecture.md` (415 row, render row, proxy note; tables re-padded for MD060).
 - Result: Stdlib `http.CrossOriginProtection` guards the route (over plain HTTP it compares `Origin` with `Host`, so a reverse proxy must keep `Host` or terminate TLS). Opus reviewer found no remaining cross-site path and approved. `make check` exit 0 and `make e2e` 124 passed (logs in `build/fix4/`).
 - Blockers or follow-up: One flaky webkit drawer e2e failure on the first run (see Known Limitations).
-
-### 2026-10-11 - Claude Opus 5.5 (R1)
-
-- Task: MVP phase review against Success Criteria 1 to 5 and the Security Model.
-- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-26), `agents/Memory-History.md`, `docs/Implementation.md` (R2.1), `docs/Tech-Stack.md` and `docs/Architecture.md` (drift fixes).
-- Result: Three parallel Opus reviewers (backend security, frontend security, requirements/deployment); the orchestrator re-checked each logged finding in source. Path guard, sanitizer, `resolveLink`, diagram `<img>` isolation and `/api/file` headers hold. Main defects: `POST /api/render/d2` is cross-site postable (`text/plain`) and returns SVG without CSP (reproduced with `javascript:` links), no Host check (DNS rebinding), D2 cache unbounded by bytes, SSE watch cap exhaustible, a down NAS at boot stops the server. Outputs in `build/r1/`.
-- Blockers or follow-up: FIX-4 to FIX-11 block DOC1. A part A reviewer's `pkill -f build/r1/mdv` may have killed another reviewer's probe server (harmless).
 
 ### 2026-10-11 - Claude Haiku 4.5 + Opus 5.5 verification (T2)
 
