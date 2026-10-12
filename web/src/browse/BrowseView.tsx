@@ -4,6 +4,7 @@ import { browseHref, viewHref } from '../api/client';
 import { useList } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
+import { useRecordRecent } from '../recent/RecentList';
 import { Breadcrumbs } from './Breadcrumbs';
 import { KindIcon } from './KindIcon';
 import { useShowHidden } from './showHidden';
@@ -38,6 +39,8 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
   const navigate = useNavigate();
   const list = useList(root, path);
   useLiveSubscription(root, path);
+  // Roots are always listed already; only folders inside them are worth remembering.
+  useRecordRecent(list.data && path !== '' ? { root, path, type: 'dir', ws } : undefined);
   const [query, setQuery] = useState('');
   const [mdOnly, setMdOnly] = useState(loadMdOnly);
   const [showHidden, setShowHidden] = useShowHidden();

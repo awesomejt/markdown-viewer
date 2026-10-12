@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.2 copy-code button + front matter panel (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.3) meanwhile
+- Last major milestone: R2.3 recent files/folders (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.4) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -78,6 +78,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.3)
+
+- Task: Recent files/folders (FR-2.6); done in the orchestrator without a subagent.
+- Files changed: new `web/src/recent/recent.ts` (`pushRecent`/`parseRecent`, shared `useSyncExternalStore` store, `mdv-recent`, 10 items, follows `storage`, in-memory fallback), `RecentList.tsx` (`useRecordRecent`, list + "Clear recent"), `BrowseView.tsx`/`ViewFileView.tsx` (record dir once listed, file once in its parent listing), `RootsView.tsx` + `Layout.tsx` (home page; sidebar outside a workspace except on `/`), `app/app.css`, `recent.test.tsx`, `e2e/tests/recent.spec.ts`, `docs/Architecture.md`.
+- Result: component test red with recording disabled. `make check` exit 0 (207 unit), `make e2e` 172 passed twice; logs `build/r23-*.log`.
+- Blockers or follow-up: None. A recent item whose file was later deleted stays listed (its link shows the normal not-found state).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.2)
 
 - Task: Copy-code button and front matter panel (FR-3.2, FR-3.4); done in the orchestrator without a subagent.
@@ -91,10 +98,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/browse/showHidden.ts` (shared `useSyncExternalStore` store, `mdv-show-hidden`, follows the `storage` event, works in memory when storage throws), `browse/logic.ts` (`filterEntries` `showHidden`), `BrowseView.tsx` (checkbox), `workspace/logic.ts` + `WorkspaceTree.tsx`, unit/component tests, `e2e/tests/browse.spec.ts`, `docs/Architecture.md`.
 - Result: 5 new unit/component tests red with the filter forced on, green with it. `make check` exit 0 (184 unit), `make e2e` 160 passed; logs `build/r21-*.log`.
 - Blockers or follow-up: None. Tests that render the store must call `resetShowHiddenCache()` (module cache survives `localStorage.clear()`).
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-18)
-
-- Task: Live reload for images embedded in Markdown; done in the orchestrator without a subagent.
-- Files changed: new `web/src/markdown/MarkdownImage.tsx` (version from `useList(parentDir)`, `src` held until the listing settles, low-priority file sub), `links.ts` (asset result carries `path`), `MarkdownView.tsx`, `live/logic.ts` (`capSubs(keys, low)`), `live/controller.ts` + `LiveProvider.tsx` (`low` flag), `baseName` moved to `fileview/logic.ts`, unit tests, `e2e/tests/live.spec.ts`, `docs/Architecture.md`.
-- Result: E2E red on 4/4 projects with the version disabled, and again with a folder sub instead of a file sub (the first draft; folder subs miss content changes, and the test now changes one file at a time so a listing refresh cannot mask it). `make check` exit 0 (175 unit), `make e2e` 156 passed; logs `build/fix18-*.log`.
-- Blockers or follow-up: Images past the free sub slots (about 31 per page) still version correctly on any listing refetch but get no live events of their own. A truncated listing (`MDV_MAX_LIST_ENTRIES`) can omit an image, which then uses the plain URL.

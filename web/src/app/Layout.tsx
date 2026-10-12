@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useParams, useSearchParams } from 'react-rou
 import { browseHref } from '../api/client';
 import { useRoots } from '../api/hooks';
 import { ErrorState, Loading } from './states';
+import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
 import { useTheme } from './theme';
 
@@ -26,22 +27,27 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
       />
     );
   }
+  // The home page shows the recent list in the main column already.
+  const recent = location.pathname === '/' ? null : <RecentList heading="h3" />;
   if (roots.isPending) return <Loading />;
   if (roots.isError) return <ErrorState error={roots.error} onRetry={() => void roots.refetch()} />;
   return (
-    <ul className="link-list">
-      {roots.data.roots.map((r) => (
-        <li key={r.name}>
-          {r.available ? (
-            <Link to={browseHref(r.name, '')}>{r.name}</Link>
-          ) : (
-            <span className="unavailable">
-              {r.name} <span className="muted">(unavailable)</span>
-            </span>
-          )}
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="link-list">
+        {roots.data.roots.map((r) => (
+          <li key={r.name}>
+            {r.available ? (
+              <Link to={browseHref(r.name, '')}>{r.name}</Link>
+            ) : (
+              <span className="unavailable">
+                {r.name} <span className="muted">(unavailable)</span>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+      {recent}
+    </>
   );
 }
 
