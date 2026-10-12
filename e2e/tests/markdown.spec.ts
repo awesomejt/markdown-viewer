@@ -153,3 +153,29 @@ test('table of contents sits beside the document on wide screens', async ({ page
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(nav).toBeInViewport();
 });
+
+test('math.md renders KaTeX offline and GitHub alerts', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/math.md');
+  const body = doc(page);
+  await expect(body.locator('.katex-display')).toHaveCount(2);
+  // Two inline formulas (heading, paragraph) plus the two display blocks; the error stays inline.
+  await expect(body.locator('annotation[encoding="application/x-tex"]')).toHaveCount(4);
+  await expect(body.locator('.katex-error')).toHaveCount(1);
+  await expect(body.locator('h1')).toHaveId('math-emc2');
+  await expect(page.locator('.toc a').first()).toHaveText('Math E=mc^2');
+
+  // KaTeX fonts are bundled and load from the app (the offline guard fails any remote request).
+  const faces = await page.evaluate(async () =>
+    (await document.fonts.load('16px KaTeX_Main')).map((f) => f.status),
+  );
+  expect(faces).toContain('loaded');
+
+  const note = body.locator('div.markdown-alert-note');
+  await expect(note).toHaveCount(1);
+  await expect(note.locator('.markdown-alert-title')).toHaveText('Note');
+  await expect(note).toContainText('Useful information.');
+  await expect(body.locator('div.markdown-alert-warning .markdown-alert-title')).toHaveText(
+    'Warning',
+  );
+  await expect(body.locator('blockquote')).toHaveText('[!NOTE] not an alert');
+});

@@ -47,6 +47,43 @@ This is *italic*, **bold**, ***bold italic***, and ~~strikethrough~~. Inline `co
 >
 > > Nested quotes work too.
 
+## Alerts
+
+<!-- markdownlint-disable MD028 -->
+
+> [!NOTE]
+> Useful information that users should know, even when skimming.
+
+> [!TIP]
+> Helpful advice for doing things better or more easily.
+
+> [!IMPORTANT]
+> Key information users need to know to achieve their goal.
+
+> [!WARNING]
+> Urgent info that needs immediate user attention to avoid problems.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes of certain actions.
+
+<!-- markdownlint-enable MD028 -->
+
+## Math
+
+Inline math such as $e^{i\pi} + 1 = 0$ sits in the text. Display math:
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+$$
+
+A `math` fence works too:
+
+```math
+\begin{pmatrix} a & b \\ c & d \end{pmatrix}
+```
+
+Escape a literal dollar sign as `\$`, for example \$5.
+
 ## Fenced code
 
 ```go
