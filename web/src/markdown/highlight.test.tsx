@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -10,12 +11,21 @@ import {
 } from './highlight';
 import MarkdownView from './MarkdownView';
 
+vi.mock('../diagrams/mermaid', () => ({
+  renderMermaid: () => new Promise<string>(() => undefined),
+}));
+
 function renderMd(text: string) {
   const router = createMemoryRouter(
     [{ path: '*', element: <MarkdownView text={text} root="r" docPath="a.md" /> }],
     { initialEntries: ['/view/r/a.md'] },
   );
-  const view = render(<RouterProvider router={router} />);
+  const client = new QueryClient();
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   return { ...view, body: view.container.querySelector('.markdown-body') as HTMLElement };
 }
 
@@ -76,6 +86,7 @@ describe('syntax highlighting', () => {
     expect(body.querySelector('.shiki')).toBeNull();
     expect(spies.every((s) => s.mock.calls.length === 0)).toBe(true);
     expect(isHighlighterStarted()).toBe(false);
+    vi.unstubAllGlobals();
   });
 
   it('does not start Shiki for blocks without a language', async () => {
@@ -83,6 +94,7 @@ describe('syntax highlighting', () => {
     await settle();
     expect(body.querySelectorAll('pre').length).toBe(2);
     expect(isHighlighterStarted()).toBe(false);
+    vi.unstubAllGlobals();
   });
 
   it('loads only the needed languages, once each', async () => {
@@ -139,14 +151,15 @@ describe('syntax highlighting', () => {
     expect(await highlightToHast('nope', 'x')).toBeNull();
   });
 
-  it('keeps diagram placeholders and never invokes Shiki for them', async () => {
+  it('renders diagram figures and never invokes Shiki for them', async () => {
     const spies = Object.keys(languageLoaders).map((k) => vi.spyOn(languageLoaders, k));
+    vi.stubGlobal('fetch', () => new Promise<Response>(() => undefined));
     const { body } = renderMd('```mermaid\ngraph TD\nA-->B\n```\n\n```d2\na -> b\n```');
     await settle();
-    expect(body.querySelectorAll('pre[data-diagram]').length).toBe(2);
-    expect(screen.queryByText('graph', { exact: false })).not.toBeNull();
+    expect(body.querySelectorAll('figure.diagram').length).toBe(2);
     expect(body.querySelector('.shiki')).toBeNull();
     expect(spies.every((s) => s.mock.calls.length === 0)).toBe(true);
     expect(isHighlighterStarted()).toBe(false);
+    vi.unstubAllGlobals();
   });
 });

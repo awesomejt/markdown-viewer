@@ -104,3 +104,25 @@ export async function getFile(
     etag: res.headers.get('ETag') ?? '',
   };
 }
+
+/** Renders D2 source on the server; returns the SVG text. Throws ApiError on any non-200. */
+export async function renderD2(
+  source: string,
+  theme: 'light' | 'dark',
+  signal?: AbortSignal,
+): Promise<string> {
+  let res: Response;
+  try {
+    res = await fetch('/api/render/d2', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ source, theme }),
+      signal,
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    throw new ApiError(0, NETWORK_CODE, e instanceof Error ? e.message : 'Network error');
+  }
+  if (!res.ok) throw await parseError(res);
+  return res.text();
+}

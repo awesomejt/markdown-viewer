@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F3b Shiki highlighting complete (2026-10-11)
-- Next recommended task: F4 [S] Mermaid + D2 diagram components
+- Last major milestone: F4 diagram components complete (2026-10-11)
+- Next recommended task: F5 [S] Workspace tree + file views by kind + large-file load button
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F4)
+
+- Task: Mermaid + D2 diagram components.
+- Files changed: `web/src/diagrams/**` (Diagram, DiagramBoundary, MermaidDiagram, D2Diagram, DiagramFigure, DiagramError, DiagramPage, mermaid.ts, useResolvedTheme, kinds + tests), `web/src/api/client.ts` (`renderD2`), `web/src/markdown/MarkdownView.tsx`, `web/src/app/{views.tsx,app.css}`, `web/package.json` (mermaid 12.1.0), `e2e/tests/diagrams.spec.ts`, `docs/Architecture.md`, `agents/Decisions.md` (D-25).
+- Result: Both kinds render as `<img src=blob:>` (D-25). Mermaid uses `suppressErrorRendering: true` so syntax errors reject, and leftover temp nodes are removed. Fence text has its trailing newline stripped. Mermaid is only in lazy chunks (verified in the dist). Markdown tests that render diagrams now need a `QueryClientProvider`, a mocked `../diagrams/mermaid` and a stubbed `fetch`. The orchestrator re-ran `make check` (116 web tests, `src/diagrams` 97.4% lines) and `make e2e` (18).
+- Blockers or follow-up: `npm audit` reports a low-severity katex advisory via mermaid (pinned `^0.16`); deferred to R2.7. One unit test waits about 3 s for TanStack retry backoff on 503.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F3b)
 
