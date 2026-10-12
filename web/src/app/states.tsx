@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useRouteError } from 'react-router';
 import { ApiError } from '../api/client';
 
 export function Loading({ label = 'Loading…' }: { label?: string }) {
@@ -73,4 +74,10 @@ export function ErrorState({ error, onRetry, actions }: ErrorStateProps) {
       </div>
     </div>
   );
+}
+
+/** Route `errorElement`: lazy-chunk and render failures show the app's error state. */
+export function RouteError() {
+  const error = useRouteError();
+  return <ErrorState error={error} onRetry={() => window.location.reload()} />;
 }

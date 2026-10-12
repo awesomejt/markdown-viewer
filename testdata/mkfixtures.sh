@@ -13,6 +13,7 @@
 #   cafe<U+0301>.md      NFD-named file ("cafe" then combining acute U+0301, decomposed),
 #                        so an NFC request for "caf<U+00E9>.md" must find it
 #   large.md             ~6 MiB Markdown, above the 5 MiB MDV_MAX_FILE_BYTES default
+#   large.txt            copy of large.md as a plain text file (cheap to render)
 #
 # Usage:
 #   testdata/mkfixtures.sh            create or refresh the entries (idempotent)
@@ -55,6 +56,7 @@ make_large() {
   } >"$tmp"
   chmod 644 "$tmp"
   mv -f "$tmp" "$out"
+  cp -f "$out" "$gen/large.txt"
 }
 
 create() {
@@ -68,7 +70,7 @@ create() {
   if [ -f "$gen/large.md" ]; then
     size="$(wc -c <"$gen/large.md")"
   fi
-  if [ "$size" -lt "$large_min" ]; then
+  if [ ! -f "$gen/large.txt" ] || [ "$size" -lt "$large_min" ]; then
     make_large
   fi
 }
@@ -106,6 +108,10 @@ verify() {
     rc=1
   elif [ "$(wc -c <"$gen/large.md")" -lt "$large_min" ]; then
     echo "verify: large.md is smaller than $large_min bytes" >&2
+    rc=1
+  fi
+  if [ ! -f "$gen/large.txt" ] || [ -L "$gen/large.txt" ]; then
+    echo "verify: large.txt is not a regular file" >&2
     rc=1
   fi
   return "$rc"
