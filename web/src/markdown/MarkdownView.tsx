@@ -2,11 +2,12 @@ import { Children, isValidElement, useEffect, type ComponentProps, type ReactNod
 import Markdown, { type Components } from 'react-markdown';
 import { Link, useLocation } from 'react-router';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
+import Diagram, { type DiagramKind } from '../diagrams/Diagram';
 import CodeBlock from './CodeBlock';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
 
-export type DiagramKind = 'mermaid' | 'd2';
+export type { DiagramKind };
 
 /** Detects a fenced diagram block from a (sanitized) `code` className such as `language-mermaid`. */
 export function detectDiagram(className: string | undefined): DiagramKind | null {
@@ -102,16 +103,12 @@ function makeComponents(ctx: LinkContext): Components {
       );
     },
     pre({ node: _node, children, ...rest }: ComponentProps<'pre'> & { node?: unknown }) {
-      // F4 replaces the diagram placeholder; other fenced blocks are highlighted by Shiki (F3b).
+      // Diagram fences render via `Diagram` (F4); other fenced blocks are highlighted by Shiki (F3b).
       const code = Children.toArray(children)[0];
       if (isValidElement<{ className?: string; children?: ReactNode }>(code)) {
         const kind = detectDiagram(code.props.className);
         if (kind) {
-          return (
-            <pre className="diagram-placeholder" data-diagram={kind}>
-              {textOf(code.props.children)}
-            </pre>
-          );
+          return <Diagram kind={kind} source={textOf(code.props.children).replace(/\n$/, '')} />;
         }
         const className = code.props.className;
         const lang = /(?:^|\s)language-(\S+)/.exec(className ?? '')?.[1];

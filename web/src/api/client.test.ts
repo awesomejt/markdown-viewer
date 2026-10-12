@@ -7,6 +7,7 @@ import {
   getFile,
   getList,
   getRoots,
+  renderD2,
   viewHref,
 } from './client';
 import { queryKeys, shouldRetry } from './hooks';
@@ -176,5 +177,38 @@ describe('hooks helpers', () => {
     expect(shouldRetry(1, new ApiError(504, 'fs_timeout', ''))).toBe(true);
     expect(shouldRetry(2, new ApiError(500, 'internal', ''))).toBe(false);
     expect(shouldRetry(0, new Error('x'))).toBe(true);
+  });
+});
+
+describe('renderD2', () => {
+  it('POSTs source and theme and returns the SVG text', async () => {
+    const fn = mockFetch(
+      () => new Response('<svg/>', { headers: { 'Content-Type': 'image/svg+xml' } }),
+    );
+    await expect(renderD2('a -> b', 'dark')).resolves.toBe('<svg/>');
+    const [url, init] = fn.mock.calls[0]!;
+    expect(url).toBe('/api/render/d2');
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(init?.body as string)).toEqual({ source: 'a -> b', theme: 'dark' });
+  });
+
+  it('parses the JSON error body into an ApiError', async () => {
+    mockFetch(() => json({ error: { code: 'render_error', message: 'line 1' } }, 422));
+    await expect(renderD2('x', 'light')).rejects.toMatchObject({
+      status: 422,
+      code: 'render_error',
+      message: 'line 1',
+    });
+  });
+
+  it('maps network failures and passes aborts through', async () => {
+    mockFetch(() => {
+      throw new TypeError('offline');
+    });
+    await expect(renderD2('x', 'light')).rejects.toMatchObject({ status: 0, code: 'network' });
+    mockFetch(() => {
+      throw new DOMException('aborted', 'AbortError');
+    });
+    await expect(renderD2('x', 'light')).rejects.toMatchObject({ name: 'AbortError' });
   });
 });

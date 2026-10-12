@@ -338,3 +338,45 @@ a:focus-visible {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
+
+/* Diagrams (F4) */
+.diagram {
+  margin: 1rem auto;
+  max-width: 100%;
+  text-align: center;
+}
+
+.diagram-img {
+  max-width: 100%;
+  height: auto;
+}
+
+.diagram-loading {
+  margin: 0;
+  padding: 1rem;
+}
+
+.diagram-error {
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  text-align: start;
+  background: var(--bg-alt);
+}
+
+.diagram-error-title {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.diagram-error-message {
+  margin: 0 0 0.5rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.diagram-error pre {
+  margin: 0;
+  overflow-x: auto;
+}

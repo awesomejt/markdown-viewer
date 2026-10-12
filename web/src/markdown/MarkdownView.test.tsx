@@ -1,9 +1,22 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MarkdownView, { detectDiagram } from './MarkdownView';
 import { rehypePlugins, remarkPlugins, sanitizeSchema } from './pipeline';
 import { scrollToHash } from './scroll';
+
+vi.mock('../diagrams/mermaid', () => ({
+  renderMermaid: vi.fn(() => new Promise<string>(() => undefined)),
+}));
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise<Response>(() => undefined)),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
 
 function renderMd(text: string, opts: { ws?: string; at?: string } = {}) {
   const router = createMemoryRouter(
@@ -15,7 +28,12 @@ function renderMd(text: string, opts: { ws?: string; at?: string } = {}) {
     ],
     { initialEntries: [opts.at ?? '/view/r/docs/guide.md'] },
   );
-  const view = render(<RouterProvider router={router} />);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const view = render(
+    <QueryClientProvider client={client}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  );
   return { ...view, router, body: view.container.querySelector('.markdown-body') as HTMLElement };
 }
 
@@ -189,15 +207,16 @@ describe('diagram detection', () => {
     expect(detectDiagram(undefined)).toBeNull();
   });
 
-  it('renders placeholders for diagram fences and normal code otherwise', () => {
+  it('renders diagram figures for diagram fences and normal code otherwise', () => {
     const { body } = renderMd(
-      '```mermaid\ngraph TD\nA-->B\n```\n\n```d2\na -> b\n```\n\n```js\nx()\n```',
+      'Before\n\n```mermaid\ngraph TD\nA-->B\n```\n\n```d2\na -> b\n```\n\n```js\nx()\n```\n\nAfter',
     );
-    const m = body.querySelector('pre[data-diagram="mermaid"]');
-    expect(m?.textContent).toContain('A-->B');
-    expect(body.querySelector('pre[data-diagram="d2"]')?.textContent).toContain('a -> b');
+    expect(body.querySelector('figure.diagram[data-diagram="mermaid"]')).not.toBeNull();
+    expect(body.querySelector('figure.diagram[data-diagram="d2"]')).not.toBeNull();
+    expect(body.querySelectorAll('figure.diagram').length).toBe(2);
     expect(body.querySelector('pre code.language-js')).not.toBeNull();
-    expect(body.querySelectorAll('pre[data-diagram]').length).toBe(2);
+    expect(body.textContent).toContain('Before');
+    expect(body.textContent).toContain('After');
   });
 });
 

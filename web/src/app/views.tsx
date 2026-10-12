@@ -17,6 +17,8 @@ function usePathParams() {
 
 const MarkdownView = lazy(() => import('../markdown/MarkdownView'));
 
+const DiagramPage = lazy(() => import('../diagrams/DiagramPage'));
+
 const MARKDOWN_RE = /\.(md|markdown)$/i;
 
 function MarkdownFile({ root, path, ws }: { root: string; path: string; ws?: string }) {
@@ -30,10 +32,19 @@ function MarkdownFile({ root, path, ws }: { root: string; path: string; ws?: str
   );
 }
 
-/** Markdown only until F5 adds the other kinds. */
+const DIAGRAM_RE = /\.(mmd|mermaid|d2)$/i;
+
+/** Markdown and diagrams only until F5 adds the other kinds. */
 export function ViewFileView() {
   const { root, path, ws } = usePathParams();
   if (MARKDOWN_RE.test(path)) return <MarkdownFile root={root} path={path} ws={ws} />;
+  if (DIAGRAM_RE.test(path)) {
+    return (
+      <Suspense fallback={<Loading />}>
+        <DiagramPage root={root} path={path} />
+      </Suspense>
+    );
+  }
   return (
     <section>
       <h1>
