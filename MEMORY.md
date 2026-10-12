@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-14 Mermaid temp-id fix (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-16) meanwhile
+- Last major milestone: FIX-16 remount detection (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-18) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -58,7 +58,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
-- Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
+- Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and switches within ~2 s of the mount appearing (FIX-16); `:fsnotify` roots may still miss events after a remount (host-path inotify watches are not re-added). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
 - `docs/Deployment.md` fstab options and the systemd `RequiresMountsFor=` drop-in are untested on the real VM; V1 must validate them (DOC1).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
@@ -77,6 +77,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-16)
+
+- Task: Reopen a root whose mount appeared after boot; small enough to do in the orchestrator without a subagent.
+- Files changed: `internal/fsroot/lazy.go` (`get` claims a check at most every `rootCheckInterval` (2 s); `revalidate` stats `cfg.Path` and compares `fileID` dev/ino with the opened dir; `reopen` swaps and retires the old root, closed at the next swap or `Close`; a failed reopen clears the root so the next call retries; a failed host stat keeps the root), `inode_unix.go`/`inode_other.go` (`fileIdentity`), tests in `lazy_test.go` (dir replacement simulates a mount), README, `docs/Deployment.md`, `docs/Architecture.md`.
+- Result: `TestOpenHandleMountsLater` and `TestLazyRootReopensReplacedDir` red with detection disabled, green with it (`-race -count=3`). `make check` exit 0 (fsroot 98.1%), `make e2e` 152 passed; logs `build/fix16-*.log`.
+- Blockers or follow-up: Not tested against a real CIFS/NFS mount (V1 can: start mdv before mounting). `:fsnotify` roots keep their host-path inotify watches on the old directory after a swap.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-14)
 
 - Task: Mermaid temp ids vs heading slugs; small enough to fix in the orchestrator without a subagent.
@@ -90,10 +97,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/fsroot/watchops.go` (`HostPath` runs its own `withRetry` stat and joins the name that succeeded; `HostPathMissing` inherits it), tests in `internal/fsroot/watchops_test.go` and `internal/watch/hub_test.go`.
 - Result: New hub test (NFC sub, NFD names, file + dir keys) is red in fsnotify mode without the fix (file key silent, dir key Add fails) and green with it in both modes. `make check` exit 0, `make e2e` 148 passed; logs `build/fix13-*.log`.
 - Blockers or follow-up: The retry is whole-path only; a path whose components mix NFC and NFD on disk is still not found (unchanged, pre-existing).
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-12)
-
-- Task: `/api/file` write deadline; small enough to fix in the orchestrator without a subagent.
-- Files changed: `internal/api/file.go` (`chunkWriter` arms `writeTimeout` (10 s) before every `ServeContent` chunk and hides `io.ReaderFrom`), new `internal/api/file_test.go`, `docs/Architecture.md`, comments in `events.go`/`api.go`/`cmd/mdv/main.go`.
-- Result: Stalled raw-TCP client test hangs 15 s without the wrapper and passes in 0.3 s with it. No explicit deadline clear is needed: `net/http` resets the write deadline before reusing a kept-alive connection (keep-alive test guards it). `make check` exit 0, `make e2e` 148 passed; logs `build/fix12-*.log`.
-- Blockers or follow-up: Minimum throughput is now 32 KiB per 10 s per chunk; a slower client is cut off (fine on a LAN).

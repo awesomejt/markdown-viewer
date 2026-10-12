@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-12)
+
+- Task: `/api/file` write deadline; small enough to fix in the orchestrator without a subagent.
+- Files changed: `internal/api/file.go` (`chunkWriter` arms `writeTimeout` (10 s) before every `ServeContent` chunk and hides `io.ReaderFrom`), new `internal/api/file_test.go`, `docs/Architecture.md`, comments in `events.go`/`api.go`/`cmd/mdv/main.go`.
+- Result: Stalled raw-TCP client test hangs 15 s without the wrapper and passes in 0.3 s with it. No explicit deadline clear is needed: `net/http` resets the write deadline before reusing a kept-alive connection (keep-alive test guards it). `make check` exit 0, `make e2e` 148 passed; logs `build/fix12-*.log`.
+- Blockers or follow-up: Minimum throughput is now 32 KiB per 10 s per chunk; a slower client is cut off (fine on a LAN).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-3)
 
 - Task: Live reload for image views; small enough to fix in the orchestrator without a subagent.
