@@ -32,7 +32,6 @@ Packaging, tests, review:
 
 R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
 
-- [ ] **FIX-10** [S] E2E gaps: back/forward (FR-6.2), relative image inside a Markdown document loads (SC1), offline guard (`page.route` fails any non-local request) (deps: R1)
 - [ ] **FIX-11** [S] FR-1.2 (M) date sort missing: name/date sort control in the folder listing, persisted like the markdown-only toggle (deps: R1)
 - [ ] **FIX-15** [S] Flaky e2e `tree works in the mobile drawer` (`e2e/tests/workspace.spec.ts:61`): after the link click, `getByRole('navigation', { name: 'Sidebar' })` is sometimes not found (webkit in FIX-4, ipad in FIX-9), likely because the closed drawer leaves the accessibility tree; assert the closed state with a locator that does not depend on it, and fix any real auto-close race (deps: R1)
 - [ ] **DOC1** [S] README quick start + Compose deployment; also cover `:fsnotify` for local roots, `MDV_ALLOWED_HOSTS`, NAS boot ordering (`remote-fs.target`/`RequiresMountsFor`) and bind propagation, behavior when a root is down at startup, no internet needed at runtime, LAN-only warning (deps: FIX-4 to FIX-11)
@@ -79,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **FIX-10** [S] E2E: shared offline guard (`e2e/tests/fixtures.ts`) fails any non-local http(s) request in every spec; back/forward walk (FR-6.2); relative image `naturalWidth > 0` (SC1); Mermaid+D2 page makes no remote requests; `make e2e` 136 passed, `make check` green.
 - [x] 2026-10-11: **FIX-9** [S] Compose `MDV_ROOTS`/`MDV_POLL_INTERVAL` overridable from env; poll default 2s in config and Compose (SC3); commented NAS example binds the parent of the mount points with `propagation: rslave`, `create_host_path: false`; `make check` green, `make e2e` 124 passed (re-run after the FIX-15 flake).
 - [x] 2026-10-11: **FIX-8** [S] Roots open lazily under `MDV_FS_TIMEOUT`, concurrently at boot; a missing/erroring/hung root starts `available:false` with a startup warning and recovers via the probe without restart; a non-directory root still fails startup; config no longer stats paths; fsroot 97.9%, `make check` green, `make e2e` 124 passed.
 - [x] 2026-10-11: **FIX-7** [S] Missing-path watch keys capped separately (`MaxMissing` 64) so they cannot exhaust `MaxWatches`; `/api/events` caps 64 streams total and 16 per TCP peer IP (503 `busy`); watch 92.7%, api 95.1%, `make check` green, `make e2e` 124 passed.

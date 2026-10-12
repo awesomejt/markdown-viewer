@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
+import type { Page } from '@playwright/test';
 
 const sidebar = (page: Page) => page.getByRole('navigation', { name: 'Sidebar' });
 
@@ -64,4 +65,40 @@ test('traversal URLs are rejected', async ({ request }) => {
     const res = await request.get(url, { maxRedirects: 0 });
     expect([400, 403, 404], url).toContain(res.status());
   }
+});
+
+test('browser back and forward walk root, folder, file and link', async ({ page }) => {
+  const body = page.locator('.markdown-body');
+  await page.goto('/');
+  await page.getByRole('link', { name: 'fixtures' }).first().click();
+  await expect(page).toHaveURL(/\/browse\/fixtures$/);
+  const entries = page.getByRole('list', { name: 'Entries' });
+  await entries.getByRole('link', { name: 'docs' }).click();
+  await expect(page).toHaveURL(/\/browse\/fixtures\/docs$/);
+  await entries.getByRole('link', { name: 'guide.md' }).click();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/guide\.md$/);
+  await body.getByRole('link', { name: 'Sibling' }).click();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/other\.md$/);
+  await expect(body.getByRole('heading', { level: 1 })).not.toHaveText('Guide');
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/guide\.md$/);
+  await expect(body.getByRole('heading', { name: 'Guide', level: 1 })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/browse\/fixtures\/docs$/);
+  await expect(entries.getByRole('link', { name: 'guide.md' })).toBeVisible();
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/browse\/fixtures$/);
+  await expect(entries.getByRole('link', { name: 'docs' })).toBeVisible();
+
+  await page.goForward();
+  await expect(page).toHaveURL(/\/browse\/fixtures\/docs$/);
+  await page.goForward();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/guide\.md$/);
+  await expect(body.getByRole('heading', { name: 'Guide', level: 1 })).toBeVisible();
+  await page.goForward();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/other\.md$/);
+  await expect(body.getByRole('heading', { name: 'Guide', level: 1 })).toHaveCount(0);
 });

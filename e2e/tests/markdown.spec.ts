@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 const doc = (page: import('@playwright/test').Page) => page.locator('.markdown-body');
 
@@ -64,4 +64,13 @@ test('code.md highlights known languages and leaves unknown ones plain', async (
   await expect(body.locator('pre:has(code.language-notalang)')).toHaveText('just some text\n');
   await expect(body.locator('pre.shiki')).toHaveCount(2);
   await expect(body.getByText('bare block')).toBeVisible();
+});
+
+test('a relative image in a document loads', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/guide.md');
+  const img = doc(page).getByRole('img', { name: 'Pixel' });
+  await expect(img).toHaveAttribute('src', /\/api\/file\?.*images%2Fpixel\.png|images\/pixel\.png/);
+  await expect
+    .poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth))
+    .toBeGreaterThan(0);
 });

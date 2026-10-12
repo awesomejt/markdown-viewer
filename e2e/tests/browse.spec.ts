@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 const entries = (page: import('@playwright/test').Page) =>
   page.getByRole('list', { name: 'Entries' });

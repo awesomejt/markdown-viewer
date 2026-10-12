@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 const figures = (page: import('@playwright/test').Page, kind: string) =>
   page.locator(`figure.diagram[data-diagram="${kind}"]`);
@@ -65,4 +65,15 @@ test.describe('theme', () => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(figures(page, 'd2')).toHaveAttribute('data-state', 'ready');
   });
+});
+
+test('a Markdown page with Mermaid and D2 makes no non-local requests', async ({
+  page,
+  remoteRequests,
+}) => {
+  await page.goto('/view/fixtures/diagrams/inline.md');
+  await expect(figures(page, 'mermaid').first()).toHaveAttribute('data-state', 'ready');
+  await expect(figures(page, 'd2').first()).toHaveAttribute('data-state', 'ready');
+  await page.waitForLoadState('networkidle');
+  expect(remoteRequests).toEqual([]);
 });

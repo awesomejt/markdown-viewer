@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-9 Compose defaults merged (2026-10-11)
-- Next recommended task: FIX-10 [S] e2e gaps, then FIX-11, FIX-15, then DOC1
+- Last major milestone: FIX-10 e2e gaps merged (2026-10-11)
+- Next recommended task: FIX-11 [S] date sort, then FIX-15, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -36,6 +36,7 @@ Full log: `agents/Decisions.md`.
 - Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
+- Since FIX-10, every e2e spec must import `test`/`expect` from `e2e/tests/fixtures.ts` (offline guard).
 - Since FIX-7, `/api/events` allows 16 streams per client IP. E2E runs every browser from one IP, so keep Playwright workers ≤ 16 (16 today) or raise the cap for tests. Behind a reverse proxy all tabs share the proxy IP.
 - Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work. DOC1 must say so.
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
@@ -75,6 +76,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-10)
+
+- Task: E2E gaps (back/forward, relative image, offline guard).
+- Files changed: `e2e/tests/fixtures.ts` (new auto fixture: aborts and records any non-local http(s) request, fails at teardown; `allowedRemote` option for D-26 remote images), all specs import `test`/`expect` from it, new tests in `flow`, `markdown`, `diagrams` specs.
+- Result: The route matches `^https?:` only, because routing `blob:` breaks WebKit diagram images. The orchestrator reviewed the diff and re-ran `make e2e` (136 passed) and `make check`; both exit 0, logs `build/fix10-*.log`.
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-9)
 
 - Task: Compose/defaults.
@@ -88,10 +96,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/fsroot/lazy.go` (new `lazyRoot`), `access.go` (`OpenHandle` boot check via `run`, `StartupErr`), `registry.go` (concurrent open, `StartupErrors`), `guard.go` (`OpenRoot` maps a non-directory to `ENOTDIR`), `internal/config/config.go` (no `os.Stat`), `cmd/mdv/main.go` (warning), tests, `docs/Architecture.md`.
 - Result: The orchestrator reviewed the diff and re-ran `go test -race -count=3` (fsroot, config, cmd/mdv), `make check` and `make e2e` (124 passed); all exit 0, logs in `build/fix8/`.
 - Blockers or follow-up: None. A mount point that exists but is not mounted yet opens the empty directory and needs a restart after the NAS mounts (Known Limitations; DOC1 boot ordering).
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-7)
-
-- Task: SSE limits.
-- Files changed: `internal/watch/hub.go` (`MaxMissing`, `entry.missing` kept for the entry's life), `internal/api/events.go` + `api.go` (stream limiter keyed by `RemoteAddr` host), tests, `docs/Architecture.md`.
-- Result: No new env vars. The orchestrator reviewed the diff and re-ran `go test -race -count=3` (watch, api), `make check` and `make e2e` (124 passed, 16 workers); all exit 0, logs in `build/fix7/`.
-- Blockers or follow-up: None.

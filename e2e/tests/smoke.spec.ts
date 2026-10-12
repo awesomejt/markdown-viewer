@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('root list loads and a root can be browsed', async ({ page }) => {
   await page.goto('/');
