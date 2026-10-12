@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-22)
+
+- Task: One bad image or tree sub kills live reload; Sonnet implementer, orchestrator reviewed the diff and re-ran the gates.
+- Files changed: `internal/watch/hub.go` (`Sub.Low`, `overCapLocked`), `internal/api/events.go` (`lsub`), `web/src/live/logic.ts` (`capSubs` returns `{sub, lsub}`), tests in both, `e2e/tests/live.spec.ts` + `livefs` fsnotify root in `e2e/playwright.config.ts`, `Makefile` (cleans `build/e2e/livefs`), `docs/Architecture.md`.
+- Result: server-side drop chosen over the client-side listing/control-char filter (covers every case in one place). `make check` exit 0, `make e2e` 224 passed. First `make check` failed on MD060 table alignment, a `WorkspaceTree` test parsing only `sub`, and staticcheck QF1006; all fixed.
+- Blockers or follow-up: a normal `sub` that fails (viewed file's directory deleted on an `:fsnotify` root) still fails the stream (Known Limitations).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-21)
 
 - Task: Root swap escape (🔒); coded in the orchestrator, Opus security review in a subagent (3 rounds).
