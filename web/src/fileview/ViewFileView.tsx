@@ -5,6 +5,7 @@ import { useFile, useList } from '../api/hooks';
 import type { EntryKind } from '../api/types';
 import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
+import { useRecordRecent } from '../recent/RecentList';
 import { formatSize } from '../browse/logic';
 import { baseName, fileKind, parentDir } from './logic';
 import './fileview.css';
@@ -140,8 +141,9 @@ export function ViewFileView() {
   const ws = search.get('ws') ?? undefined;
   const list = useList(root, parentDir(path));
   useLiveSubscription(root, path);
-  if (list.isPending) return <Loading />;
   const entry = list.data?.entries.find((e) => e.type === 'file' && e.name === baseName(path));
+  useRecordRecent(entry && { root, path, type: 'file', ws });
+  if (list.isPending) return <Loading />;
   return (
     <ViewByKind
       key={`${root}/${path}`}

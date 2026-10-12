@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { browseHref } from '../api/client';
 import { useRoots } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
+import { RecentList } from '../recent/RecentList';
 
 export function RootsView() {
   const roots = useRoots();
@@ -28,6 +29,7 @@ export function RootsView() {
             ))}
           </ul>
         ))}
+      <RecentList />
     </section>
   );
 }

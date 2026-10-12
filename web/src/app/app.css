@@ -431,3 +431,37 @@ a:focus-visible {
   margin: 0;
   overflow-x: auto;
 }
+
+/* Recent files and folders (FR-2.6). */
+.recent {
+  margin-top: 24px;
+}
+
+.recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recent-head h2,
+.recent-head h3 {
+  margin: 0;
+}
+
+.recent-list a {
+  gap: 8px;
+}
+
+.recent-name {
+  flex: 0 1 auto;
+}
+
+.recent-where {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85em;
+}
