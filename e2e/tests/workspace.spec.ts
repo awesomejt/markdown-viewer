@@ -2,21 +2,35 @@ import { expect, test, type Page } from '@playwright/test';
 
 const sidebar = (page: Page) => page.getByRole('navigation', { name: 'Sidebar' });
 
+/** Below 900 px (e.g. iPad portrait) the sidebar is a drawer: open it when the menu button shows. */
+async function openTree(page: Page): Promise<void> {
+  const menu = page.getByRole('button', { name: 'Open menu' });
+  // After a navigation the drawer closes itself; wait for that so we do not race it.
+  if (await menu.isVisible()) await expect(sidebar(page)).toBeHidden();
+  if (!(await sidebar(page).isVisible())) {
+    await menu.click();
+  }
+  await expect(sidebar(page)).toBeVisible();
+}
+
 test('workspace tree navigates and keeps ws', async ({ page }) => {
   await page.goto('/browse/fixtures/docs?ws=docs');
   const tree = sidebar(page);
+  await openTree(page);
   await expect(tree.getByRole('link', { name: 'guide.md' })).toBeVisible();
   await expect(tree.getByRole('link', { name: 'sub' })).toBeVisible();
 
   await tree.getByRole('button', { name: 'Expand sub' }).click();
   await tree.getByRole('link', { name: 'deep.md' }).click();
   await expect(page).toHaveURL(/\/view\/fixtures\/docs\/sub\/deep\.md\?ws=docs$/);
+  await openTree(page);
   await expect(tree.getByRole('link', { name: 'deep.md' })).toHaveAttribute('aria-current', 'page');
 
   await tree.getByRole('link', { name: 'guide.md' }).click();
   await expect(page).toHaveURL(/\/view\/fixtures\/docs\/guide\.md\?ws=docs$/);
   // Ancestors stay expanded and the current file is highlighted after a reload.
   await page.reload();
+  await openTree(page);
   await expect(sidebar(page).getByRole('link', { name: 'guide.md' })).toHaveAttribute(
     'aria-current',
     'page',
@@ -27,6 +41,7 @@ test('a link outside the workspace drops ws', async ({ page }) => {
   await page.goto('/view/fixtures/docs/guide.md?ws=docs');
   await page.getByRole('link', { name: 'Parent README' }).click();
   await expect(page).toHaveURL(/\/view\/fixtures\/README\.md$/);
+  await openTree(page);
   await expect(sidebar(page).getByRole('heading', { name: 'Roots' })).toBeVisible();
 });
 

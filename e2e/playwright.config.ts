@@ -27,8 +27,13 @@ export default defineConfig({
     baseURL,
     trace: 'retain-on-failure',
   },
-  // T1 adds firefox, webkit and an iPad (WebKit device descriptor) project here.
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // iPad Pro 11 is 834 px wide in portrait, so the sidebar is a drawer there (below 900 px).
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'ipad', use: { ...devices['iPad Pro 11'] } },
+  ],
   webServer: {
     command: path.join(repo, 'build/mdv'),
     url: `${baseURL}/healthz`,
