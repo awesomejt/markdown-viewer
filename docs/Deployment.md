@@ -54,10 +54,10 @@ CIFS and NFS clients cache file and directory attributes (modification time, siz
 
 ## Start Docker after the mount
 
-If Docker starts before the NAS is mounted, mdv may bind an empty mount-point directory and stay on it after the share appears (a known limitation; a restart fixes it). Order the boot to avoid this.
+If Docker starts before the NAS is mounted, mdv first opens the empty mount-point directory and switches to the share within about 2 seconds of it appearing (FIX-16). Order the boot anyway, so clients never see the empty folder.
 
 - Use `_netdev` in the fstab options so systemd treats the mount as network-dependent and orders it after the network is up. Add `nofail` so a down NAS does not block boot.
-- Avoid `x-systemd.automount` for this mount. An automount makes the path exist before the share is mounted, which is exactly the empty-directory case. If you use it anyway, the first access triggers the mount, and you must restart mdv after the first access.
+- Avoid `x-systemd.automount` for this mount. An automount makes the path exist before the share is mounted, which is exactly the empty-directory case. If you use it anyway, mdv switches to the share once it is mounted, but its first listings may show the empty directory.
 - Make Docker wait for the mounts with a drop-in:
 
 ```bash
@@ -142,7 +142,7 @@ If you put a reverse proxy in front of mdv:
 
 - A root that is missing, erroring, or hung at boot (for example a NAS that is still starting) does not stop mdv. The root starts unavailable, a warning is logged, and a background probe opens it once it answers, with no restart.
 - A root path that exists but is not a directory fails startup, as do syntax errors in `MDV_ROOTS`.
-- Known limitation (FIX-16): if the mount-point directory exists but the share is not mounted yet, mdv opens the empty directory and keeps pointing at it after the mount appears. Run `docker compose restart mdv`. The boot ordering above prevents this.
+- If the mount-point directory exists but the share is not mounted yet, mdv opens the empty directory. While the root is in use, mdv compares the device and inode of the root path with the open directory at most every 2 seconds and reopens the root when they differ, so a share that mounts (or unmounts) later is picked up without a restart (FIX-16). Roots in `:fsnotify` mode may still miss change events until restart, so use polling for NAS roots.
 
 ## Upgrade
 
