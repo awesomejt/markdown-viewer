@@ -230,6 +230,15 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - Errors render as `.diagram-error` (title, message as text, source in `pre > code`). Each diagram sits in an error boundary, so a crash shows the same box and never breaks the page.
 - Standalone `.mmd`, `.mermaid` and `.d2` files render full page through the lazy `DiagramPage`.
 
+**Workspace + file views (F5):**
+
+- With `?ws=` the sidebar shows `WorkspaceTree` (heading "Workspace") instead of the root list. Each folder fetches its listing through `useList` only when expanded; dot-files are hidden and folders sort first. Folders are disclosure buttons (`aria-expanded`) next to links, so Tab/Enter/Space work and the tree needs no custom key handling; it also renders in the mobile drawer.
+- Ancestors of the current path (and the current folder on browse routes) auto-expand; explicit toggles override. The current entry has `aria-current="page"`.
+- `scopeWs(path, ws)` (built on `isWithin`) decides whether a link keeps `ws`: browse entry links and breadcrumbs drop it for targets outside the workspace folder.
+- `/view` takes the file kind from the parent folder listing (the server's classification) and falls back to the extension for Markdown/diagram, else `other`. Image: `<img src=/api/file>` with `referrerPolicy="no-referrer"`. Text: monospace `pre`, no highlighting. Other: download link.
+- Markdown and text fetch through `TextGate`: a 413 `too_large` shows "File is X MB" (size from the listing) and a "Load anyway" button that refetches with `force=1` (key `['file', root, path, true]`, D-21). Diagram pages do not offer the button.
+- A pathless route wrapper inside `Layout` has `errorElement: <RouteError />`, so lazy-chunk and render failures show the app error state with the shell intact.
+
 **Client resilience:** the SPA handles `vite:preloadError` by reloading once.
 
 **Frontend shell (F1):**
