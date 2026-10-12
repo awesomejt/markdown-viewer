@@ -43,6 +43,10 @@ type Options struct {
 type Sub struct {
 	Root string
 	Path string
+	// Low marks a best-effort sub: if it cannot be validated it is dropped
+	// instead of failing the whole [Hub.Subscribe], and it is also the first
+	// thing dropped when the watch caps would be exceeded.
+	Low bool
 }
 
 type key struct{ root, path string }
@@ -162,20 +166,33 @@ func (h *Hub) prepare(ctx context.Context, s Sub) (target, error) {
 }
 
 // Subscribe registers interest in subs and returns the subscription. Every
-// sub is validated first; on any error nothing is registered. ctx bounds only
-// the validation, not the subscription's life.
+// normal sub is validated first; on any error nothing is registered. A [Sub]
+// with Low set that fails validation is dropped silently, and low subs are
+// also dropped (not fatal) when registering them would exceed the watch caps.
+// ctx bounds only the validation, not the subscription's life.
 func (h *Hub) Subscribe(ctx context.Context, subs []Sub) (*Subscription, error) {
 	targets := make([]target, 0, len(subs))
-	seen := make(map[key]bool, len(subs))
+	idx := make(map[key]int, len(subs))
+	lows := make(map[key]bool, len(subs))
 	for _, s := range subs {
 		t, err := h.prepare(ctx, s)
 		if err != nil {
+			if s.Low {
+				h.logger.DebugContext(ctx, "dropped invalid low-priority sub", "root", s.Root, "err", err)
+				continue
+			}
 			return nil, err
 		}
-		if !seen[t.key] {
-			seen[t.key] = true
-			targets = append(targets, t)
+		if i, ok := idx[t.key]; ok {
+			if !s.Low {
+				lows[t.key] = false
+				targets[i] = t
+			}
+			continue
 		}
+		idx[t.key] = len(targets)
+		lows[t.key] = s.Low
+		targets = append(targets, t)
 	}
 
 	sub := &Subscription{hub: h, pend: make(map[key]Op), notify: make(chan struct{}, 1), done: make(chan struct{})}
@@ -184,19 +201,18 @@ func (h *Hub) Subscribe(ctx context.Context, subs []Sub) (*Subscription, error) 
 		h.mu.Unlock()
 		return nil, ErrClosed
 	}
-	var fresh, freshMissing int
-	for _, t := range targets {
-		if h.entries[t.key] == nil {
-			if t.gone {
-				freshMissing++
-			} else {
-				fresh++
+	if h.overCapLocked(targets) {
+		kept := targets[:0:0]
+		for _, t := range targets {
+			if !lows[t.key] {
+				kept = append(kept, t)
 			}
 		}
-	}
-	if len(h.entries)-h.missing+fresh > h.opts.MaxWatches || h.missing+freshMissing > h.opts.MaxMissing {
-		h.mu.Unlock()
-		return nil, ErrTooManyWatches
+		targets = kept
+		if h.overCapLocked(targets) {
+			h.mu.Unlock()
+			return nil, ErrTooManyWatches
+		}
 	}
 	for _, t := range targets {
 		e := h.entries[t.key]
@@ -214,6 +230,22 @@ func (h *Hub) Subscribe(ctx context.Context, subs []Sub) (*Subscription, error) 
 	}
 	h.mu.Unlock()
 	return sub, nil
+}
+
+// overCapLocked reports whether registering targets would push the hub past
+// its watch caps.
+func (h *Hub) overCapLocked(targets []target) bool {
+	var fresh, freshMissing int
+	for _, t := range targets {
+		if h.entries[t.key] == nil {
+			if t.gone {
+				freshMissing++
+			} else {
+				fresh++
+			}
+		}
+	}
+	return len(h.entries)-h.missing+fresh > h.opts.MaxWatches || h.missing+freshMissing > h.opts.MaxMissing
 }
 
 // startLocked creates the entry and watcher for a key's first subscriber.

@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-21 root swap escape fixed (2026-10-12); remaining R2.13 follow-ups FIX-22 to FIX-28, DOC2, CH2
-- Next recommended task: FIX-22 (bad sub kills live reload), then FIX-23, FIX-24 before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
+- Last major milestone: FIX-22 bad subs no longer kill live reload (2026-10-12); remaining R2.13 follow-ups FIX-23 to FIX-28, DOC2, CH2
+- Next recommended task: FIX-23 (memoize Markdown components), then FIX-24 before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -38,7 +38,7 @@ Full log: `agents/Decisions.md`.
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
 - Since FIX-10, every e2e spec must import `test`/`expect` from `e2e/tests/fixtures.ts` (offline guard).
-- Since FIX-18, `useLiveSubscription(root, path, true)` is a low-priority sub (Markdown images, and since R2.10 every shown workspace-tree folder): it only fills slots under the 32-sub cap left by normal subs. A folder sub does not report content changes of its children (only add/remove), so watch files directly when content matters.
+- Since FIX-18, `useLiveSubscription(root, path, true)` is a low-priority sub (Markdown images, and since R2.10 every shown workspace-tree folder): it only fills slots under the 32-sub cap left by normal subs, and is sent as `lsub` (the server drops invalid ones, FIX-22). A folder sub does not report content changes of its children (only add/remove), so watch files directly when content matters.
 - Since FIX-7, `/api/events` allows 16 streams per client IP. E2E runs every browser from one IP, so keep Playwright workers ≤ 16 (16 today) or raise the cap for tests. Behind a reverse proxy all tabs share the proxy IP.
 - Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work.
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
@@ -53,7 +53,7 @@ Full log: `agents/Decisions.md`.
 
 Open items carried from archived run log entries (`agents/Memory-History.md`). R1 confirmed these as accepted; new R1 defects are FIX-4 to FIX-14 in `TODO.md` (all done).
 
-- Live reload: any missing `sub` path makes `/api/events` return 404 for the whole stream, and the client has no special handling, so deleting a viewed file can break live reload for that tab (B6/B7).
+- Live reload: a normal `sub` that fails validation (for example a missing parent directory on an `:fsnotify` root) still makes `/api/events` fail the whole stream, and the client has no special handling, so deleting a viewed file's directory can break live reload for that tab (B6/B7). Since FIX-22, low-priority subs (images, tree folders) go as `lsub` and the server drops invalid ones instead.
 - Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6), and so can an open TOC panel above the body when the heading count changes (R2.6).
 - Watchers: fsnotify `Add`/`Remove` bypass the FS timeouts (local disks only). A deleted root stays unwatched until restart. Delete + create of a parent with the file present merges to `modified`. Poll treats a file-to-dir swap as `modified` (B6/B7).
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-22)
+
+- Task: One bad image or tree sub kills live reload; Sonnet implementer, orchestrator reviewed the diff and re-ran the gates.
+- Files changed: `internal/watch/hub.go` (`Sub.Low`, `overCapLocked`), `internal/api/events.go` (`lsub`), `web/src/live/logic.ts` (`capSubs` returns `{sub, lsub}`), tests in both, `e2e/tests/live.spec.ts` + `livefs` fsnotify root in `e2e/playwright.config.ts`, `Makefile` (cleans `build/e2e/livefs`), `docs/Architecture.md`.
+- Result: server-side drop chosen over the client-side listing/control-char filter (covers every case in one place). `make check` exit 0, `make e2e` 224 passed. First `make check` failed on MD060 table alignment, a `WorkspaceTree` test parsing only `sub`, and staticcheck QF1006; all fixed.
+- Blockers or follow-up: a normal `sub` that fails (viewed file's directory deleted on an `:fsnotify` root) still fails the stream (Known Limitations).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-21)
 
 - Task: Root swap escape (🔒); coded in the orchestrator, Opus security review in a subagent (3 rounds).
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-27), `agents/Memory-History.md` only. No source changes.
 - Result: 14/15 Phase 2 requirements met, NFR-3 partial. Perf (median of 3, WebKit iPad Pro 11 emulation): 10k listing first row 121 ms, scroll-to-end 23 ms, filter key ≤ 25 ms; 459 KB doc with 5 Mermaid + 5 D2 all ready 3.7 s (chromium 1.4 s, chromium 4× CPU 5.4 s; target 2 s). `go vet`, `go test -race`, vitest 249 all green. Logged FIX-21 to FIX-27, DOC2, CH2.
 - Blockers or follow-up: Perf rerun: `docker run --rm -u $(id -u):$(id -g) -v $PWD:/src -w /src/build/r213 --ipc=host -e HOME=/src/build/.cache/home -e CI=1 mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test` (fixtures from `python3 build/r213/gen.py`, server `build/mdv` on 18081 with `MDV_ROOTS=perf=build/r213/perf`).
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.12)
-
-- Task: Full Phase 2 validation run (as T2); run in the orchestrator (tool runs only, no authoring).
-- Files changed: `TODO.md`, `MEMORY.md`, `agents/Memory-History.md` only.
-- Result: `make check`, `go test -race ./...`, `make e2e` (220 passed), `docker compose build` all exit 0; extra Compose smoke (healthy, SPA 200, roots API, bundle contains the virtualizer); logs `build/r212/`.
-- Blockers or follow-up: First smoke attempt failed only because host port 8080 is taken by another container; reran with `MDV_PORT=18080`.

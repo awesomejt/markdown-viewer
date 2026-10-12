@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.12)
+
+- Task: Full Phase 2 validation run (as T2); run in the orchestrator (tool runs only, no authoring).
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Memory-History.md` only.
+- Result: `make check`, `go test -race ./...`, `make e2e` (220 passed), `docker compose build` all exit 0; extra Compose smoke (healthy, SPA 200, roots API, bundle contains the virtualizer); logs `build/r212/`.
+- Blockers or follow-up: First smoke attempt failed only because host port 8080 is taken by another container; reran with `MDV_PORT=18080`.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.11)
 
 - Task: Virtualized long listings (NFR-3); done in the orchestrator without a subagent.

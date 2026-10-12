@@ -12,21 +12,37 @@ import {
 
 describe('subscriptions', () => {
   it('dedupes, sorts and caps', () => {
-    expect(capSubs(['b:x', 'a:y', 'b:x'])).toEqual(['a:y', 'b:x']);
+    expect(capSubs(['b:x', 'a:y', 'b:x'])).toEqual({ sub: ['a:y', 'b:x'], lsub: [] });
     const many = Array.from({ length: 40 }, (_, i) => `r:${String(i).padStart(2, '0')}`);
     const capped = capSubs(many);
-    expect(capped).toHaveLength(MAX_SUBS);
-    expect(capped).toEqual(many.slice(0, MAX_SUBS));
-    expect(capSubs(['z'], ['a', 'z', 'b'])).toEqual(['z', 'a', 'b']);
-    expect(capSubs(['z'], many)).toEqual(['z', ...many.slice(0, MAX_SUBS - 1)]);
+    expect(capped.sub).toEqual(many.slice(0, MAX_SUBS));
+    expect(capped.lsub).toEqual([]);
+    expect(capSubs(['z'], ['a', 'z', 'b'])).toEqual({ sub: ['z'], lsub: ['a', 'b'] });
+  });
+
+  it('keeps normal subs first and caps sub plus lsub together', () => {
+    const many = Array.from({ length: 40 }, (_, i) => `r:${String(i).padStart(2, '0')}`);
+    const c = capSubs(['z'], many);
+    expect(c.sub).toEqual(['z']);
+    expect(c.lsub).toEqual(many.slice(0, MAX_SUBS - 1));
+    expect(c.sub.length + c.lsub.length).toBe(MAX_SUBS);
+    const full = capSubs(many.slice(0, MAX_SUBS), ['a:low']);
+    expect(full.lsub).toEqual([]);
   });
 
   it('builds an encoded URL, or null when empty', () => {
-    expect(buildEventsUrl([])).toBeNull();
-    const url = buildEventsUrl(['docs:a b/c&d.md', 'docs:']);
+    expect(buildEventsUrl({ sub: [], lsub: [] })).toBeNull();
+    const url = buildEventsUrl({ sub: ['docs:a b/c&d.md', 'docs:'], lsub: [] });
     expect(url).toBe('/api/events?sub=docs%3Aa+b%2Fc%26d.md&sub=docs%3A');
     const params = new URL(url!, 'http://x').searchParams.getAll('sub');
     expect(params).toEqual(['docs:a b/c&d.md', 'docs:']);
+  });
+
+  it('sends low-priority subs as lsub, even with no normal subs', () => {
+    expect(buildEventsUrl({ sub: ['r:a.md'], lsub: ['r:img.png'] })).toBe(
+      '/api/events?sub=r%3Aa.md&lsub=r%3Aimg.png',
+    );
+    expect(buildEventsUrl({ sub: [], lsub: ['r:img.png'] })).toBe('/api/events?lsub=r%3Aimg.png');
   });
 });
 
