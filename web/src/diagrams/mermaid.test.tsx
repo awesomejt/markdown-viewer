@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import MermaidDiagram from './MermaidDiagram';
+import { preloadMermaid, renderMermaid } from './mermaid';
 import { setTheme } from './test-utils';
 
 const mocks = vi.hoisted(() => ({
@@ -134,5 +135,107 @@ describe('MermaidDiagram', () => {
     await screen.findByRole('img');
     unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1');
+  });
+
+  describe('render queue', () => {
+    /** Makes every render wait for release(); returns the sources in the order they started. */
+    function gate() {
+      const started: string[] = [];
+      const releases: Array<() => void> = [];
+      mocks.render.mockImplementation(
+        (_id: string, source: string) =>
+          new Promise((resolve) => {
+            started.push(source);
+            releases.push(() => resolve({ svg: `<svg>${source}</svg>` }));
+          }),
+      );
+      const next = async (n: number) => {
+        await waitFor(() => expect(releases.length).toBe(n));
+        await act(async () => releases[n - 1]!());
+      };
+      return { started, next };
+    }
+
+    it('runs high-priority jobs before earlier low-priority ones, then the rest', async () => {
+      const { started, next } = gate();
+      const first = renderMermaid('first', 'light');
+      const low = renderMermaid('low', 'light', false);
+      const high = renderMermaid('high', 'light', true);
+      await next(1);
+      await next(2);
+      await next(3);
+      expect(started).toEqual(['first', 'high', 'low']);
+      await Promise.all([first.result, low.result, high.result]);
+    });
+
+    it('lets a promoted job jump ahead', async () => {
+      const { started, next } = gate();
+      const first = renderMermaid('first', 'light');
+      const a = renderMermaid('a', 'light', false);
+      const b = renderMermaid('b', 'light', false);
+      b.promote();
+      await next(1);
+      await next(2);
+      await next(3);
+      expect(started).toEqual(['first', 'b', 'a']);
+      await Promise.all([first.result, a.result, b.result]);
+    });
+
+    it('never renders a cancelled pending job and keeps serializing', async () => {
+      const { started, next } = gate();
+      const first = renderMermaid('first', 'light');
+      const dropped = renderMermaid('dropped', 'light', false);
+      const kept = renderMermaid('kept', 'light', false);
+      dropped.cancel();
+      await expect(dropped.result).rejects.toThrow('cancelled');
+      await waitFor(() => expect(started).toEqual(['first']));
+      await new Promise((r) => setTimeout(r, 20));
+      expect(started).toEqual(['first']);
+      await next(1);
+      await next(2);
+      expect(started).toEqual(['first', 'kept']);
+      await Promise.all([first.result, kept.result]);
+    });
+
+    it('renders diagrams that scroll near the viewport before the others', async () => {
+      const callbacks: IntersectionObserverCallback[] = [];
+      vi.stubGlobal(
+        'IntersectionObserver',
+        class {
+          constructor(cb: IntersectionObserverCallback) {
+            callbacks.push(cb);
+          }
+          observe = vi.fn();
+          disconnect = vi.fn();
+        },
+      );
+      try {
+        const { started, next } = gate();
+        const blocker = renderMermaid('blocker', 'light');
+        render(
+          <>
+            <MermaidDiagram source="far" />
+            <MermaidDiagram source="near" />
+          </>,
+        );
+        await waitFor(() => expect(callbacks).toHaveLength(2));
+        act(() =>
+          callbacks[1]!([{ isIntersecting: true } as IntersectionObserverEntry], {} as never),
+        );
+        await next(1);
+        await next(2);
+        await next(3);
+        expect(started).toEqual(['blocker', 'near', 'far']);
+        await blocker.result;
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
+    it('preloads the chunk without surfacing a rejection', async () => {
+      // The returned promise is swallowed internally, so nothing is left to reject unhandled.
+      expect(preloadMermaid()).toBeUndefined();
+      await new Promise((r) => setTimeout(r, 20));
+    });
   });
 });

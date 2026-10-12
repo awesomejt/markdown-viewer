@@ -13,7 +13,12 @@ import {
 import MarkdownView from './MarkdownView';
 
 vi.mock('../diagrams/mermaid', () => ({
-  renderMermaid: () => new Promise<string>(() => undefined),
+  renderMermaid: () => ({
+    result: new Promise<string>(() => undefined),
+    promote: () => undefined,
+    cancel: () => undefined,
+  }),
+  preloadMermaid: () => undefined,
 }));
 
 function renderMd(text: string) {

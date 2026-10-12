@@ -1,4 +1,4 @@
-.PHONY: help deps deps-e2e web build fixtures test-go test-web test cover-check lint lint-go lint-web lint-e2e lint-yaml lint-md lint-docker lint-shell check run e2e docker clean
+.PHONY: help deps deps-e2e web build fixtures test-go test-web test cover-check lint lint-go lint-web lint-e2e lint-yaml lint-md lint-docker lint-shell check run e2e perf docker clean
 .SHELLFLAGS := -eu -o pipefail -c
 SHELL := /bin/bash
 
@@ -116,6 +116,12 @@ e2e: build fixtures build/.stamp-e2e-deps
 	rm -rf build/e2e/live build/e2e/livefs
 	mkdir -p build/e2e build/.cache/home
 	$(DOCKER_RUN) --ipc=host -e HOME=/src/build/.cache/home -e CI=1 -w /src/e2e $(PLAYWRIGHT_IMAGE) npx playwright test
+
+## perf: opt-in performance harness (NFR-3 doc render, 10k listing); not part of check or e2e
+# Same image as e2e; fixtures are generated into build/perf/ and results go to build/perf/results.jsonl.
+perf: build build/.stamp-e2e-deps
+	mkdir -p build/perf build/.cache/home
+	$(DOCKER_RUN) --ipc=host -e HOME=/src/build/.cache/home -e CI=1 -w /src/e2e/perf $(PLAYWRIGHT_IMAGE) npx playwright test
 
 ## docker: build Docker image
 docker:

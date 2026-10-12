@@ -5,7 +5,14 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from './routes';
 
-vi.mock('../diagrams/mermaid', () => ({ renderMermaid: vi.fn(async () => '<svg/>') }));
+vi.mock('../diagrams/mermaid', () => ({
+  renderMermaid: vi.fn(() => ({
+    result: Promise.resolve('<svg/>'),
+    promote: () => undefined,
+    cancel: () => undefined,
+  })),
+  preloadMermaid: vi.fn(),
+}));
 
 beforeEach(() => {
   URL.createObjectURL = vi.fn(() => 'blob:x');

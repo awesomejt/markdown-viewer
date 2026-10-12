@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-23 Markdown no longer remounts diagrams on re-render (2026-10-12); remaining R2.13 follow-ups FIX-24 to FIX-28, DOC2, CH2
-- Next recommended task: FIX-24 (NFR-3 doc render < 2 s, promote perf harness) before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
+- Last major milestone: FIX-24 NFR-3 viewport render under 2 s on iPad emulation, `make perf` added (2026-10-12); remaining R2.13 follow-ups FIX-25 to FIX-28, DOC2, CH2
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-25 (diagram viewer reset/focus) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -60,7 +60,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Long folders (R2.11): browser find-in-page only sees the rendered rows of a virtualized listing (use the name filter); tree folders page 200 at a time instead of virtualizing. Keyboard focus is lost when the focused row scrolls out of the overscan (R2.13). Emulated timings pass NFR-3 (R2.13); real iPad still unmeasured (V1).
 - Unmounted NAS (R2.13, D-27): the root reopens on the empty mount point, so it lists empty (200) instead of `available:false`, and poll watchers report `deleted` for open files.
-- NFR-3 perf harness lives only in ignored `build/r213/` until FIX-24 promotes it (rerun command in the archived R2.13 run log entry, `agents/Memory-History.md`).
+- NFR-3 (D-28): judged by the viewport metric (1.6-1.8 s on iPad emulation); all 10 diagrams of a large doc take ~2.6 s because Mermaid measures text in the full `body`. Re-measure with `make perf`.
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit` items in the markdownlint-cli2 chain are FIX-20.
 - Code view (R2.5): extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-24)
+
+- Task: NFR-3 doc render over 2 s; Sonnet coder in two rounds, orchestrator reviewed the queue code and ran the gates.
+- Files changed: `web/src/diagrams/mermaid.ts` (`preloadMermaid`, priority job queue with `promote`/`cancel`), `MermaidDiagram.tsx` (IntersectionObserver), `DiagramFigure.tsx` (`figureRef`), `MarkdownView.tsx` (preload), test mocks, new `e2e/perf/` + `make perf`, `docs/Architecture.md`, `docs/Implementation.md`, D-28.
+- Result: after FIX-23 alone, iPad all-10-ready fell from 3.7 s to 2.6 s. An off-screen `contain: strict` Mermaid container gave no gain (Mermaid's text measuring appends to `body`) and was reverted. iPad section jump to its Mermaid diagram 1.6-1.8 s; all 10 ready ~2.6 s; chromium 4x CPU 3.0 s (stress mode). `make check` exit 0 (vitest 258), `make e2e` 224, `make perf` exit 0; logs `build/fix24-*.log`.
+- Blockers or follow-up: iPad margin is thin (1.8 s in one run); the V1 real-iPad check should time a diagram-heavy doc. An iframe renderer is the remaining option if it fails.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-23)
 
 - Task: Markdown remounted diagrams and code blocks on every re-render; Sonnet coder, orchestrator reviewed the diff and ran the gates.
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/watch/hub.go` (`Sub.Low`, `overCapLocked`), `internal/api/events.go` (`lsub`), `web/src/live/logic.ts` (`capSubs` returns `{sub, lsub}`), tests in both, `e2e/tests/live.spec.ts` + `livefs` fsnotify root in `e2e/playwright.config.ts`, `Makefile` (cleans `build/e2e/livefs`), `docs/Architecture.md`.
 - Result: server-side drop chosen over the client-side listing/control-char filter (covers every case in one place). `make check` exit 0, `make e2e` 224 passed. First `make check` failed on MD060 table alignment, a `WorkspaceTree` test parsing only `sub`, and staticcheck QF1006; all fixed.
 - Blockers or follow-up: a normal `sub` that fails (viewed file's directory deleted on an `:fsnotify` root) still fails the stream (Known Limitations).
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-21)
-
-- Task: Root swap escape (🔒); coded in the orchestrator, Opus security review in a subagent (3 rounds).
-- Files changed: `internal/fsroot/lazy.go` (`pinPath`, `openPinned`, `HostDir`), new `nofollow_linux.go`/`nofollow_other.go`, `access.go`/`watchops.go` (`hostDirFn`), `lazy_test.go` (4 tests), `go.mod` (`golang.org/x/sys` direct), `docs/Deployment.md`, `docs/Architecture.md`.
-- Result: `go run ./build/r213/_swap` prints "blocked". Review round 1 found the pin followed a pre-restart symlink and parent swaps; round 2 found `O_RDONLY` broke search-only parents (now `O_PATH`). `make check` exit 0, `make e2e` 220 passed; logs `build/fix21-*.log`.
-- Blockers or follow-up: FIX-28 (flaky `TestEventsGlobalStreamCap` under `make -j`).

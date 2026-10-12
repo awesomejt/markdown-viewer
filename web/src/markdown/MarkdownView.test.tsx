@@ -10,7 +10,12 @@ import { scrollToHash } from './scroll';
 import { renderMermaid } from '../diagrams/mermaid';
 
 vi.mock('../diagrams/mermaid', () => ({
-  renderMermaid: vi.fn(() => new Promise<string>(() => undefined)),
+  renderMermaid: vi.fn(() => ({
+    result: new Promise<string>(() => undefined),
+    promote: () => undefined,
+    cancel: () => undefined,
+  })),
+  preloadMermaid: vi.fn(),
 }));
 
 beforeEach(() => {
