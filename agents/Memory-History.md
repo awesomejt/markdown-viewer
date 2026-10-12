@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-11)
+
+- Task: FR-1.2 date sort.
+- Files changed: `web/src/browse/logic.ts` (`sortEntries`, `loadSort`/`saveSort`, key `mdv-sort`), `BrowseView.tsx` ("Sort by" select), `browse.css`, unit/component tests, `e2e/tests/browse.spec.ts` (live root folder with `utimesSync` mtimes, persists across reload).
+- Result: Folders first in both modes; date = newest first, name tie-break, missing mtime last. The orchestrator reviewed the diff and re-ran `make check` (154 unit) and `make e2e` twice (140 passed); all exit 0, logs `build/fix11-*.log`.
+- Blockers or follow-up: FIX-17 (firefox live-folder flake seen once by the subagent).
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-10)
 
 - Task: E2E gaps (back/forward, relative image, offline guard).
