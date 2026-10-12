@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-6)
+
+- Task: D2 cache byte bound.
+- Files changed: `internal/d2render/cache.go` (byte accounting, per-entry cap, 64 B overhead so negative entries count), `internal/d2render/render.go` (`Options.CacheBytes` 64 MiB, `MaxEntryBytes` 4 MiB clamped to `CacheBytes`), `render_test.go`, `docs/Architecture.md`.
+- Result: Not exposed as an env var (only `MDV_D2_CACHE_ENTRIES` stays configurable). The orchestrator reviewed the diff and re-ran `go test -race -count=3 ./internal/d2render/` and `make check` (both exit 0, logs in `build/fix6/`). No e2e needed (no API/UI change).
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-5)
 
 - Task: DNS rebinding Host allowlist (🔒).

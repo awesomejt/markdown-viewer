@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-8 startup resilience merged (2026-10-11)
-- Next recommended task: FIX-9 [S] Compose defaults (`MDV_ROOTS` default, `rslave` propagation, 2s poll), then FIX-10, FIX-11, then DOC1
+- Last major milestone: FIX-9 Compose defaults merged (2026-10-11)
+- Next recommended task: FIX-10 [S] e2e gaps, then FIX-11, FIX-15, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -57,8 +57,8 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
-- E2E: `workspace tree works in the mobile drawer` failed once on webkit during FIX-4 (element not found) and passed on re-run; likely the drawer auto-close race from T1. Watch for recurrence.
-- Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed). DOC1 must cover boot ordering.
+- E2E: `tree works in the mobile drawer` failed with "element not found" on the Sidebar nav (webkit in FIX-4, ipad in FIX-9) and passed on re-run; tracked as FIX-15.
+- Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). DOC1 must cover boot ordering. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
 ## Open Questions
@@ -75,6 +75,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-9)
+
+- Task: Compose/defaults.
+- Files changed: `compose.yaml` (`${MDV_ROOTS:-...}`, `${MDV_POLL_INTERVAL:-2s}`, commented long-syntax NAS bind of the parent dir with `rslave` and `create_host_path: false`), `internal/config/config.go` + test (poll default 2s), `docs/Architecture.md`, `docs/Tech-Stack.md`.
+- Result: `docker compose config` verified with and without overrides and with the NAS block uncommented; `make check` exit 0; `make e2e` 124 passed on re-run (first run: drawer flake, now FIX-15). Logs in `build/fix9/`.
+- Blockers or follow-up: FIX-15 (drawer flake, second occurrence), FIX-16 (root opened before the NAS mounts stays on the empty dir).
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-8)
 
 - Task: Startup resilience for roots down at boot.
@@ -87,11 +94,4 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Task: SSE limits.
 - Files changed: `internal/watch/hub.go` (`MaxMissing`, `entry.missing` kept for the entry's life), `internal/api/events.go` + `api.go` (stream limiter keyed by `RemoteAddr` host), tests, `docs/Architecture.md`.
 - Result: No new env vars. The orchestrator reviewed the diff and re-ran `go test -race -count=3` (watch, api), `make check` and `make e2e` (124 passed, 16 workers); all exit 0, logs in `build/fix7/`.
-- Blockers or follow-up: None.
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-6)
-
-- Task: D2 cache byte bound.
-- Files changed: `internal/d2render/cache.go` (byte accounting, per-entry cap, 64 B overhead so negative entries count), `internal/d2render/render.go` (`Options.CacheBytes` 64 MiB, `MaxEntryBytes` 4 MiB clamped to `CacheBytes`), `render_test.go`, `docs/Architecture.md`.
-- Result: Not exposed as an env var (only `MDV_D2_CACHE_ENTRIES` stays configurable). The orchestrator reviewed the diff and re-ran `go test -race -count=3 ./internal/d2render/` and `make check` (both exit 0, logs in `build/fix6/`). No e2e needed (no API/UI change).
 - Blockers or follow-up: None.

@@ -19,7 +19,7 @@ func TestDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Listen != ":8080" || c.PollInterval != 3*time.Second || c.FSTimeout != 5*time.Second ||
+	if c.Listen != ":8080" || c.PollInterval != 2*time.Second || c.FSTimeout != 5*time.Second ||
 		c.FSMaxInflight != 4 || c.MaxListEntries != 20000 || c.MaxFileBytes != 5242880 ||
 		c.D2Timeout != 10*time.Second || c.D2Concurrency != 2 || c.D2CacheEntries != 256 ||
 		c.LogLevel != slog.LevelInfo {
