@@ -110,3 +110,46 @@ test('front matter is shown in a collapsed panel', async ({ page }) => {
   await expect(doc(page).getByRole('heading', { name: 'Code', level: 1 })).toBeVisible();
   await expect(page.locator('details.front-matter')).toHaveCount(0);
 });
+
+test('table of contents jumps to headings and remembers its state', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/guide.md');
+  const toc = page.locator('details.toc');
+  const nav = toc.getByRole('navigation', { name: 'Table of contents' });
+  await expect(toc.locator('summary')).toHaveText('Contents');
+  await expect(nav).toBeHidden();
+  await toc.locator('summary').click();
+  await expect(nav.getByRole('link')).toHaveText([
+    'Guide',
+    'Repeated',
+    'Repeated',
+    'Repeated',
+    'Level Four',
+    'Level Five',
+    'Level Six',
+    'Links',
+    'Table',
+    'Tasks',
+    'Inline',
+  ]);
+  await expect(nav.getByRole('link').nth(2)).toHaveAttribute('href', '#repeated-1');
+
+  await nav.getByRole('link', { name: 'Table', exact: true }).click();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/guide\.md#table$/);
+  await expect(doc(page).getByRole('heading', { name: 'Table', level: 2 })).toBeInViewport();
+
+  await page.reload();
+  await expect(page.locator('details.toc nav')).toBeVisible();
+});
+
+test('table of contents sits beside the document on wide screens', async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto('/view/fixtures/docs/guide.md');
+  const nav = page.getByRole('navigation', { name: 'Table of contents' });
+  await expect(nav).toBeVisible();
+  const tocBox = (await page.locator('details.toc').boundingBox())!;
+  const bodyBox = (await doc(page).boundingBox())!;
+  expect(tocBox.x).toBeGreaterThanOrEqual(bodyBox.x + bodyBox.width);
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(nav).toBeInViewport();
+});

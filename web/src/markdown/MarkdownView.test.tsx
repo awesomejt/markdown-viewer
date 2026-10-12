@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ListEntry } from '../api/types';
@@ -371,5 +371,85 @@ describe('front matter panel', () => {
   it('is absent without front matter or when it is blank', () => {
     expect(renderMd('# A\n\n---\n\nb').container.querySelector('.front-matter')).toBeNull();
     expect(renderMd('---\n  \n---\n# A').container.querySelector('.front-matter')).toBeNull();
+  });
+});
+
+describe('table of contents', () => {
+  afterEach(() => window.localStorage.clear());
+
+  const doc = '# Title\n\n## One\n\n### One `a`\n\n## Two[^n]\n\n[^n]: note';
+
+  it('lists the rendered headings with matching ids, nested by level, outside the body', () => {
+    const { container, body } = renderMd(doc);
+    const panel = container.querySelector('details.toc') as HTMLDetailsElement;
+    expect(panel.querySelector('summary')?.textContent).toBe('Contents');
+    expect(body.contains(panel)).toBe(false);
+    const nav = screen.getByRole('navigation', { name: 'Table of contents' });
+    const links = [...nav.querySelectorAll('a')];
+    expect(links.map((a) => a.textContent)).toEqual(['Title', 'One', 'One a', 'Two1']);
+    expect(links.map((a) => a.parentElement!.style.paddingLeft)).toEqual([
+      '0em',
+      '1em',
+      '2em',
+      '1em',
+    ]);
+    for (const a of links) {
+      const id = decodeURIComponent(a.getAttribute('href')!.slice(1));
+      expect(body.querySelector(`[id="${id}"]`)?.tagName).toMatch(/^H[1-6]$/);
+    }
+    // The GFM footnotes label heading is not listed.
+    expect(body.querySelector('h2.sr-only')?.textContent).toBe('Footnotes');
+  });
+
+  it('is absent with fewer than two headings', () => {
+    expect(renderMd('# Only\n\ntext').container.querySelector('.toc')).toBeNull();
+    expect(renderMd('no headings').container.querySelector('.toc')).toBeNull();
+  });
+
+  it('follows live text changes', async () => {
+    const client = new QueryClient();
+    const ui = (text: string) => (
+      <QueryClientProvider client={client}>
+        <RouterProvider
+          router={createMemoryRouter([
+            { path: '*', element: <MarkdownView text={text} root="r" docPath="a.md" /> },
+          ])}
+        />
+      </QueryClientProvider>
+    );
+    const { rerender } = render(ui('## A\n\n## B'));
+    expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual(['A', 'B']);
+    rerender(ui('## A\n\n## B\n\n## C'));
+    await waitFor(() =>
+      expect(screen.getAllByRole('link').map((a) => a.textContent)).toEqual(['A', 'B', 'C']),
+    );
+  });
+
+  it('starts closed on narrow screens and persists its open state', async () => {
+    const { container } = renderMd(doc);
+    const panel = container.querySelector('details.toc') as HTMLDetailsElement;
+    expect(panel.open).toBe(false);
+    panel.open = true;
+    await waitFor(() => expect(window.localStorage.getItem('mdv-toc-open')).toBe('1'));
+    panel.open = false;
+    await waitFor(() => expect(window.localStorage.getItem('mdv-toc-open')).toBe('0'));
+  });
+
+  it('starts open when stored open or on wide screens', () => {
+    window.localStorage.setItem('mdv-toc-open', '1');
+    expect((renderMd(doc).container.querySelector('details.toc') as HTMLDetailsElement).open).toBe(
+      true,
+    );
+    cleanup();
+    window.localStorage.clear();
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q === '(min-width: 1400px)' }));
+    expect((renderMd(doc).container.querySelector('details.toc') as HTMLDetailsElement).open).toBe(
+      true,
+    );
+    cleanup();
+    window.localStorage.setItem('mdv-toc-open', '0');
+    expect((renderMd(doc).container.querySelector('details.toc') as HTMLDetailsElement).open).toBe(
+      false,
+    );
   });
 });
