@@ -412,31 +412,36 @@ func TestLazyRootRefusesSymlinkSwap(t *testing.T) {
 	}
 }
 
-// A configured path that is a symlink is resolved once and keeps working,
-// including remount detection on the resolved directory.
-func TestLazyRootConfiguredSymlink(t *testing.T) {
+// Symlinks in the parent folders of a configured path are resolved once and
+// keep working, including remount detection; a later retarget is not followed.
+// A root that is itself a symlink is refused, even at startup (after a swap
+// and a restart).
+func TestLazyRootConfiguredSymlinks(t *testing.T) {
 	base := t.TempDir()
-	target := filepath.Join(base, "mnt")
-	if err := os.Mkdir(target, 0o750); err != nil {
+	realDir := filepath.Join(base, "realDir")
+	target := filepath.Join(realDir, "mnt")
+	if err := os.MkdirAll(target, 0o750); err != nil {
 		t.Fatal(err)
 	}
 	link := filepath.Join(base, "link")
-	if err := os.Symlink(target, link); err != nil {
+	if err := os.Symlink(realDir, link); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: link}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: filepath.Join(link, "mnt")}, OpenRoot)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	if got := rootNames(t, l); got != "" {
 		t.Fatalf("initial listing %q", got)
 	}
+	if got := l.HostDir(); got != target {
+		t.Fatalf("host dir %q, want %q", got, target)
+	}
 	replaceDir(t, target, "nas.md")
 	if got := rootNames(t, l); got != "nas.md" {
 		t.Fatalf("after mount: %q", got)
 	}
-	// Retargeting the configured symlink is not followed: the root stays pinned.
 	other := filepath.Join(base, "other")
-	if err := os.Mkdir(other, 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Join(other, "mnt"), 0o750); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Remove(link); err != nil {
@@ -447,6 +452,54 @@ func TestLazyRootConfiguredSymlink(t *testing.T) {
 	}
 	if got := rootNames(t, l); got != "nas.md" {
 		t.Fatalf("after retarget: %q", got)
+	}
+
+	rootLink := filepath.Join(base, "rootlink")
+	if err := os.Symlink(target, rootLink); err != nil {
+		t.Fatal(err)
+	}
+	h, err := OpenHandle(config.Root{Name: "s", Path: rootLink}, lazyCfg(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = h.Close() }()
+	if !errors.Is(h.StartupErr(), errRootMoved) || h.Available() {
+		t.Fatalf("symlinked root accepted: %v", h.StartupErr())
+	}
+}
+
+// A parent folder replaced by a symlink to a tree with a same-named folder is
+// refused: the check walks every component without following symlinks.
+func TestLazyRootRefusesParentSwap(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "x", "home")
+	decoy := filepath.Join(base, "decoy", "home")
+	for _, d := range []string{dir, decoy} {
+		if err := os.MkdirAll(d, 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(decoy, "secret.txt"), []byte("s"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("initial listing %q", got)
+	}
+	x := filepath.Join(base, "x")
+	if err := os.Rename(x, x+".old"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(base, "decoy"), x); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.ReadDir("."); !errors.Is(err, errRootMoved) {
+		t.Fatalf("err = %v, want errRootMoved", err)
+	}
+	if _, err := l.Open("secret.txt"); err == nil {
+		t.Fatal("read a file through the swapped parent")
 	}
 }
 
@@ -475,5 +528,27 @@ func TestLazyRootOpenedOtherDir(t *testing.T) {
 	}
 	if _, err := opened.Stat("."); err == nil {
 		t.Fatal("refused root was not closed")
+	}
+}
+
+// The no-follow walk needs only search permission on the parents, like a
+// normal path lookup.
+func TestLazyRootSearchOnlyParent(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root ignores directory permissions")
+	}
+	parent := filepath.Join(t.TempDir(), "p")
+	dir := filepath.Join(parent, "root")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(parent, 0o111); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(parent, 0o750) })
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	defer func() { _ = l.Close() }()
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("listing %q", got)
 	}
 }
