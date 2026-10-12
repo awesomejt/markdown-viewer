@@ -237,6 +237,13 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - `copyText` uses `navigator.clipboard.writeText` only in a secure context. mdv is usually opened over plain HTTP on the LAN, where `navigator.clipboard` does not exist, so it falls back to a selected off-screen `<textarea>` and `document.execCommand('copy')` (also used when the async call rejects).
 - `extractFrontMatter` mirrors remark-frontmatter's `yaml` fences (`---` on the first line, a closing `---` line). Non-blank front matter shows as a collapsed `<details class="front-matter">` with the raw YAML as text, placed above (outside) `.markdown-body`, so it is never body text. It is not parsed.
 
+**Table of contents (FR-2.5, R2.6):**
+
+- `MarkdownView` reads the rendered `h1`-`h6` elements that have an `id` from `.markdown-body` in a layout effect (`collectHeadings`), so TOC links always use the real ids: `rehype-slug` slugs, or `user-content-` prefixed raw-HTML ids. The GFM footnotes label (`h2.sr-only`) and empty headings are skipped. Entries refresh on live reload.
+- With two or more headings, a `<details class="toc">` "Contents" panel holds a `nav` ("Table of contents") of `#id` links, indented relative to the shallowest level. Clicking a link uses the normal hash scroll. Below 1400 px it sits above the document (outside `.markdown-body`); at 1400 px and wider `.markdown-doc` becomes a grid and the panel is a sticky column beside the body.
+- The open state persists as `localStorage` `mdv-toc-open`; without a stored value the panel starts open only at 1400 px and wider.
+- If the panel is open above the document and live reload changes the number of entries, the restored scroll position can shift by those rows (like F6).
+
 **Diagram details (F4):**
 
 - Both kinds display as `<img src=blob:>` built from the SVG (`image/svg+xml`), inside `figure.diagram[data-diagram][data-state=loading|ready|error]`. Rendered SVG is never shown in the app DOM (Mermaid briefly attaches its DOMPurify-sanitized SVG to measure it under `securityLevel: 'strict'`, then removes it), and object URLs are revoked when replaced and on unmount.
