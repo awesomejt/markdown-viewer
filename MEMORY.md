@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-5 Host allowlist merged (2026-10-11)
-- Next recommended task: FIX-6 [S] D2 cache byte bound, then FIX-7 to FIX-11, then DOC1
+- Last major milestone: FIX-6 D2 cache byte bound merged (2026-10-11)
+- Next recommended task: FIX-7 [S] SSE stream and missing-path limits, then FIX-8 to FIX-11, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -73,6 +73,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-6)
+
+- Task: D2 cache byte bound.
+- Files changed: `internal/d2render/cache.go` (byte accounting, per-entry cap, 64 B overhead so negative entries count), `internal/d2render/render.go` (`Options.CacheBytes` 64 MiB, `MaxEntryBytes` 4 MiB clamped to `CacheBytes`), `render_test.go`, `docs/Architecture.md`.
+- Result: Not exposed as an env var (only `MDV_D2_CACHE_ENTRIES` stays configurable). The orchestrator reviewed the diff and re-ran `go test -race -count=3 ./internal/d2render/` and `make check` (both exit 0, logs in `build/fix6/`). No e2e needed (no API/UI change).
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-5)
 
 - Task: DNS rebinding Host allowlist (🔒).
@@ -86,10 +93,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/api/render.go`, `internal/api/api.go` (`codeUnsupported`), `internal/api/render_test.go`, `web/src/api/client.test.ts`, `docs/Architecture.md` (415 row, render row, proxy note; tables re-padded for MD060).
 - Result: Stdlib `http.CrossOriginProtection` guards the route (over plain HTTP it compares `Origin` with `Host`, so a reverse proxy must keep `Host` or terminate TLS). Opus reviewer found no remaining cross-site path and approved. `make check` exit 0 and `make e2e` 124 passed (logs in `build/fix4/`).
 - Blockers or follow-up: One flaky webkit drawer e2e failure on the first run (see Known Limitations).
-
-### 2026-10-11 - Claude Haiku 4.5 + Opus 5.5 verification (T2)
-
-- Task: Full validation run (plus CH1: `MEMORY.md` streamlined, old run log in `agents/Memory-History.md`).
-- Files changed: `TODO.md`, `MEMORY.md` (T2 is validation only).
-- Result: `make check`, `go test -race ./...`, `make e2e` (124 passed) and `docker compose build` all exit 0. The orchestrator checked the exit-code files and log summaries in `build/t2/` directly rather than trusting the Haiku report.
-- Blockers or follow-up: None. R1 should start from "Known Limitations And Accepted Risks".
