@@ -1,0 +1,5 @@
+flowchart LR
+  Browser[Browser] -->|HTTP| Server{mdv server}
+  Server --> Files[(Markdown files)]
+  Server --> Render[Render pipeline]
+  Render --> Browser
