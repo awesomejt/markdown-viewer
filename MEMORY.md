@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.1 hidden-files toggle (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.2) meanwhile
+- Last major milestone: R2.2 copy-code button + front matter panel (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.3) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -78,6 +78,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.2)
+
+- Task: Copy-code button and front matter panel (FR-3.2, FR-3.4); done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/copy.ts` (`copyText`: async clipboard in secure contexts, else `execCommand` on an off-screen textarea), `CopyButton.tsx`, `frontMatter.ts` (`extractFrontMatter`, remark-frontmatter `yaml` fences), `MarkdownView.tsx` (`.code-block` wrapper; collapsed `details.front-matter` above `.markdown-body`), `app/app.css`, unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`.
+- Result: 4 component tests red without the wiring. `make check` exit 0 (198 unit), `make e2e` 168 passed; logs `build/r22-*.log`.
+- Blockers or follow-up: The plain-HTTP `execCommand` fallback is unit-tested only (e2e runs on `localhost`, a secure context); V1 should tap Copy on the iPad.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.1)
 
 - Task: Hidden-files toggle (FR-1.4); small enough to do in the orchestrator without a subagent.
@@ -91,10 +98,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/markdown/MarkdownImage.tsx` (version from `useList(parentDir)`, `src` held until the listing settles, low-priority file sub), `links.ts` (asset result carries `path`), `MarkdownView.tsx`, `live/logic.ts` (`capSubs(keys, low)`), `live/controller.ts` + `LiveProvider.tsx` (`low` flag), `baseName` moved to `fileview/logic.ts`, unit tests, `e2e/tests/live.spec.ts`, `docs/Architecture.md`.
 - Result: E2E red on 4/4 projects with the version disabled, and again with a folder sub instead of a file sub (the first draft; folder subs miss content changes, and the test now changes one file at a time so a listing refresh cannot mask it). `make check` exit 0 (175 unit), `make e2e` 156 passed; logs `build/fix18-*.log`.
 - Blockers or follow-up: Images past the free sub slots (about 31 per page) still version correctly on any listing refetch but get no live events of their own. A truncated listing (`MDV_MAX_LIST_ENTRIES`) can omit an image, which then uses the plain URL.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-16)
-
-- Task: Reopen a root whose mount appeared after boot; small enough to do in the orchestrator without a subagent.
-- Files changed: `internal/fsroot/lazy.go` (`get` claims a check at most every `rootCheckInterval` (2 s); `revalidate` stats `cfg.Path` and compares `fileID` dev/ino with the opened dir; `reopen` swaps and retires the old root, closed at the next swap or `Close`; a failed reopen clears the root so the next call retries; a failed host stat keeps the root), `inode_unix.go`/`inode_other.go` (`fileIdentity`), tests in `lazy_test.go` (dir replacement simulates a mount), README, `docs/Deployment.md`, `docs/Architecture.md`.
-- Result: `TestOpenHandleMountsLater` and `TestLazyRootReopensReplacedDir` red with detection disabled, green with it (`-race -count=3`). `make check` exit 0 (fsroot 98.1%), `make e2e` 152 passed; logs `build/fix16-*.log`.
-- Blockers or follow-up: Not tested against a real CIFS/NFS mount (V1 can: start mdv before mounting). `:fsnotify` roots keep their host-path inotify watches on the old directory after a swap.
