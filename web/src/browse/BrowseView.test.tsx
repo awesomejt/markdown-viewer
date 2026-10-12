@@ -80,6 +80,32 @@ describe('BrowseView', () => {
     expect(window.localStorage.getItem('mdv-md-only')).toBe('1');
   });
 
+  it('sorts by date and persists the choice', async () => {
+    const user = userEvent.setup();
+    bodies.sorted = listing('sorted', [
+      { ...f('a.md', 'markdown'), mtime: '2026-01-01T00:00:00Z' },
+      { ...f('b.md', 'markdown'), mtime: '2026-03-01T00:00:00Z' },
+      { ...f('c.md', 'markdown'), mtime: '2026-02-01T00:00:00Z' },
+    ]);
+    renderAt('/browse/r/sorted');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    const order = () =>
+      within(list)
+        .getAllByRole('link')
+        .map((l) => l.textContent);
+    expect(order()).toEqual(['a.md', 'b.md', 'c.md']);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort by' }), 'date');
+    expect(order()).toEqual(['b.md', 'c.md', 'a.md']);
+    expect(window.localStorage.getItem('mdv-sort')).toBe('date');
+  });
+
+  it('restores a persisted sort choice', async () => {
+    window.localStorage.setItem('mdv-sort', 'date');
+    renderAt('/browse/r');
+    await screen.findByRole('list', { name: 'Entries' });
+    expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('date');
+  });
+
   it('resets the filter when navigating to another folder', async () => {
     const user = userEvent.setup();
     renderAt('/browse/r');

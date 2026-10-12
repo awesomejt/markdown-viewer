@@ -2,6 +2,9 @@ import { browseHref, viewHref } from '../api/client';
 import type { EntryKind, ListEntry } from '../api/types';
 
 export const MD_ONLY_STORAGE_KEY = 'mdv-md-only';
+export const SORT_STORAGE_KEY = 'mdv-sort';
+
+export type SortKey = 'name' | 'date';
 
 export function isHidden(name: string): boolean {
   return name.startsWith('.');
@@ -19,6 +22,35 @@ export function filterEntries(entries: ListEntry[], { query, mdOnly }: FilterOpt
     if (isHidden(e.name)) return false;
     if (mdOnly && e.type !== 'dir' && e.kind !== 'markdown' && e.kind !== 'diagram') return false;
     return q === '' || e.name.toLowerCase().includes(q);
+  });
+}
+
+function compareName(a: ListEntry, b: ListEntry): number {
+  const la = a.name.toLowerCase();
+  const lb = b.name.toLowerCase();
+  if (la !== lb) return la < lb ? -1 : 1;
+  return a.name === b.name ? 0 : a.name < b.name ? -1 : 1;
+}
+
+function mtimeMs(e: ListEntry): number {
+  const t = Date.parse(e.mtime);
+  return Number.isNaN(t) ? Number.NEGATIVE_INFINITY : t;
+}
+
+/**
+ * Returns a sorted copy. Directories always come first (as the server orders them). `name` is
+ * case-insensitive; `date` is newest first with name order as the tie-break, and entries without
+ * a valid mtime sort last within their group.
+ */
+export function sortEntries(entries: ListEntry[], sort: SortKey): ListEntry[] {
+  return [...entries].sort((a, b) => {
+    if ((a.type === 'dir') !== (b.type === 'dir')) return a.type === 'dir' ? -1 : 1;
+    if (sort === 'date') {
+      const ta = mtimeMs(a);
+      const tb = mtimeMs(b);
+      if (ta !== tb) return ta > tb ? -1 : 1;
+    }
+    return compareName(a, b);
   });
 }
 
@@ -106,6 +138,22 @@ export function loadMdOnly(): boolean {
 export function saveMdOnly(on: boolean): void {
   try {
     window.localStorage.setItem(MD_ONLY_STORAGE_KEY, on ? '1' : '0');
+  } catch {
+    // Storage unavailable (private mode): the choice just isn't persisted.
+  }
+}
+
+export function loadSort(): SortKey {
+  try {
+    return window.localStorage.getItem(SORT_STORAGE_KEY) === 'date' ? 'date' : 'name';
+  } catch {
+    return 'name';
+  }
+}
+
+export function saveSort(sort: SortKey): void {
+  try {
+    window.localStorage.setItem(SORT_STORAGE_KEY, sort);
   } catch {
     // Storage unavailable (private mode): the choice just isn't persisted.
   }

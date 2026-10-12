@@ -13,8 +13,12 @@ import {
   joinPath,
   kindOf,
   loadMdOnly,
+  loadSort,
   saveMdOnly,
+  saveSort,
   scopeWs,
+  sortEntries,
+  type SortKey,
   workspaceTarget,
 } from './logic';
 import './browse.css';
@@ -36,7 +40,11 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
   const [query, setQuery] = useState('');
   const [mdOnly, setMdOnly] = useState(loadMdOnly);
 
-  const entries = list.data ? filterEntries(list.data.entries, { query, mdOnly }) : [];
+  const [sort, setSort] = useState<SortKey>(loadSort);
+
+  const entries = list.data
+    ? sortEntries(filterEntries(list.data.entries, { query, mdOnly }), sort)
+    : [];
 
   return (
     <section className="browse">
@@ -71,6 +79,20 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
                 }}
               />
               Markdown/diagrams only
+            </label>
+            <label className="sort-control">
+              Sort by
+              <select
+                value={sort}
+                onChange={(e) => {
+                  const next: SortKey = e.target.value === 'date' ? 'date' : 'name';
+                  setSort(next);
+                  saveSort(next);
+                }}
+              >
+                <option value="name">Name</option>
+                <option value="date">Date (newest first)</option>
+              </select>
             </label>
             <button
               type="button"
