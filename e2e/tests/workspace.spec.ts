@@ -65,7 +65,14 @@ test('tree works in the mobile drawer', async ({ page }) => {
   await page.getByRole('button', { name: 'Open menu' }).click();
   await sidebar(page).getByRole('link', { name: 'guide.md' }).click();
   await expect(page).toHaveURL(/\/view\/fixtures\/docs\/guide\.md\?ws=docs$/);
-  await expect(sidebar(page)).not.toHaveClass(/is-open/);
+  // A closed drawer is `visibility: hidden`, so role locators no longer match it: use the id.
+  const drawer = page.locator('#sidebar');
+  await expect(drawer).not.toHaveClass(/is-open/);
+  await expect(drawer).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Open menu' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
 });
 
 test('image, text and other file views', async ({ page }) => {
