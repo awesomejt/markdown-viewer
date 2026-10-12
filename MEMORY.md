@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.9 D2 ELK layout option (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.10) meanwhile
+- Last major milestone: R2.10 workspace tree live updates (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.11) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -37,7 +37,7 @@ Full log: `agents/Decisions.md`.
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
 - Since FIX-10, every e2e spec must import `test`/`expect` from `e2e/tests/fixtures.ts` (offline guard).
-- Since FIX-18, `useLiveSubscription(root, path, true)` is a low-priority sub (Markdown images): it only fills slots under the 32-sub cap left by normal subs. A folder sub does not report content changes of its children (only add/remove), so watch files directly when content matters.
+- Since FIX-18, `useLiveSubscription(root, path, true)` is a low-priority sub (Markdown images, and since R2.10 every shown workspace-tree folder): it only fills slots under the 32-sub cap left by normal subs. A folder sub does not report content changes of its children (only add/remove), so watch files directly when content matters.
 - Since FIX-7, `/api/events` allows 16 streams per client IP. E2E runs every browser from one IP, so keep Playwright workers ≤ 16 (16 today) or raise the cap for tests. Behind a reverse proxy all tabs share the proxy IP.
 - Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work.
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
@@ -53,7 +53,7 @@ Full log: `agents/Decisions.md`.
 Open items carried from archived run log entries (`agents/Memory-History.md`). R1 confirmed these as accepted; new R1 defects are FIX-4 to FIX-14 in `TODO.md` (all done).
 
 - Live reload: any missing `sub` path makes `/api/events` return 404 for the whole stream, and the client has no special handling, so deleting a viewed file can break live reload for that tab (B6/B7).
-- Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6), and so can an open TOC panel above the body when the heading count changes (R2.6). The workspace tree has no subscriptions of its own (R2.10).
+- Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6), and so can an open TOC panel above the body when the heading count changes (R2.6).
 - Watchers: fsnotify `Add`/`Remove` bypass the FS timeouts (local disks only). A deleted root stays unwatched until restart. Delete + create of a parent with the file present merges to `modified`. Poll treats a file-to-dir swap as `modified` (B6/B7).
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
@@ -81,6 +81,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.10)
+
+- Task: Workspace tree live updates on create/delete/rename (FR-5.2); done in the orchestrator without a subagent.
+- Files changed: `web/src/workspace/WorkspaceTree.tsx` (`TreeChildren` calls `useLiveSubscription(root, dir, true)`), `WorkspaceTree.test.tsx` (fake `EventSource` asserts the sub set on expand/collapse), `e2e/tests/live.spec.ts` (add, delete, rename at two tree levels), `docs/Architecture.md`, `README.md`.
+- Result: component test and e2e (4/4) red without the change. `make check` exit 0, `make e2e` 212 passed; logs `build/r210-*.log`.
+- Blockers or follow-up: None. Tree and image subs share the low tier (sorted, so past the cap some deep folders or images go unwatched).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.9)
 
 - Task: D2 ELK layout option; theme-aware re-render (FR-4.5, FR-4.9); done in the orchestrator without a subagent.
@@ -94,10 +101,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/diagrams/panzoom.ts` (pure zoom/pan/pinch/wheel math), `DiagramViewer.tsx` (native modal `dialog` portaled to `body`), `DiagramFigure.tsx` (tools row), `app/app.css`, unit tests (`panzoom.test.ts`, `viewer.test.tsx`), `e2e/tests/diagrams.spec.ts`, `docs/Architecture.md`, `README.md`.
 - Result: `make check` exit 0 (242 unit), `make e2e` 204 passed (synthetic touch pointers pinch on all 4 projects); logs `build/r28-*.log`.
 - Blockers or follow-up: R2.9's "re-render on theme change" already exists since F4; only the ELK option remains there.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-19)
-
-- Task: Recent e2e flake; done in the orchestrator without a subagent.
-- Files changed: `e2e/tests/recent.spec.ts` (`newestRecent` reads `mdv-recent`; `expect.poll` after each folder/file visit before moving on).
-- Result: red/green shown by temporarily delaying `recordRecent` 500 ms (old spec fails, new passes on 4 projects; delay reverted). `make check` exit 0, `make e2e` 192 passed three times; logs `build/fix19-*.log`.
-- Blockers or follow-up: None. Pattern for future e2e: wait on the recorded state, not on visible content, before a full `goto`.
