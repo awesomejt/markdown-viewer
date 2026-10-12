@@ -6,6 +6,7 @@ import { ErrorState, Loading } from '../app/states';
 import { KindIcon } from '../browse/KindIcon';
 import { joinPath, kindOf } from '../browse/logic';
 import { useShowHidden } from '../browse/showHidden';
+import { useLiveSubscription } from '../live/LiveProvider';
 import { expandedFor, treeEntries } from './logic';
 import './tree.css';
 
@@ -17,7 +18,10 @@ interface TreeProps {
   isFolder: boolean;
 }
 
-/** Lazy-loading tree of the workspace folder; a folder's listing is fetched when it is expanded. */
+/**
+ * Lazy-loading tree of the workspace folder; a folder's listing is fetched when it is expanded, and
+ * every shown folder is watched while it stays expanded.
+ */
 export function WorkspaceTree({ root, ws, path, isFolder }: TreeProps) {
   // Explicit user toggles win over the auto-expansion of the current path's ancestors.
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
@@ -47,6 +51,9 @@ interface Ctx extends TreeProps {
 function TreeChildren({ dir, ...ctx }: Ctx & { dir: string }) {
   const list = useList(ctx.root, dir);
   const [showHidden] = useShowHidden();
+  // Child adds/removes/renames refresh this listing (FR-5.2). Low priority: a deep tree must not push
+  // the viewed document or browsed folder out of the per-stream sub cap.
+  useLiveSubscription(ctx.root, dir, true);
   if (list.isPending) return <Loading />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => void list.refetch()} />;
   const entries = treeEntries(list.data.entries, showHidden);

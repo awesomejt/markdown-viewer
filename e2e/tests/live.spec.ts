@@ -1,7 +1,7 @@
 import { expect, test } from './fixtures';
 import type { Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 // The `live` root is a writable directory under build/e2e/live (see playwright.config.ts).
@@ -75,6 +75,35 @@ test('folder view shows created and drops deleted files', async ({ page }) => {
   rmSync(d.abs('first.md'));
   await expect(entries.getByRole('link', { name: 'first.md' })).toHaveCount(0);
   await expect(entries.getByRole('link', { name: 'second.md' })).toBeVisible();
+});
+
+test('workspace tree shows added, removed and renamed entries', async ({ page }) => {
+  const d = newDir();
+  mkdirSync(d.abs('sub'));
+  write(d.abs('top.md'), '# top\n');
+  write(d.abs('sub/doc.md'), '# Doc\n');
+  write(d.abs('sub/old.md'), '# old\n');
+  // The viewed file's ancestors auto-expand, so both tree levels are shown and watched.
+  await page.goto(`/view/live/${d.name}/sub/doc.md?ws=${d.name}`);
+  await expect(page.getByRole('heading', { name: 'Doc' })).toBeVisible();
+  const tree = page.locator('#sidebar');
+  const menu = page.getByRole('button', { name: 'Open menu' });
+  if (await menu.isVisible()) await menu.click();
+  await expect(tree.getByRole('link', { name: 'old.md' })).toBeVisible();
+  await markWindow(page);
+
+  write(d.abs('added.md'), '# added\n');
+  write(d.abs('sub/deeper.md'), '# deeper\n');
+  await expect(tree.getByRole('link', { name: 'added.md' })).toBeVisible();
+  await expect(tree.getByRole('link', { name: 'deeper.md' })).toBeVisible();
+
+  renameSync(d.abs('sub/old.md'), d.abs('sub/new.md'));
+  rmSync(d.abs('top.md'));
+  await expect(tree.getByRole('link', { name: 'new.md' })).toBeVisible();
+  await expect(tree.getByRole('link', { name: 'old.md' })).toHaveCount(0);
+  await expect(tree.getByRole('link', { name: 'top.md' })).toHaveCount(0);
+  await expect(tree.getByRole('link', { name: 'doc.md' })).toHaveAttribute('aria-current', 'page');
+  expect(await windowMarked(page)).toBe(true);
 });
 
 test('a deleted then recreated file recovers', async ({ page }) => {

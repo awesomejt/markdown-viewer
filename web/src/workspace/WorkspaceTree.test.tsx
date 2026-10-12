@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
 import { resetShowHiddenCache } from '../browse/showHidden';
+import { LiveProvider } from '../live/LiveProvider';
 
 const mtime = '2026-01-02T03:04:05Z';
 const ent = (name: string, type: string, kind = 'other') => ({ name, type, kind, size: 1, mtime });
@@ -33,12 +34,13 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-function renderAt(path: string) {
+function renderAt(path: string, live = false) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const app = <RouterProvider router={router} />;
   render(
     <QueryClientProvider client={client}>
-      <RouterProvider router={router} />
+      {live ? <LiveProvider>{app}</LiveProvider> : app}
     </QueryClientProvider>,
   );
   return router;
@@ -79,5 +81,31 @@ describe('WorkspaceTree', () => {
     renderAt('/browse/r');
     expect(await screen.findByRole('heading', { name: 'Roots' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Expand/ })).not.toBeInTheDocument();
+  });
+
+  it('watches every shown folder at low priority while it is expanded', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'EventSource',
+      class {
+        readyState = 0;
+        onopen = null;
+        onerror = null;
+        constructor(url: string) {
+          urls.push(url);
+        }
+        addEventListener() {}
+        close() {}
+      },
+    );
+    const subs = () => new URL(urls.at(-1) ?? '/', 'http://x').searchParams.getAll('sub');
+    renderAt('/view/r/top.md?ws=', true);
+    await within(tree()).findByRole('link', { name: 'top.md' });
+    // The viewed file comes first: tree folders only fill the slots it leaves.
+    await waitFor(() => expect(subs()).toEqual(['r:top.md', 'r:']));
+    await userEvent.click(screen.getByRole('button', { name: 'Expand docs' }));
+    await waitFor(() => expect(subs()).toEqual(['r:top.md', 'r:', 'r:docs']));
+    await userEvent.click(screen.getByRole('button', { name: 'Collapse docs' }));
+    await waitFor(() => expect(subs()).toEqual(['r:top.md', 'r:']));
   });
 });
