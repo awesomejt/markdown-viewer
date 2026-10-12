@@ -90,7 +90,10 @@ describe('ViewFileView', () => {
   it('shows images inline without referrer', async () => {
     renderAt('/view/r/f/pic.png');
     const img = await screen.findByRole('img', { name: 'pic.png' });
-    expect(img).toHaveAttribute('src', '/api/file?root=r&path=f%2Fpic.png');
+    expect(img).toHaveAttribute(
+      'src',
+      '/api/file?root=r&path=f%2Fpic.png&v=2026-01-02T03%3A04%3A05Z-10',
+    );
     expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
   });
 

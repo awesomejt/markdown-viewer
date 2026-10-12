@@ -51,6 +51,9 @@ describe('href builders', () => {
 
   it('builds file urls with query encoding', () => {
     expect(fileUrl('r', 'a b/c&d#e.png')).toBe('/api/file?root=r&path=a+b%2Fc%26d%23e.png');
+    expect(fileUrl('r', 'a.png', '2026-01-02T03:04:05Z-10')).toBe(
+      '/api/file?root=r&path=a.png&v=2026-01-02T03%3A04%3A05Z-10',
+    );
   });
 });
 

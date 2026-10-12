@@ -131,3 +131,18 @@ test('three live tabs keep working under the HTTP/1.1 connection limit', async (
   ).toBeVisible();
   await context.close();
 });
+
+test('an image view reloads when the file changes', async ({ page }) => {
+  const d = newDir();
+  const svg = (w: number) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="10"><rect width="${w}" height="10" fill="teal"/></svg>`;
+  write(d.abs('pic.svg'), svg(10));
+  await page.goto(`/view/live/${d.name}/pic.svg`);
+  const img = page.getByRole('img', { name: 'pic.svg' });
+  await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.naturalWidth)).toBe(10);
+  await markWindow(page);
+
+  write(d.abs('pic.svg'), svg(40));
+  await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.naturalWidth)).toBe(40);
+  expect(await windowMarked(page)).toBe(true);
+});
