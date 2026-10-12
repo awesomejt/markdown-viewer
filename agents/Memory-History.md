@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.11)
+
+- Task: Virtualized long listings (NFR-3); done in the orchestrator without a subagent.
+- Files changed: `web/src/browse/BrowseView.tsx` (`EntryList` → `VirtualEntryList` at ≥ 200 entries, `EntryRow`), `browse.css`, `web/src/workspace/WorkspaceTree.tsx` (`TREE_PAGE` 200, "Show more"), `tree.css`, `web/package.json` (`@tanstack/react-virtual` ^3.14.17, `npm audit --omit=dev` clean), unit tests, new `e2e/tests/large.spec.ts` (2,000 files in the `live` root), `docs/Architecture.md`, `docs/Tech-Stack.md`, `README.md`.
+- Result: e2e 8/8 red without the change. `make check` exit 0 (249 unit), `make e2e` 220 passed; logs `build/r211-*.log`.
+- Blockers or follow-up: jsdom tests must stub `HTMLElement.offsetHeight` (the virtualizer measures with it). The app has no route scroll restoration (pre-existing), so Back to a long folder does not return to the clicked row.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.10)
 
 - Task: Workspace tree live updates on create/delete/rename (FR-5.2); done in the orchestrator without a subagent.

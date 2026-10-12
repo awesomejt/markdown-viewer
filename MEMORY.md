@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.13 Phase 2 review done (2026-10-12); follow-ups FIX-21 to FIX-27, DOC2, CH2 logged (D-27)
-- Next recommended task: FIX-21 🔒 (root swap escape), then FIX-22, FIX-23, FIX-24 before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
+- Last major milestone: FIX-21 root swap escape fixed (2026-10-12); remaining R2.13 follow-ups FIX-22 to FIX-28, DOC2, CH2
+- Next recommended task: FIX-22 (bad sub kills live reload), then FIX-23, FIX-24 before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -70,6 +70,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
 - `docs/Deployment.md` fstab options and the systemd `RequiresMountsFor=` drop-in are untested on the real VM; V1 must validate them (DOC1).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
+- Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
 
 ## Open Questions
 
@@ -85,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-21)
+
+- Task: Root swap escape (🔒); coded in the orchestrator, Opus security review in a subagent (3 rounds).
+- Files changed: `internal/fsroot/lazy.go` (`pinPath`, `openPinned`, `HostDir`), new `nofollow_linux.go`/`nofollow_other.go`, `access.go`/`watchops.go` (`hostDirFn`), `lazy_test.go` (4 tests), `go.mod` (`golang.org/x/sys` direct), `docs/Deployment.md`, `docs/Architecture.md`.
+- Result: `go run ./build/r213/_swap` prints "blocked". Review round 1 found the pin followed a pre-restart symlink and parent swaps; round 2 found `O_RDONLY` broke search-only parents (now `O_PATH`). `make check` exit 0, `make e2e` 220 passed; logs `build/fix21-*.log`.
+- Blockers or follow-up: FIX-28 (flaky `TestEventsGlobalStreamCap` under `make -j`).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.13)
 
 - Task: Phase 2 review + NFR-3 performance check. Three parallel Opus reviewers (backend, frontend, conformance + perf); orchestrator verified each medium finding in source and re-ran the root-swap repro.
@@ -98,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `TODO.md`, `MEMORY.md`, `agents/Memory-History.md` only.
 - Result: `make check`, `go test -race ./...`, `make e2e` (220 passed), `docker compose build` all exit 0; extra Compose smoke (healthy, SPA 200, roots API, bundle contains the virtualizer); logs `build/r212/`.
 - Blockers or follow-up: First smoke attempt failed only because host port 8080 is taken by another container; reran with `MDV_PORT=18080`.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.11)
-
-- Task: Virtualized long listings (NFR-3); done in the orchestrator without a subagent.
-- Files changed: `web/src/browse/BrowseView.tsx` (`EntryList` → `VirtualEntryList` at ≥ 200 entries, `EntryRow`), `browse.css`, `web/src/workspace/WorkspaceTree.tsx` (`TREE_PAGE` 200, "Show more"), `tree.css`, `web/package.json` (`@tanstack/react-virtual` ^3.14.17, `npm audit --omit=dev` clean), unit tests, new `e2e/tests/large.spec.ts` (2,000 files in the `live` root), `docs/Architecture.md`, `docs/Tech-Stack.md`, `README.md`.
-- Result: e2e 8/8 red without the change. `make check` exit 0 (249 unit), `make e2e` 220 passed; logs `build/r211-*.log`.
-- Blockers or follow-up: jsdom tests must stub `HTMLElement.offsetHeight` (the virtualizer measures with it). The app has no route scroll restoration (pre-existing), so Back to a long folder does not return to the clicked row.
