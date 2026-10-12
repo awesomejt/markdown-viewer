@@ -1,0 +1,27 @@
+.file-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.text-file {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  white-space: pre;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.large-file p {
+  margin: 0 0 8px;
+}
+
+.file-view a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}

@@ -1,0 +1,57 @@
+.tree-root {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 8px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 12px;
+}
+
+.tree > .tree-list {
+  padding-left: 0;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+}
+
+.tree-toggle {
+  flex: none;
+  width: 28px;
+  min-height: var(--touch);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tree-link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 0 6px;
+  overflow-wrap: anywhere;
+  border-radius: 4px;
+}
+
+.tree-link[aria-current='page'] {
+  background: var(--border);
+  font-weight: 600;
+}
+
+.tree-empty {
+  margin: 0;
+  padding: 0 8px;
+}

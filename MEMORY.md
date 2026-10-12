@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F4 diagram components complete (2026-10-11)
-- Next recommended task: F5 [S] Workspace tree + file views by kind + large-file load button
+- Last major milestone: F5 workspace tree + file views complete (2026-10-11)
+- Next recommended task: F6 [S] Live reload client
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F5)
+
+- Task: Workspace tree + file views by kind + large-file load button.
+- Files changed: `web/src/workspace/{logic,WorkspaceTree}.ts(x)` + tests + `tree.css`, `web/src/fileview/{ViewFileView.tsx,logic.ts,fileview.css}`, `web/src/app/{Layout,routes,states,views}.tsx` + tests (`RouteError.test.tsx`), `web/src/browse/{logic.ts,BrowseView.tsx}` + tests, `testdata/mkfixtures.sh` (`generated/large.txt`), `e2e/tests/workspace.spec.ts`, `docs/Architecture.md`.
+- Result: `/view` takes the kind from the parent folder's `useList` entry (server classification, no client duplicate); fallback by extension covers only markdown/diagram, else `other`. Views wait on that cached listing. With `?ws=` the sidebar shows "Workspace" and a lazy tree (fetch on expand, dot-files hidden, folders first); without `ws` the sidebar is unchanged. `scopeWs` closes the F2 follow-up. `TextGate` handles 413 for markdown/text with size from the listing. `RouteError` sits on a pathless route inside `Layout`. The orchestrator reviewed the diff and re-ran `make check` (129 web tests) and `make e2e` (24).
+- Blockers or follow-up: FIX-2 (oversized `.d2`/`.mmd` has no "Load anyway"; fallback kind misses image/text). F6 should invalidate both the file and its parent `['list', ...]` query, since the view kind depends on it.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F4)
 

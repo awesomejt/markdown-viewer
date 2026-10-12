@@ -1,14 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router';
+import { Link, Outlet, useLocation, useParams, useSearchParams } from 'react-router';
 import { browseHref } from '../api/client';
 import { useRoots } from '../api/hooks';
 import { ErrorState, Loading } from './states';
+import { WorkspaceTree } from '../workspace/WorkspaceTree';
 import { useTheme } from './theme';
 
 const THEME_LABEL = { system: 'Auto', light: 'Light', dark: 'Dark' } as const;
 
-function SidebarContent() {
+function SidebarContent({ workspace }: { workspace: boolean }) {
+  const params = useParams();
+  const [search] = useSearchParams();
+  const location = useLocation();
   const roots = useRoots();
+  const root = params.root;
+  const ws = search.get('ws');
+  if (workspace && root && ws !== null) {
+    return (
+      <WorkspaceTree
+        key={root}
+        root={root}
+        ws={ws}
+        path={params['*'] ?? ''}
+        isFolder={location.pathname.startsWith('/browse/')}
+      />
+    );
+  }
   if (roots.isPending) return <Loading />;
   if (roots.isError) return <ErrorState error={roots.error} onRetry={() => void roots.refetch()} />;
   return (
@@ -31,6 +48,9 @@ function SidebarContent() {
 export function Layout() {
   const { mode, cycle } = useTheme();
   const location = useLocation();
+  const params = useParams();
+  const [search] = useSearchParams();
+  const inWorkspace = params.root !== undefined && search.has('ws');
   const [open, setOpen] = useState(false);
   const [lastKey, setLastKey] = useState(location.key);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -97,7 +117,7 @@ export function Layout() {
         />
         <nav id="sidebar" className={`sidebar${open ? ' is-open' : ''}`} aria-label="Sidebar">
           <div className="sidebar-head">
-            <h2>Roots</h2>
+            <h2>{inWorkspace ? 'Workspace' : 'Roots'}</h2>
             <button
               ref={closeRef}
               type="button"
@@ -108,7 +128,7 @@ export function Layout() {
               ✕
             </button>
           </div>
-          <SidebarContent />
+          <SidebarContent workspace={inWorkspace} />
         </nav>
         <main className="main">
           <Outlet />
