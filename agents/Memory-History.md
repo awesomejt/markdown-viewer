@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.7)
+
+- Task: KaTeX math (FR-3.6) and GitHub alerts (FR-3.7); done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/alerts.ts`, `math.ts` (`useMathPlugin`, `mayHaveMath`), `katex.ts` (lazy chunk + CSS); `pipeline.ts` (remark-math, remarkAlerts, schema classes), `MarkdownView.tsx` (body waits on `ready`), `toc.ts` (TeX annotation text), `app.css`, `package.json` (`overrides.katex`), unit tests, `testdata/fixtures/docs/math.md`, `e2e/tests/markdown.spec.ts`, `examples/gfm-tour.md`, `docs/Architecture.md`, `README.md`.
+- Result: 7 unit tests red with the plugins removed. `make check` exit 0 (229 unit), `make e2e` 196 passed; logs `build/r27-*.log`.
+- Blockers or follow-up: FIX-20 (dev-tooling audit: smol-toml override, braces unfixed upstream).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.6)
 
 - Task: Table of contents (FR-2.5); done in the orchestrator without a subagent.

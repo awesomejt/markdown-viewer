@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.8 diagram source toggle + full-screen pan/zoom (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.9) meanwhile
+- Last major milestone: R2.9 D2 ELK layout option (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.10) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -62,7 +62,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and switches within ~2 s of the mount appearing (FIX-16); `:fsnotify` roots may still miss events after a remount (host-path inotify watches are not re-added). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
-- Diagram viewer (R2.8): if live reload changes a diagram's source while it is open full screen, the figure passes through loading, so the viewer closes and reopens at Fit.
+- D2 layout (R2.9): the Layout select is per figure and not persisted; `d2-config` themes in a source are ignored (the app theme wins).
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
 - `docs/Deployment.md` fstab options and the systemd `RequiresMountsFor=` drop-in are untested on the real VM; V1 must validate them (DOC1).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
@@ -81,19 +81,19 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.9)
+
+- Task: D2 ELK layout option; theme-aware re-render (FR-4.5, FR-4.9); done in the orchestrator without a subagent.
+- Files changed: `internal/d2render/render.go` (resolver uses the engine name, so `d2-config.layout-engine` applies when no layout is requested; empty layout is its own cache key) + test, `internal/api/render.go` (comment), `web/src/api/client.ts` (`D2Layout`), `D2Diagram.tsx` (Layout select, `keepPreviousData`), `DiagramFigure.tsx` (`tools`, `busy`, keeps the old image until the new URL exists), `MermaidDiagram.tsx` (keeps last SVG), unit tests, `e2e/tests/diagrams.spec.ts`, `examples/d2.md`, `docs/Architecture.md`, `README.md`.
+- Result: Go test red before the resolver fix; viewer-persistence test red with the old figure condition. `make check` exit 0 (245 unit), `make e2e` 208 passed; logs `build/r29-*.log`. Example checked on a live server (Auto = ELK ≠ dagre).
+- Blockers or follow-up: Theme re-render already existed (F4); now it no longer flashes "Rendering…". The R2.8 "viewer closes on live reload" limitation is fixed.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.8)
 
 - Task: Diagram source toggle, pan/zoom, full screen, iPad pinch (FR-4.6, FR-4.7); done in the orchestrator without a subagent.
 - Files changed: new `web/src/diagrams/panzoom.ts` (pure zoom/pan/pinch/wheel math), `DiagramViewer.tsx` (native modal `dialog` portaled to `body`), `DiagramFigure.tsx` (tools row), `app/app.css`, unit tests (`panzoom.test.ts`, `viewer.test.tsx`), `e2e/tests/diagrams.spec.ts`, `docs/Architecture.md`, `README.md`.
 - Result: `make check` exit 0 (242 unit), `make e2e` 204 passed (synthetic touch pointers pinch on all 4 projects); logs `build/r28-*.log`.
 - Blockers or follow-up: R2.9's "re-render on theme change" already exists since F4; only the ELK option remains there.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.7)
-
-- Task: KaTeX math (FR-3.6) and GitHub alerts (FR-3.7); done in the orchestrator without a subagent.
-- Files changed: new `web/src/markdown/alerts.ts`, `math.ts` (`useMathPlugin`, `mayHaveMath`), `katex.ts` (lazy chunk + CSS); `pipeline.ts` (remark-math, remarkAlerts, schema classes), `MarkdownView.tsx` (body waits on `ready`), `toc.ts` (TeX annotation text), `app.css`, `package.json` (`overrides.katex`), unit tests, `testdata/fixtures/docs/math.md`, `e2e/tests/markdown.spec.ts`, `examples/gfm-tour.md`, `docs/Architecture.md`, `README.md`.
-- Result: 7 unit tests red with the plugins removed. `make check` exit 0 (229 unit), `make e2e` 196 passed; logs `build/r27-*.log`.
-- Blockers or follow-up: FIX-20 (dev-tooling audit: smol-toml override, braces unfixed upstream).
 
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-19)
 
