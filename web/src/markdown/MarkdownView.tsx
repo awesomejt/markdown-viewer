@@ -151,14 +151,31 @@ function makeComponents(ctx: LinkContext): Components {
   };
 }
 
+const remarkRehypeOptions = { clobberPrefix: '' };
+
 export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewProps) {
   const { hash } = useLocation();
-  const components = makeComponents({ root, docPath, ws });
+  const components = useMemo(() => makeComponents({ root, docPath, ws }), [root, docPath, ws]);
   const math = useMathPlugin(text);
   const ready = math.ready;
   const plugins = useMemo(
     () => (math.plugin ? [...rehypePlugins, math.plugin] : rehypePlugins),
     [math.plugin],
+  );
+
+  // Memoized so re-renders (TOC state, hash change) don't re-parse or remount diagrams.
+  const body = useMemo(
+    () => (
+      <Markdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={plugins}
+        remarkRehypeOptions={remarkRehypeOptions}
+        components={components}
+      >
+        {text}
+      </Markdown>
+    ),
+    [text, plugins, components],
   );
 
   // Live reload: when the text changes under a mounted view, keep the heading nearest the viewport
@@ -218,16 +235,7 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
         </details>
       )}
       <div className="markdown-body" ref={bodyRef} aria-busy={ready ? undefined : true}>
-        {ready && (
-          <Markdown
-            remarkPlugins={remarkPlugins}
-            rehypePlugins={plugins}
-            remarkRehypeOptions={{ clobberPrefix: '' }}
-            components={components}
-          >
-            {text}
-          </Markdown>
-        )}
+        {ready && body}
       </div>
     </div>
   );

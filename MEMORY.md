@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-22 bad subs no longer kill live reload (2026-10-12); remaining R2.13 follow-ups FIX-23 to FIX-28, DOC2, CH2
-- Next recommended task: FIX-23 (memoize Markdown components), then FIX-24 before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
+- Last major milestone: FIX-23 Markdown no longer remounts diagrams on re-render (2026-10-12); remaining R2.13 follow-ups FIX-24 to FIX-28, DOC2, CH2
+- Next recommended task: FIX-24 (NFR-3 doc render < 2 s, promote perf harness) before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -60,7 +60,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Long folders (R2.11): browser find-in-page only sees the rendered rows of a virtualized listing (use the name filter); tree folders page 200 at a time instead of virtualizing. Keyboard focus is lost when the focused row scrolls out of the overscan (R2.13). Emulated timings pass NFR-3 (R2.13); real iPad still unmeasured (V1).
 - Unmounted NAS (R2.13, D-27): the root reopens on the empty mount point, so it lists empty (200) instead of `available:false`, and poll watchers report `deleted` for open files.
-- NFR-3 perf harness lives only in ignored `build/r213/` until FIX-24 promotes it (rerun command in the R2.13 run log entry).
+- NFR-3 perf harness lives only in ignored `build/r213/` until FIX-24 promotes it (rerun command in the archived R2.13 run log entry, `agents/Memory-History.md`).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit` items in the markdownlint-cli2 chain are FIX-20.
 - Code view (R2.5): extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-23)
+
+- Task: Markdown remounted diagrams and code blocks on every re-render; Sonnet coder, orchestrator reviewed the diff and ran the gates.
+- Files changed: `web/src/markdown/MarkdownView.tsx` (`useMemo` for components and the `<Markdown>` element, hoisted `remarkRehypeOptions`), `web/src/markdown/MarkdownView.test.tsx` (render-stability test).
+- Result: Mermaid renders once per diagram across TOC, same-props and hash re-renders; the new test fails on the old code (4 renders for 2 diagrams). `make check` exit 0 (vitest 253), `make e2e` 224 passed; logs `build/fix23-*.log`.
+- Blockers or follow-up: FIX-24 re-measures NFR-3 now that the double render is gone.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-22)
 
 - Task: One bad image or tree sub kills live reload; Sonnet implementer, orchestrator reviewed the diff and re-ran the gates.
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/fsroot/lazy.go` (`pinPath`, `openPinned`, `HostDir`), new `nofollow_linux.go`/`nofollow_other.go`, `access.go`/`watchops.go` (`hostDirFn`), `lazy_test.go` (4 tests), `go.mod` (`golang.org/x/sys` direct), `docs/Deployment.md`, `docs/Architecture.md`.
 - Result: `go run ./build/r213/_swap` prints "blocked". Review round 1 found the pin followed a pre-restart symlink and parent swaps; round 2 found `O_RDONLY` broke search-only parents (now `O_PATH`). `make check` exit 0, `make e2e` 220 passed; logs `build/fix21-*.log`.
 - Blockers or follow-up: FIX-28 (flaky `TestEventsGlobalStreamCap` under `make -j`).
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.13)
-
-- Task: Phase 2 review + NFR-3 performance check. Three parallel Opus reviewers (backend, frontend, conformance + perf); orchestrator verified each medium finding in source and re-ran the root-swap repro.
-- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-27), `agents/Memory-History.md` only. No source changes.
-- Result: 14/15 Phase 2 requirements met, NFR-3 partial. Perf (median of 3, WebKit iPad Pro 11 emulation): 10k listing first row 121 ms, scroll-to-end 23 ms, filter key ≤ 25 ms; 459 KB doc with 5 Mermaid + 5 D2 all ready 3.7 s (chromium 1.4 s, chromium 4× CPU 5.4 s; target 2 s). `go vet`, `go test -race`, vitest 249 all green. Logged FIX-21 to FIX-27, DOC2, CH2.
-- Blockers or follow-up: Perf rerun: `docker run --rm -u $(id -u):$(id -g) -v $PWD:/src -w /src/build/r213 --ipc=host -e HOME=/src/build/.cache/home -e CI=1 mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test` (fixtures from `python3 build/r213/gen.py`, server `build/mdv` on 18081 with `MDV_ROOTS=perf=build/r213/perf`).
