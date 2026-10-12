@@ -13,6 +13,7 @@ import {
   kindOf,
   loadMdOnly,
   saveMdOnly,
+  scopeWs,
   workspaceTarget,
 } from './logic';
 import './browse.css';
@@ -99,7 +100,9 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
                     <Link
                       className="entry-name"
                       to={
-                        e.type === 'dir' ? browseHref(root, child, ws) : viewHref(root, child, ws)
+                        e.type === 'dir'
+                          ? browseHref(root, child, scopeWs(child, ws))
+                          : viewHref(root, child, scopeWs(child, ws))
                       }
                     >
                       {e.name}

@@ -54,16 +54,16 @@ function renderAt(path: string) {
 
 describe('BrowseView', () => {
   it('lists entries, hides dot-files, links dirs and files', async () => {
-    renderAt('/browse/r?ws=x');
+    renderAt('/browse/r?ws=docs');
     const list = await screen.findByRole('list', { name: 'Entries' });
     expect(within(list).queryByText('.git')).toBeNull();
     expect(within(list).getByRole('link', { name: 'docs' })).toHaveAttribute(
       'href',
-      '/browse/r/docs?ws=x',
+      '/browse/r/docs?ws=docs',
     );
     expect(within(list).getByRole('link', { name: 'README.md' })).toHaveAttribute(
       'href',
-      '/view/r/README.md?ws=x',
+      '/view/r/README.md',
     );
     expect(within(list).getAllByText('2 KB')).toHaveLength(2);
   });

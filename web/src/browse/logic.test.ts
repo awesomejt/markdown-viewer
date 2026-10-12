@@ -6,6 +6,7 @@ import {
   findIndexFile,
   formatSize,
   isWithin,
+  scopeWs,
   loadMdOnly,
   saveMdOnly,
   workspaceTarget,
@@ -110,5 +111,14 @@ describe('md-only persistence', () => {
     expect(loadMdOnly()).toBe(true);
     saveMdOnly(false);
     expect(loadMdOnly()).toBe(false);
+  });
+});
+
+describe('scopeWs', () => {
+  it('keeps ws only for paths inside the workspace', () => {
+    expect(scopeWs('docs/a.md', 'docs')).toBe('docs');
+    expect(scopeWs('other/a.md', 'docs')).toBeUndefined();
+    expect(scopeWs('any', '')).toBe('');
+    expect(scopeWs('any', undefined)).toBeUndefined();
   });
 });

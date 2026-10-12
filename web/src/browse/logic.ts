@@ -67,6 +67,11 @@ export function isWithin(path: string, ws: string): boolean {
   return ws === '' || path === ws || path.startsWith(`${ws}/`);
 }
 
+/** `ws` when `path` is inside the workspace, else `undefined` (links outside it drop `ws`). */
+export function scopeWs(path: string, ws?: string): string | undefined {
+  return ws !== undefined && isWithin(path, ws) ? ws : undefined;
+}
+
 export interface Crumb {
   label: string;
   /** Link target; `null` for the current (last) crumb. */
@@ -76,8 +81,7 @@ export interface Crumb {
 export function breadcrumbs(root: string, path: string, ws?: string): Crumb[] {
   const segs = path === '' ? [] : path.split('/');
   // Ancestors above the workspace folder drop `ws` (it is kept only within the workspace).
-  const href = (p: string) =>
-    browseHref(root, p, ws !== undefined && isWithin(p, ws) ? ws : undefined);
+  const href = (p: string) => browseHref(root, p, scopeWs(p, ws));
   const crumbs: Crumb[] = [{ label: 'Roots', href: '/' }];
   crumbs.push({ label: root, href: segs.length === 0 ? null : href('') });
   segs.forEach((seg, i) => {
