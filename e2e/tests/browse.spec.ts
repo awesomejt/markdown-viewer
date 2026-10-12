@@ -1,4 +1,10 @@
 import { expect, test } from './fixtures';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, utimesSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+// The `live` root is a writable directory under build/e2e/live (see playwright.config.ts).
+const liveDir = path.resolve(import.meta.dirname, '../../build/e2e/live');
 
 const entries = (page: import('@playwright/test').Page) =>
   page.getByRole('list', { name: 'Entries' });
@@ -57,4 +63,30 @@ test('open as workspace on a folder without README stays in browse', async ({ pa
   await expect(page.getByText('Workspace:')).toBeVisible();
   await page.getByRole('link', { name: 'Exit workspace' }).click();
   await expect(page).toHaveURL(/\/browse\/fixtures\/docs$/);
+});
+
+test('sort control orders by date and persists across reload', async ({ page }) => {
+  const name = `sort-${randomUUID().slice(0, 8)}`;
+  const dir = path.join(liveDir, name);
+  mkdirSync(dir, { recursive: true });
+  // Name order a, b, c; date order (newest first) b, c, a.
+  const times: Record<string, string> = {
+    'a.md': '2024-01-01T00:00:00Z',
+    'b.md': '2024-03-01T00:00:00Z',
+    'c.md': '2024-02-01T00:00:00Z',
+  };
+  for (const [file, iso] of Object.entries(times)) {
+    writeFileSync(path.join(dir, file), `# ${file}\n`);
+    utimesSync(path.join(dir, file), new Date(iso), new Date(iso));
+  }
+
+  await page.goto(`/browse/live/${name}`);
+  const links = entries(page).getByRole('link');
+  await expect(links).toHaveText(['a.md', 'b.md', 'c.md']);
+  await page.getByRole('combobox', { name: 'Sort by' }).selectOption('date');
+  await expect(links).toHaveText(['b.md', 'c.md', 'a.md']);
+
+  await page.reload();
+  await expect(page.getByRole('combobox', { name: 'Sort by' })).toHaveValue('date');
+  await expect(links).toHaveText(['b.md', 'c.md', 'a.md']);
 });
