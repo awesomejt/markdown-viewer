@@ -202,3 +202,164 @@ func TestRegistryFatalClosesAll(t *testing.T) {
 		t.Fatalf("want error, got %v %v", reg, err)
 	}
 }
+
+// replaceDir swaps the directory at path for a new one holding only name, as a
+// mount appearing over (or vanishing from) a mount point does. The old
+// directory survives at a new name, like the hidden mount-point directory.
+func replaceDir(t *testing.T, path, name string) {
+	t.Helper()
+	if err := os.Rename(path, path+"-"+name); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(path, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(path, name), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func rootNames(t *testing.T, l *lazyRoot) string {
+	t.Helper()
+	ents, err := l.ReadDir(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for _, e := range ents {
+		out = append(out, e.Name())
+	}
+	return strings.Join(out, ",")
+}
+
+func TestLazyRootReopensReplacedDir(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("empty mount point lists %q", got)
+	}
+	first := l.root
+
+	replaceDir(t, dir, "nas.md")
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("after mount: %q", got)
+	}
+	if l.retired != first {
+		t.Fatal("old root not retired")
+	}
+	if _, err := first.Stat("."); err != nil {
+		t.Fatalf("retired root closed while it may be in use: %v", err)
+	}
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("unchanged path reopened or changed: %q", got)
+	}
+
+	replaceDir(t, dir, "again.md")
+	if got := rootNames(t, l); got != "again.md" {
+		t.Fatalf("after second swap: %q", got)
+	}
+	if _, err := first.Stat("."); err == nil {
+		t.Fatal("root retired two swaps ago was not closed")
+	}
+}
+
+func TestLazyRootCheckInterval(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l.checkEvery = time.Hour
+	defer func() { _ = l.Close() }()
+	_ = rootNames(t, l)
+	replaceDir(t, dir, "nas.md")
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("revalidated before the interval: %q", got)
+	}
+	l.mu.Lock()
+	l.lastCheck = time.Time{}
+	l.mu.Unlock()
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("not revalidated after the interval: %q", got)
+	}
+}
+
+func TestLazyRootHostPathGoneKeepsRoot(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	_ = rootNames(t, l)
+	if err := os.Rename(dir, dir+"-gone"); err != nil {
+		t.Fatal(err)
+	}
+	if got := rootNames(t, l); got != "a.md" {
+		t.Fatalf("failed host stat dropped the root: %q", got)
+	}
+}
+
+func TestLazyRootReopenFails(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	var calls atomic.Int32
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, func(c config.Root) (*Root, error) {
+		if calls.Add(1) == 2 {
+			return nil, os.ErrPermission
+		}
+		return OpenRoot(c)
+	})
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	_ = rootNames(t, l)
+	replaceDir(t, dir, "nas.md")
+	if _, err := l.ReadDir("."); KindOf(err) != KindTimeout || !errors.Is(err, os.ErrPermission) {
+		t.Fatalf("failed reopen: %v", err)
+	}
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("next call did not retry the open: %q", got)
+	}
+	if err := l.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if l.retired != nil || l.root != nil {
+		t.Fatal("Close kept roots")
+	}
+}
+
+// TestOpenHandleMountsLater is the FIX-16 scenario end to end: the handle
+// opens the empty mount point at boot and lists the share once it appears,
+// without a restart.
+func TestOpenHandleMountsLater(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	h, err := OpenHandle(config.Root{Name: "r", Path: dir, Watch: config.WatchPoll}, lazyCfg(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = h.Close() })
+	h.fs.(*lazyRoot).checkEvery = 0
+	ctx := context.Background()
+	if l, err := h.List(ctx, ""); err != nil || len(l.Entries) != 0 {
+		t.Fatalf("before mount: %+v %v", l, err)
+	}
+	replaceDir(t, dir, "nas.md")
+	l, err := h.List(ctx, "")
+	if err != nil || len(l.Entries) != 1 || l.Entries[0].Name != "nas.md" {
+		t.Fatalf("after mount: %+v %v", l, err)
+	}
+}
