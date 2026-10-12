@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-16)
+
+- Task: Reopen a root whose mount appeared after boot; small enough to do in the orchestrator without a subagent.
+- Files changed: `internal/fsroot/lazy.go` (`get` claims a check at most every `rootCheckInterval` (2 s); `revalidate` stats `cfg.Path` and compares `fileID` dev/ino with the opened dir; `reopen` swaps and retires the old root, closed at the next swap or `Close`; a failed reopen clears the root so the next call retries; a failed host stat keeps the root), `inode_unix.go`/`inode_other.go` (`fileIdentity`), tests in `lazy_test.go` (dir replacement simulates a mount), README, `docs/Deployment.md`, `docs/Architecture.md`.
+- Result: `TestOpenHandleMountsLater` and `TestLazyRootReopensReplacedDir` red with detection disabled, green with it (`-race -count=3`). `make check` exit 0 (fsroot 98.1%), `make e2e` 152 passed; logs `build/fix16-*.log`.
+- Blockers or follow-up: Not tested against a real CIFS/NFS mount (V1 can: start mdv before mounting). `:fsnotify` roots keep their host-path inotify watches on the old directory after a swap.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-14)
 
 - Task: Mermaid temp ids vs heading slugs; small enough to fix in the orchestrator without a subagent.

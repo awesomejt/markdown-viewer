@@ -226,6 +226,12 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - Dual themes (`github-light` and `github-dark`, `defaultColor: 'light'`) emit CSS variables; `:root[data-theme='dark']` selects `--shiki-dark` and `--shiki-dark-bg`, so a theme switch needs no re-highlighting.
 - `codeToHast` output is converted with `hast-util-to-jsx-runtime` (no `dangerouslySetInnerHTML`), so code stays text nodes. Results are cached per (class, code) in a bounded map.
 
+**Copy button and front matter panel (R2.2):**
+
+- Every fenced (or indented) code block that is not a diagram sits in a `.code-block` wrapper with a `CopyButton` in its top-right corner, with or without a language. It copies the code text without its trailing newline and shows "Copied" or "Copy failed" for 2 s.
+- `copyText` uses `navigator.clipboard.writeText` only in a secure context. mdv is usually opened over plain HTTP on the LAN, where `navigator.clipboard` does not exist, so it falls back to a selected off-screen `<textarea>` and `document.execCommand('copy')` (also used when the async call rejects).
+- `extractFrontMatter` mirrors remark-frontmatter's `yaml` fences (`---` on the first line, a closing `---` line). Non-blank front matter shows as a collapsed `<details class="front-matter">` with the raw YAML as text, placed above (outside) `.markdown-body`, so it is never body text. It is not parsed.
+
 **Diagram details (F4):**
 
 - Both kinds display as `<img src=blob:>` built from the SVG (`image/svg+xml`), inside `figure.diagram[data-diagram][data-state=loading|ready|error]`. Rendered SVG is never shown in the app DOM (Mermaid briefly attaches its DOMPurify-sanitized SVG to measure it under `securityLevel: 'strict'`, then removes it), and object URLs are revoked when replaced and on unmount.

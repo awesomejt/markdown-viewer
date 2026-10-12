@@ -321,3 +321,55 @@ describe('anchor scrolling', () => {
     expect(scrollToHash('#%E0%A4%A')).toBe(false);
   });
 });
+
+describe('copy-code button', () => {
+  it('wraps fenced code with and without a language, but not diagrams or inline code', () => {
+    const { body } = renderMd(
+      '```ts\nconst a = 1;\n```\n\n```\nplain\n```\n\n```mermaid\ngraph TD; A-->B\n```\n\n`inline`',
+    );
+    expect(body.querySelectorAll('.code-block')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Copy' })).toHaveLength(2);
+  });
+
+  it('copies the code without the trailing newline and shows the result', async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal('isSecureContext', true);
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText } });
+    renderMd('```\nline 1\nline 2\n```');
+    screen.getByRole('button', { name: 'Copy' }).click();
+    await screen.findByRole('button', { name: 'Copied' });
+    expect(writeText).toHaveBeenCalledWith('line 1\nline 2');
+  });
+
+  it('shows a failure and returns to idle after two seconds', async () => {
+    vi.stubGlobal('isSecureContext', false);
+    Object.defineProperty(document, 'execCommand', { value: () => false, configurable: true });
+    renderMd('```\nx\n```');
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      screen.getByRole('button', { name: 'Copy' }).click();
+      await screen.findByRole('button', { name: 'Copy failed' });
+      await vi.advanceTimersByTimeAsync(2000);
+      await screen.findByRole('button', { name: 'Copy' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('front matter panel', () => {
+  it('shows the raw YAML in a collapsed panel outside the document body', () => {
+    const { container, body } = renderMd('---\ntitle: Secret Title\n---\n\n# Visible');
+    const panel = container.querySelector('details.front-matter') as HTMLDetailsElement;
+    expect(panel.open).toBe(false);
+    expect(panel.querySelector('summary')?.textContent).toBe('Front matter');
+    expect(panel.querySelector('pre code')?.textContent).toBe('title: Secret Title');
+    expect(body.contains(panel)).toBe(false);
+    expect(body.textContent).not.toContain('Secret Title');
+  });
+
+  it('is absent without front matter or when it is blank', () => {
+    expect(renderMd('# A\n\n---\n\nb').container.querySelector('.front-matter')).toBeNull();
+    expect(renderMd('---\n  \n---\n# A').container.querySelector('.front-matter')).toBeNull();
+  });
+});

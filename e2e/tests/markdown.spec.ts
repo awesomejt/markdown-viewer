@@ -74,3 +74,39 @@ test('a relative image in a document loads', async ({ page }) => {
     .poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth))
     .toBeGreaterThan(0);
 });
+
+test('the copy button copies a highlighted block', async ({ page }) => {
+  // Record writes instead of touching the real clipboard (permissions differ per browser).
+  await page.addInitScript(() => {
+    const w = window as unknown as { copied: string[] };
+    w.copied = [];
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: (t: string) => (w.copied.push(t), Promise.resolve()) },
+    });
+  });
+  await page.goto('/view/fixtures/docs/code.md');
+  const body = doc(page);
+  const block = body.locator('.code-block:has(code.language-ts)');
+  await expect(block.locator('pre.shiki')).toHaveCount(1);
+  await block.getByRole('button', { name: 'Copy' }).click();
+  await expect(block.getByRole('button', { name: 'Copied' })).toBeVisible();
+  const copied = await page.evaluate(() => (window as unknown as { copied: string[] }).copied);
+  expect(copied).toEqual([
+    'const answer: number = 42;\nexport function greet(name: string): string {\n  return `hello ${name}`;\n}',
+  ]);
+  await expect(body.getByRole('button', { name: /^Cop/ })).toHaveCount(4);
+});
+
+test('front matter is shown in a collapsed panel', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/guide.md');
+  const panel = page.locator('details.front-matter');
+  await expect(panel.locator('summary')).toHaveText('Front matter');
+  await expect(panel.getByText('draft: false')).toBeHidden();
+  await panel.locator('summary').click();
+  await expect(panel.getByText('draft: false')).toBeVisible();
+  await expect(panel.locator('code')).toContainText('title: Guide');
+
+  await page.goto('/view/fixtures/docs/code.md');
+  await expect(doc(page).getByRole('heading', { name: 'Code', level: 1 })).toBeVisible();
+  await expect(page.locator('details.front-matter')).toHaveCount(0);
+});
