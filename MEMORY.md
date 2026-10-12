@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.5 standalone code highlighting (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.6) meanwhile
+- Last major milestone: R2.6 table of contents (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-19, then R2.7) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -53,7 +53,7 @@ Full log: `agents/Decisions.md`.
 Open items carried from archived run log entries (`agents/Memory-History.md`). R1 confirmed these as accepted; new R1 defects are FIX-4 to FIX-14 in `TODO.md` (all done).
 
 - Live reload: any missing `sub` path makes `/api/events` return 404 for the whole stream, and the client has no special handling, so deleting a viewed file can break live reload for that tab (B6/B7).
-- Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6). The workspace tree has no subscriptions of its own (R2.10).
+- Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6), and so can an open TOC panel above the body when the heading count changes (R2.6). The workspace tree has no subscriptions of its own (R2.10).
 - Watchers: fsnotify `Add`/`Remove` bypass the FS timeouts (local disks only). A deleted root stays unwatched until restart. Delete + create of a parent with the file present merges to `modified`. Poll treats a file-to-dir swap as `modified` (B6/B7).
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
@@ -78,6 +78,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.6)
+
+- Task: Table of contents (FR-2.5); done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/toc.ts` (`collectHeadings` from the rendered DOM, `mdv-toc-open`), `Toc.tsx`, `MarkdownView.tsx` (`.markdown-doc` wrapper, layout-effect heading read), `app/app.css` (sticky column at ≥ 1400 px), unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`, `README.md`.
+- Result: `make check` exit 0 (220 unit), `make e2e` 192 passed twice; logs `build/r26-*.log`.
+- Blockers or follow-up: First e2e run hit an unrelated `recent.spec.ts` race (logged as FIX-19). With the panel open above the body, a live reload that changes the heading count can shift the restored scroll.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.5)
 
 - Task: Syntax highlighting for standalone text/code files (FR-1.5); done in the orchestrator without a subagent.
@@ -91,10 +98,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/icons/icon.svg` + `mkicons.sh` (rsvg-convert → committed `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`), `web/public/manifest.webmanifest`, `favicon.svg` (M-arrow mark replaces the Vite logo), `web/index.html` (manifest, touch icon, Apple meta, two `theme-color` metas), `app/theme.ts` (`THEME_COLOR`, `applyTheme` syncs the metas), `internal/web/web.go` (`.webmanifest` → `application/manifest+json`), unit/Go tests, `e2e/tests/shell.spec.ts`, `docs/Architecture.md`, `docs/Deployment.md`.
 - Result: Go test red (text/plain) before the MIME fix. `make check` exit 0, `make e2e` 180 passed; logs `build/r24-*.log`.
 - Blockers or follow-up: Standalone mode hides Safari's back button and reload; V1 should add to Home Screen on the iPad and check icon, title, status bar and back navigation.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.3)
-
-- Task: Recent files/folders (FR-2.6); done in the orchestrator without a subagent.
-- Files changed: new `web/src/recent/recent.ts` (`pushRecent`/`parseRecent`, shared `useSyncExternalStore` store, `mdv-recent`, 10 items, follows `storage`, in-memory fallback), `RecentList.tsx` (`useRecordRecent`, list + "Clear recent"), `BrowseView.tsx`/`ViewFileView.tsx` (record dir once listed, file once in its parent listing), `RootsView.tsx` + `Layout.tsx` (home page; sidebar outside a workspace except on `/`), `app/app.css`, `recent.test.tsx`, `e2e/tests/recent.spec.ts`, `docs/Architecture.md`.
-- Result: component test red with recording disabled. `make check` exit 0 (207 unit), `make e2e` 172 passed twice; logs `build/r23-*.log`.
-- Blockers or follow-up: None. A recent item whose file was later deleted stays listed (its link shows the normal not-found state).
