@@ -56,19 +56,26 @@ func (h *Handle) readNames(rel, name string) (*DirState, error) {
 // redirect the watch. That leaks only the fact that something changed, never
 // content. Handles built without a host directory (tests) fail with
 // KindInternal.
+//
+// The host path uses the form the stat succeeded with: for a name stored in
+// the other NFC/NFD form than requested, that is the on-disk name, which the
+// kernel watch and its event names need.
 func (h *Handle) HostPath(ctx context.Context, rel string) (string, fs.FileInfo, error) {
-	fi, err := h.Stat(ctx, rel)
+	type found struct {
+		name string
+		fi   fs.FileInfo
+	}
+	f, err := withRetry(rel, func(name string) (found, error) {
+		fi, err := run(ctx, h, "stat", rel, func() (fs.FileInfo, error) { return h.fs.Stat(name) }, nil)
+		return found{name, fi}, err
+	})
 	if err != nil {
 		return "", nil, err
 	}
 	if h.hostDir == "" {
 		return "", nil, &PathError{Kind: KindInternal, Op: "hostpath", Path: rel, Reason: "root has no host directory"}
 	}
-	name, err := Resolve(rel)
-	if err != nil {
-		return "", nil, err
-	}
-	return filepath.Join(h.hostDir, filepath.FromSlash(name)), fi, nil
+	return filepath.Join(h.hostDir, filepath.FromSlash(f.name)), f.fi, nil
 }
 
 // HostPathMissing is [Handle.HostPath] for a path that does not exist yet. It

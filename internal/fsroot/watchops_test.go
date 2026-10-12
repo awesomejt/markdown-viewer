@@ -136,3 +136,27 @@ func TestHostPathMissing(t *testing.T) {
 		}
 	}
 }
+
+func TestHostPathUsesOnDiskForm(t *testing.T) {
+	h, dir := openTemp(t)
+	ctx := context.Background()
+	const nfc, nfd = "café", "café"
+	if err := os.Mkdir(filepath.Join(dir, nfd), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, nfd, nfd+".md"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for rel, want := range map[string]string{
+		nfc:                     filepath.Join(dir, nfd),
+		nfc + "/" + nfc + ".md": filepath.Join(dir, nfd, nfd+".md"),
+		nfd:                     filepath.Join(dir, nfd),
+	} {
+		if p, _, err := h.HostPath(ctx, rel); err != nil || p != want {
+			t.Fatalf("%q: got %q %v, want %q", rel, p, err, want)
+		}
+	}
+	if p, err := h.HostPathMissing(ctx, nfc+"/new.md"); err != nil || p != filepath.Join(dir, nfd, "new.md") {
+		t.Fatalf("missing child: got %q %v", p, err)
+	}
+}
