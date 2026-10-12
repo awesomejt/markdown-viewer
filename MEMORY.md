@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: T2 full validation run green (2026-10-11)
-- Next recommended task: R1 [O] MVP phase review (start in a fresh session)
+- Last major milestone: R1 MVP review done; FIX-4 to FIX-11 logged (2026-10-11)
+- Next recommended task: FIX-4 🔒 [S] D2 render CSRF + CSP, then FIX-5 to FIX-11, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -46,7 +46,7 @@ Full log: `agents/Decisions.md`.
 
 ## Known Limitations And Accepted Risks
 
-Open items carried from archived run log entries (`agents/Memory-History.md`). R1 should confirm or log them as `FIX-n`.
+Open items carried from archived run log entries (`agents/Memory-History.md`). R1 confirmed these as accepted; new R1 defects are FIX-4 to FIX-14 in `TODO.md`.
 
 - Live reload: any missing `sub` path makes `/api/events` return 404 for the whole stream, and the client has no special handling, so deleting a viewed file can break live reload for that tab (B6/B7).
 - Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6). The workspace tree has no subscriptions of its own (R2.10).
@@ -54,6 +54,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
+- Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
 ## Open Questions
@@ -70,6 +71,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Opus 5.5 (R1)
+
+- Task: MVP phase review against Success Criteria 1 to 5 and the Security Model.
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-26), `agents/Memory-History.md`, `docs/Implementation.md` (R2.1), `docs/Tech-Stack.md` and `docs/Architecture.md` (drift fixes).
+- Result: Three parallel Opus reviewers (backend security, frontend security, requirements/deployment); the orchestrator re-checked each logged finding in source. Path guard, sanitizer, `resolveLink`, diagram `<img>` isolation and `/api/file` headers hold. Main defects: `POST /api/render/d2` is cross-site postable (`text/plain`) and returns SVG without CSP (reproduced with `javascript:` links), no Host check (DNS rebinding), D2 cache unbounded by bytes, SSE watch cap exhaustible, a down NAS at boot stops the server. Outputs in `build/r1/`.
+- Blockers or follow-up: FIX-4 to FIX-11 block DOC1. A part A reviewer's `pkill -f build/r1/mdv` may have killed another reviewer's probe server (harmless).
+
 ### 2026-10-11 - Claude Haiku 4.5 + Opus 5.5 verification (T2)
 
 - Task: Full validation run (plus CH1: `MEMORY.md` streamlined, old run log in `agents/Memory-History.md`).
@@ -83,10 +91,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `e2e/playwright.config.ts` (projects chromium, firefox, webkit, ipad), `e2e/tests/flow.spec.ts` (new), `e2e/tests/workspace.spec.ts` (`openTree` drawer helper).
 - Result: 124 e2e tests (31 per project), no skips. iPad Pro 11 portrait is 834 px, so specs that use the sidebar must open the drawer, and must first wait for the drawer to auto-close after navigation (otherwise they race it). The orchestrator added a 200 control to the traversal test and re-ran `make e2e` (124 passed) and `make check` (exit 0).
 - Blockers or follow-up: `/view/...%2f..` returns 200 (SPA route; the API is the guard), so traversal is tested on `/api/*` only.
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (D1)
-
-- Task: Dockerfile + compose.yaml.
-- Files changed: `Dockerfile`, `.dockerignore`, `compose.yaml`, `Makefile` (`docker` target), `docs/Tech-Stack.md`.
-- Result: Images `node:24.21-bookworm-slim`, `golang:1.27.2-bookworm`, `gcr.io/distroless/static-debian12:nonroot` (image user 65532). Compose overrides with `MDV_UID`/`MDV_GID` (default 1000:1000), `MDV_PORT` (8080), `MDV_VERSION` (image tag + build arg). No tmpfs needed (nothing writes temp files). `.dockerignore` excludes `*.md`, docs, examples, e2e, testdata. The orchestrator re-ran hadolint/yamllint, `docker compose build`/`up` (healthy; `/healthz`, `/api/list`, SPA route, `POST /api/render/d2` 200 on the read-only rootfs; inspect shows RO, CapDrop ALL, no-new-privileges, unless-stopped) and `make check` (exit 0).
-- Blockers or follow-up: Real NAS UID/GID still open (Needs Attention). Port 8080 was busy on the dev host; smoke tests used `MDV_PORT=18080`.

@@ -30,15 +30,27 @@ All frontend tasks are done.
 
 Packaging, tests, review:
 
-- [ ] **R1** [O] MVP phase review; log FIX-n tasks (deps: T2)
-- [ ] **DOC1** [S] README quick start + Compose deployment (deps: R1)
+R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
+
+- [ ] **FIX-4** 🔒 [S] `POST /api/render/d2` CSRF: a cross-site `enctype=text/plain` form gets 200 `image/svg+xml` (no CSP) with `javascript:` links/icons, opened top-level in the app origin. Reject non-`application/json` with 415, set the `fileCSP` sandbox header (+ nosniff) on every render response, optionally 403 on `Sec-Fetch-Site: cross-site` (`internal/api/render.go`) (deps: R1)
+- [ ] **FIX-5** 🔒 [S] DNS rebinding: no Host/Origin check (`Host: evil.example` gets 200). Add `MDV_ALLOWED_HOSTS` (default: IP literals, `localhost`, plus listed names); other Host values get 421/403 on every route; document in `docs/Architecture.md` config table (deps: R1)
+- [ ] **FIX-6** [S] D2 cache is bounded only by entry count (256); a 149 KB source gave a 6 MB SVG, so the cache can reach GBs. Bound by total bytes (for example 64 MiB) and skip caching any SVG over a few MiB (`internal/d2render/cache.go`) (deps: R1)
+- [ ] **FIX-7** [S] SSE limits: missing-path subs count toward `MaxWatches` (8 streams × 32 missing subs locked out valid subs with 503), and streams are uncapped globally and per client. Cap concurrent streams (global + per remote IP) and missing-path keys separately (`internal/watch/hub.go`, `internal/api/events.go`) (deps: R1)
+- [ ] **FIX-8** [S] Startup resilience: root `os.Stat`/`OpenHandle` run with no timeout and any failure exits (`config.go`, `fsroot/registry.go`, `cmd/mdv/main.go`), so a NAS that is down at boot causes a restart loop or a hang (unhealthy, not restarted). Run under `MDV_FS_TIMEOUT` and start such roots as `available:false` with the existing probe (deps: R1)
+- [ ] **FIX-9** [S] Compose/defaults: `MDV_ROOTS: ${MDV_ROOTS:-examples=/data/examples}`; long bind syntax with `propagation: rslave` for NAS mounts (late/remounted NAS stays invisible otherwise); default `MDV_POLL_INTERVAL` 2s in config and compose to meet SC3 (`hub.go` `DefaultPollInterval` already 2s) (deps: R1)
+- [ ] **FIX-10** [S] E2E gaps: back/forward (FR-6.2), relative image inside a Markdown document loads (SC1), offline guard (`page.route` fails any non-local request) (deps: R1)
+- [ ] **FIX-11** [S] FR-1.2 (M) date sort missing: name/date sort control in the folder listing, persisted like the markdown-only toggle (deps: R1)
+- [ ] **DOC1** [S] README quick start + Compose deployment; also cover `:fsnotify` for local roots, `MDV_ALLOWED_HOSTS`, NAS boot ordering (`remote-fs.target`/`RequiresMountsFor`) and bind propagation, behavior when a root is down at startup, no internet needed at runtime, LAN-only warning (deps: FIX-4 to FIX-11)
 - [ ] **V1** [Human] Deploy on VM + iPad manual checklist (deps: DOC1)
 
 ## Phase 2: Refinement
 
 - [ ] **FIX-2** [S] Oversized standalone diagram (`DiagramPage`) gets the F5 "Load anyway" (`force=1`) button; `/view` kind fallback covers image/text extensions when the parent listing lacks the entry
 - [ ] **FIX-3** [S] Live reload for image files: `ImageFile` uses a plain `<img src>`, so an on-disk change never shows; add a cache-buster (listing mtime) to the URL
-- [ ] **R2.1** [S] Hidden-files toggle; sort by date
+- [ ] **FIX-12** [S] `/api/file` has no write deadline: a client that stops reading holds the handler and fd forever; add a per-chunk deadline via `ResponseController` like SSE (`cmd/mdv/main.go`, `internal/api/file.go`)
+- [ ] **FIX-13** [S] `HostPath` resolves NFC/NFD for the stat but joins the original form (`internal/fsroot/watchops.go`), so fsnotify roots never match the base name (dead live reload) or 500 on dir keys for mismatched normalization; return and use the name that succeeded
+- [ ] **FIX-14** [S] Mermaid temp ids `mdv-mermaid-N` can equal a heading slug and `getElementById(id)?.remove()` deletes the heading; use an id a slug cannot produce (`web/src/diagrams/mermaid.ts`)
+- [ ] **R2.1** [S] Hidden-files toggle (date sort moved to FIX-11)
 - [ ] **R2.2** [S] Copy-code button; front-matter panel
 - [ ] **R2.3** [S] Recent files/folders
 - [ ] **R2.4** [S] Web-app manifest + home-screen icons
@@ -71,6 +83,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **R1** [O] MVP review (3 parallel Opus reviewers: backend, frontend, conformance; orchestrator re-checked each logged finding in source). Path guard, sanitizer, diagram `<img>` isolation and `/api/file` headers hold. Logged FIX-4 to FIX-11 (Phase 1, block DOC1; FIX-4/5 🔒) and FIX-12 to FIX-14 (Phase 2); docs drift fixed; D-26.
 - [x] 2026-10-11: **T2** Full validation green: `make check` (Go coverage gates pass, `fsroot` 98.2%; 147 web unit, 93.46% lines), `go test -race ./...` (8 packages ok), `make e2e` (124 passed on 4 projects), `docker compose build` (`mdv:dev`); all exit 0, logs in `build/t2/`.
 - [x] 2026-10-11: **CH1** [S] `MEMORY.md` streamlined (32 KB → 7 KB): 29 older run log entries moved to `agents/Memory-History.md`, open follow-ups consolidated into "Known Limitations And Accepted Risks", keep-last-three rule added to `docs/Implementation.md` step 5.
 - [x] 2026-10-11: **T1** Playwright projects chromium, firefox, webkit, ipad (`iPad Pro 11`, 834 px → drawer); `flow.spec.ts` (browse → workspace → relative link → anchor, script not executed, API traversal rejected with a 200 control); drawer-aware `openTree` in workspace spec; 124 e2e (31 × 4), no skips, 3 consecutive green runs.

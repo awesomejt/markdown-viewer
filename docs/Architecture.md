@@ -224,7 +224,7 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 
 **Diagram details (F4):**
 
-- Both kinds display as `<img src=blob:>` built from the SVG (`image/svg+xml`), inside `figure.diagram[data-diagram][data-state=loading|ready|error]`. SVG markup never enters the app DOM, and object URLs are revoked when replaced and on unmount.
+- Both kinds display as `<img src=blob:>` built from the SVG (`image/svg+xml`), inside `figure.diagram[data-diagram][data-state=loading|ready|error]`. Rendered SVG is never shown in the app DOM (Mermaid briefly attaches its DOMPurify-sanitized SVG to measure it under `securityLevel: 'strict'`, then removes it), and object URLs are revoked when replaced and on unmount.
 - Mermaid is a dynamic `import('mermaid')` (its own chunk), initialized before every render with `securityLevel: 'strict'`, `htmlLabels: false` (also under `flowchart`), `suppressErrorRendering` and the current theme (`default` or `dark`). Renders go through one module-level promise queue because Mermaid is not reentrant, and leftover temp elements are removed after a failure.
 - `useResolvedTheme()` reads `data-theme` on `<html>` through a `MutationObserver`; diagrams re-render (Mermaid) or refetch (D2) when it changes.
 - D2 uses `renderD2` (`POST /api/render/d2` with `{source, theme}`) via `useQuery` with key `['d2', theme, source]`, `retry: shouldRetry` (503/504 retried, 4xx not) and `staleTime: Infinity`. A 422 shows the server message; other failures show a generic message with the error code.
