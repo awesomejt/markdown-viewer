@@ -21,8 +21,9 @@ const (
 	maxStreamsPerIP = 16
 	// pingInterval keeps idle streams alive through proxies.
 	pingInterval = 25 * time.Second
-	// writeTimeout bounds each write to a stream, so a client that stops
-	// reading cannot hold the handler (and its watchers) forever.
+	// writeTimeout bounds each write to an event stream or each /api/file
+	// body chunk, so a client that stops reading cannot hold the handler
+	// (and its watchers or file descriptor) forever.
 	writeTimeout = 10 * time.Second
 )
 

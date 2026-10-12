@@ -145,8 +145,8 @@ func serve(ctx context.Context, getenv func(string) string, stderr io.Writer, re
 		return 1
 	}
 	// No global WriteTimeout: SSE streams (/api/events) are long-lived and
-	// large files stream slowly. Per-stream deadlines are managed by handlers
-	// via http.ResponseController.
+	// large files stream slowly. /api/events and /api/file set per-write
+	// deadlines via http.ResponseController instead.
 	srv := &http.Server{
 		Handler:           apiSrv.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,

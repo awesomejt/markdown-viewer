@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/awesomejt/markdown-viewer/internal/fsroot"
 )
@@ -92,6 +93,36 @@ func (e *errRecorder) Read(p []byte) (int, error) {
 	return n, err
 }
 
+// chunkWriter gives every body write its own write deadline, so a client
+// that stops reading fails the copy instead of holding the handler and its
+// file descriptor forever. It deliberately hides io.ReaderFrom: the
+// underlying response's ReadFrom would write around the deadline.
+type chunkWriter struct {
+	http.ResponseWriter
+	rc      *http.ResponseController
+	timeout time.Duration
+}
+
+// arm sets the next deadline. A writer without deadline support (tests)
+// streams without one.
+func (d *chunkWriter) arm() error {
+	err := d.rc.SetWriteDeadline(time.Now().Add(d.timeout))
+	if errors.Is(err, http.ErrNotSupported) {
+		return nil
+	}
+	return err
+}
+
+func (d *chunkWriter) Write(p []byte) (int, error) {
+	if err := d.arm(); err != nil {
+		return 0, err
+	}
+	return d.ResponseWriter.Write(p)
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (d *chunkWriter) Unwrap() http.ResponseWriter { return d.ResponseWriter }
+
 // fileHeaders sets the headers every /api/file response carries, including
 // method-not-allowed and error responses.
 func fileHeaders(next http.HandlerFunc) http.HandlerFunc {
@@ -144,8 +175,12 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request) {
 	mt := fi.ModTime()
 	hdr.Set("ETag", fmt.Sprintf(`"%d-%d-%d"`, mt.UnixNano(), fi.Size(), inode(fi)))
 
+	// There is no server-wide WriteTimeout (SSE), so the body is copied under
+	// a per-chunk deadline. The server flushes the buffered tail under the
+	// last one and clears it before reusing the connection.
+	dw := &chunkWriter{ResponseWriter: w, rc: http.NewResponseController(w), timeout: s.writeTimeout}
 	rec := &errRecorder{ReadSeeker: h.Reader(ctx, f, fi.Size())}
-	http.ServeContent(w, r, "", mt, rec)
+	http.ServeContent(dw, r, "", mt, rec)
 	if rec.err != nil {
 		level := slog.LevelWarn
 		if ctx.Err() != nil {
