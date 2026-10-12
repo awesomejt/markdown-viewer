@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -42,9 +44,20 @@ type Config struct {
 	D2Concurrency  int
 	D2CacheEntries int
 	LogLevel       slog.Level
+	// AllowedHosts lists extra Host header hostnames accepted besides IP
+	// literals and localhost (DNS rebinding guard). Normalized to lowercase
+	// without a trailing dot. The single entry "*" disables the check.
+	AllowedHosts []string
 }
 
+// AllowAnyHost is the MDV_ALLOWED_HOSTS value that disables the Host check.
+const AllowAnyHost = "*"
+
 var nameRE = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,31}$`)
+
+// hostLabelRE matches one lowercase DNS label (underscores tolerated for
+// container hostnames).
+var hostLabelRE = regexp.MustCompile(`^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?$`)
 
 // FromEnv loads configuration from the process environment.
 func FromEnv() (*Config, error) {
@@ -112,6 +125,10 @@ func Load(getenv func(string) string) (*Config, error) {
 		}
 	}
 
+	hosts, err := parseAllowedHosts(get("MDV_ALLOWED_HOSTS"))
+	add(err)
+	c.AllowedHosts = hosts
+
 	roots, err := parseRoots(get("MDV_ROOTS"))
 	add(err)
 	c.Roots = roots
@@ -152,6 +169,46 @@ func parseInt(get func(string) string, key string, dst *int) error {
 	}
 	*dst = n
 	return nil
+}
+
+func parseAllowedHosts(raw string) ([]string, error) {
+	var errs []error
+	var hosts []string
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSuffix(strings.ToLower(strings.TrimSpace(entry)), ".")
+		if entry == "" {
+			continue
+		}
+		if entry == AllowAnyHost {
+			hosts = append(hosts, entry)
+			continue
+		}
+		if _, err := netip.ParseAddr(strings.Trim(entry, "[]")); err == nil {
+			errs = append(errs, fmt.Errorf("MDV_ALLOWED_HOSTS: IP literals are always allowed; remove %q", entry))
+			continue
+		}
+		if !validHostname(entry) {
+			errs = append(errs, fmt.Errorf("MDV_ALLOWED_HOSTS: invalid hostname %q (no scheme, port, path, or whitespace)", entry))
+			continue
+		}
+		hosts = append(hosts, entry)
+	}
+	if len(hosts) > 1 && slices.Contains(hosts, AllowAnyHost) {
+		errs = append(errs, fmt.Errorf("MDV_ALLOWED_HOSTS: %q must be the only entry", AllowAnyHost))
+	}
+	return hosts, errors.Join(errs...)
+}
+
+func validHostname(h string) bool {
+	if len(h) > 253 {
+		return false
+	}
+	for _, label := range strings.Split(h, ".") {
+		if !hostLabelRE.MatchString(label) {
+			return false
+		}
+	}
+	return true
 }
 
 func parseRoots(raw string) ([]Root, error) {
