@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DiagramPage, { diagramKindOf } from './DiagramPage';
 import { renderWithClient } from './test-utils';
 
-vi.mock('./mermaid', () => ({ renderMermaid: vi.fn(async () => '<svg/>') }));
+vi.mock('./mermaid', () => ({
+  renderMermaid: vi.fn(() => ({
+    result: Promise.resolve('<svg/>'),
+    promote: () => undefined,
+    cancel: () => undefined,
+  })),
+  preloadMermaid: vi.fn(),
+}));
 
 beforeEach(() => {
   URL.createObjectURL = vi.fn(() => 'blob:page');

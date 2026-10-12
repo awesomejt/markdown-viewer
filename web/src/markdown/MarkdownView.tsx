@@ -12,6 +12,7 @@ import {
 import Markdown, { type Components } from 'react-markdown';
 import { Link, useLocation } from 'react-router';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
+import { preloadMermaid } from '../diagrams/mermaid';
 import Diagram, { type DiagramKind } from '../diagrams/Diagram';
 import CodeBlock from './CodeBlock';
 import CopyButton from './CopyButton';
@@ -157,6 +158,10 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
   const { hash } = useLocation();
   const components = useMemo(() => makeComponents({ root, docPath, ws }), [root, docPath, ws]);
   const math = useMathPlugin(text);
+  const hasMermaid = /(?:`{3,}|~{3,})[ \t]*mermaid\b/i.test(text);
+  useEffect(() => {
+    if (hasMermaid) preloadMermaid();
+  }, [hasMermaid]);
   const ready = math.ready;
   const plugins = useMemo(
     () => (math.plugin ? [...rehypePlugins, math.plugin] : rehypePlugins),

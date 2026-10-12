@@ -14,6 +14,8 @@ export interface DiagramFigureProps {
   tools?: ReactNode;
   /** True while a newer render replaces the shown SVG. */
   busy?: boolean;
+  /** Receives the figure element (it is replaced as the state changes). */
+  figureRef?: (el: HTMLElement | null) => void;
 }
 
 /**
@@ -28,6 +30,7 @@ export default function DiagramFigure({
   error,
   tools,
   busy = false,
+  figureRef,
 }: DiagramFigureProps) {
   const [shown, setShown] = useState<{ svg: string; url: string } | null>(null);
   const [showSource, setShowSource] = useState(false);
@@ -43,7 +46,7 @@ export default function DiagramFigure({
 
   if (error !== undefined) {
     return (
-      <figure className="diagram" data-diagram={kind} data-state="error">
+      <figure ref={figureRef} className="diagram" data-diagram={kind} data-state="error">
         <DiagramError kind={kind} message={error} source={source} />
       </figure>
     );
@@ -52,7 +55,13 @@ export default function DiagramFigure({
   // an open viewer survive re-renders.
   if (svg !== undefined && shown) {
     return (
-      <figure className="diagram" data-diagram={kind} data-state="ready" aria-busy={busy}>
+      <figure
+        ref={figureRef}
+        className="diagram"
+        data-diagram={kind}
+        data-state="ready"
+        aria-busy={busy}
+      >
         <div className="diagram-tools">
           {tools}
           <button
@@ -93,7 +102,7 @@ export default function DiagramFigure({
     );
   }
   return (
-    <figure className="diagram" data-diagram={kind} data-state="loading">
+    <figure ref={figureRef} className="diagram" data-diagram={kind} data-state="loading">
       <p className="diagram-loading muted" role="status">
         Rendering diagram…
       </p>

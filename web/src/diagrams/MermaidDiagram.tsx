@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DiagramFigure from './DiagramFigure';
-import { renderMermaid } from './mermaid';
+import { renderMermaid, type MermaidJob } from './mermaid';
 import { useResolvedTheme } from './useResolvedTheme';
 
 interface Result {
@@ -13,10 +13,32 @@ export default function MermaidDiagram({ source }: { source: string }) {
   const theme = useResolvedTheme();
   const key = `${theme}\0${source}`;
   const [result, setResult] = useState<Result | null>(null);
+  const [figure, setFigure] = useState<HTMLElement | null>(null);
+  // Without IntersectionObserver (old browsers, jsdom) every diagram counts as near the viewport.
+  const near = useRef(typeof IntersectionObserver === 'undefined');
+  const job = useRef<MermaidJob | null>(null);
+
+  // Diagrams within about one viewport of the screen render first; the rest still render later.
+  useEffect(() => {
+    if (!figure || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        near.current = true;
+        job.current?.promote();
+        io.disconnect();
+      },
+      { rootMargin: `${window.innerHeight}px 0px` },
+    );
+    io.observe(figure);
+    return () => io.disconnect();
+  }, [figure]);
 
   useEffect(() => {
     let cancelled = false;
-    renderMermaid(source, theme).then(
+    const j = renderMermaid(source, theme, near.current);
+    job.current = j;
+    j.result.then(
       (svg) => {
         if (!cancelled) setResult({ key, svg });
       },
@@ -26,6 +48,7 @@ export default function MermaidDiagram({ source }: { source: string }) {
     );
     return () => {
       cancelled = true;
+      j.cancel();
     };
   }, [source, theme, key]);
 
@@ -35,6 +58,7 @@ export default function MermaidDiagram({ source }: { source: string }) {
   return (
     <DiagramFigure
       kind="mermaid"
+      figureRef={setFigure}
       source={source}
       svg={svg}
       error={current?.error}
