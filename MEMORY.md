@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: EX1 example Markdown set in `examples/` (2026-10-11)
-- Next recommended task: D1 [S] Dockerfile + compose.yaml (default UID:GID documented; NAS values still an open question)
+- Last major milestone: D1 Docker packaging (`Dockerfile`, `compose.yaml`) (2026-10-11)
+- Next recommended task: T1 [S] Complete cross-browser e2e suite + iPad viewport
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (D1)
+
+- Task: Dockerfile + compose.yaml.
+- Files changed: `Dockerfile`, `.dockerignore`, `compose.yaml`, `Makefile` (`docker` target), `docs/Tech-Stack.md`.
+- Result: Images `node:24.21-bookworm-slim`, `golang:1.27.2-bookworm`, `gcr.io/distroless/static-debian12:nonroot` (image user 65532). Compose overrides with `MDV_UID`/`MDV_GID` (default 1000:1000), `MDV_PORT` (8080), `MDV_VERSION` (image tag + build arg). No tmpfs needed (nothing writes temp files). `.dockerignore` excludes `*.md`, docs, examples, e2e, testdata. The orchestrator re-ran hadolint/yamllint, `docker compose build`/`up` (healthy; `/healthz`, `/api/list`, SPA route, `POST /api/render/d2` 200 on the read-only rootfs; inspect shows RO, CapDrop ALL, no-new-privileges, unless-stopped) and `make check` (exit 0).
+- Blockers or follow-up: Real NAS UID/GID still open (Needs Attention). Port 8080 was busy on the dev host; smoke tests used `MDV_PORT=18080`.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (EX1)
 
