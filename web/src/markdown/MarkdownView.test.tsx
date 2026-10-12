@@ -7,6 +7,7 @@ import MarkdownView, { detectDiagram } from './MarkdownView';
 import { mayHaveMath } from './math';
 import { rehypePlugins, remarkPlugins, sanitizeSchema } from './pipeline';
 import { scrollToHash } from './scroll';
+import { renderMermaid } from '../diagrams/mermaid';
 
 vi.mock('../diagrams/mermaid', () => ({
   renderMermaid: vi.fn(() => new Promise<string>(() => undefined)),
@@ -586,5 +587,30 @@ describe('GitHub alerts', () => {
     );
     expect(body.querySelector('div')?.className).toBe('markdown-alert markdown-alert-note');
     expect(body.querySelector('p')?.className).toBe('markdown-alert-title');
+  });
+});
+
+describe('render stability', () => {
+  const doc = '# A\n\n```mermaid\ngraph TD; A-->B\n```\n\n## B\n\n```mermaid\ngraph TD; C-->D\n```';
+
+  it('renders each diagram once across TOC, hash and same-props re-renders', async () => {
+    const mock = vi.mocked(renderMermaid);
+    mock.mockClear();
+    const client = new QueryClient();
+    const router = createMemoryRouter([
+      { path: '*', element: <MarkdownView text={doc} root="r" docPath="a.md" /> },
+    ]);
+    const ui = (
+      <QueryClientProvider client={client}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    );
+    const { container, rerender } = render(ui);
+    await waitFor(() => expect(container.querySelector('.toc')).not.toBeNull());
+    expect(mock).toHaveBeenCalledTimes(2);
+    rerender(ui);
+    await router.navigate('/#b');
+    await waitFor(() => expect(router.state.location.hash).toBe('#b'));
+    expect(mock).toHaveBeenCalledTimes(2);
   });
 });
