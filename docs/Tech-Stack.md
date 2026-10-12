@@ -21,8 +21,8 @@ This document lists the chosen languages, frameworks, and libraries, with the re
 | Markdown plugins | `remark-gfm` 4, `remark-frontmatter` 5, `rehype-slug` 6, `rehype-raw` 7, `rehype-sanitize` 6 | — |
 | Code highlighting | Shiki (`shiki/core`, JS regex engine, `@shikijs/langs`/`themes`, `hast-util-to-jsx-runtime`) | 4.5 |
 | Mermaid | `mermaid` (lazy-loaded, client-side) | 12.1 |
-| Math (should-have) | KaTeX via `remark-math` / `rehype-katex` | 0.19 |
-| Diagram pan/zoom | `svg-pan-zoom` or a small custom handler | 3.6 |
+| Math (should-have, planned R2.7) | KaTeX via `remark-math` / `rehype-katex` | 0.19 |
+| Diagram pan/zoom (planned R2.8) | `svg-pan-zoom` or a small custom handler | 3.6 |
 | Server tests | `go test` (table tests, `httptest`) | stdlib |
 | Frontend tests | Vitest | 5.0 |
 | End-to-end tests | Playwright (Chromium, Firefox, **WebKit** to approximate iPad Safari) | 1.64 |
@@ -105,7 +105,7 @@ NAS (SMB/NFS share)
       -> configured as a root, e.g. MDV_ROOTS=markdown=/data/markdown
 ```
 
-- Multi-stage `Dockerfile`: a `node` stage runs `vite build`. A `golang:1.27` stage builds a static binary (`CGO_ENABLED=0`) with the SPA embedded. The runtime is a minimal image (distroless or alpine) running as a non-root user.
+- Multi-stage `Dockerfile`: a `node` stage runs `vite build`. A `golang` stage builds a static binary (`CGO_ENABLED=0`) with the SPA embedded. The runtime is distroless `static` running as a non-root user.
 - `compose.yaml`: one service with a published port, `:ro` bind mounts for each NAS path, environment-based config, `restart: unless-stopped`, and a healthcheck running `mdv healthcheck` against `/healthz` (distroless has no curl). Hardening: `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`. No internet access is needed at runtime.
 - The container user's UID/GID must be able to read the NAS mount on the VM. Make it configurable (`user:` in Compose) to match the mount's ownership. Compose reads `MDV_UID`/`MDV_GID` (default `1000:1000`; the real NAS values are still open) and `MDV_PORT` (default `8080`). Images: `node:24.21-bookworm-slim`, `golang:1.27.2-bookworm`, `gcr.io/distroless/static-debian12:nonroot`.
 - **Live reload:** files changed on the NAS by other machines do not generate inotify events inside the container. Roots on network mounts therefore default to mtime polling (configurable interval), with fsnotify used only when a root is marked local.

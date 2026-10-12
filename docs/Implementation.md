@@ -136,7 +136,7 @@ Each F-task from F1 on also adds its own Playwright e2e scenario (on the T0 scaf
 
 | ID | Tier | Role | Task (requirement) |
 | --- | --- | --- | --- |
-| R2.1 | S | coder | Hidden-files toggle; sort by name/date (FR-1.4, FR-1.2) |
+| R2.1 | S | coder | Hidden-files toggle (FR-1.4); date sort moved to FIX-11 in Phase 1 (D-26) |
 | R2.2 | S | coder | Copy-code button; front-matter metadata panel (FR-3.2, FR-3.4) |
 | R2.3 | S | coder | Recent files/folders in localStorage (FR-2.6) |
 | R2.4 | S | coder | Web-app manifest, icons, and Apple meta tags for the home screen (FR-6.3) |
