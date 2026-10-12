@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F3 Markdown pipeline complete (2026-10-11)
-- Next recommended task: F3b [S] Shiki highlighting
+- Last major milestone: F3b Shiki highlighting complete (2026-10-11)
+- Next recommended task: F4 [S] Mermaid + D2 diagram components
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F3b)
+
+- Task: Shiki syntax highlighting.
+- Files changed: `web/src/markdown/{highlight.ts,CodeBlock.tsx,highlight.test.tsx,MarkdownView.tsx}`, `web/src/app/app.css`, `web/package.json` (shiki, @shikijs/langs/themes/types 4.5, hast-util-to-jsx-runtime 2.3), `testdata/fixtures/docs/code.md`, `e2e/tests/markdown.spec.ts`, `docs/{Architecture,Tech-Stack}.md`, `agents/Decisions.md` (D-24).
+- Result: Highlighting runs in the `pre` component, not via `@shikijs/rehype` (D-24). Shiki loads only when a block has a supported language; the index and MarkdownView chunks only reference it by dynamic import (verified in the dist). Real Shiki with the JS engine works in jsdom. The orchestrator re-ran `make check` (98 web tests) and `make e2e` (14).
+- Blockers or follow-up: R2.5 can reuse `highlightToHast` for standalone code files. The existing >500 kB chunk warning (MarkdownView/index) is unchanged.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review/verification (F3)
 
