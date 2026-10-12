@@ -19,16 +19,25 @@ services:
       - "no-new-privileges:true"
     environment:
       MDV_LISTEN: ":8080"
-      MDV_ROOTS: "examples=/data/examples"
-      MDV_POLL_INTERVAL: "3s"
+      MDV_ROOTS: ${MDV_ROOTS:-examples=/data/examples}
+      MDV_POLL_INTERVAL: ${MDV_POLL_INTERVAL:-2s}
       MDV_LOG_LEVEL: "info"
       # Extra Host names to accept (IP literals and localhost always pass).
       MDV_ALLOWED_HOSTS: ${MDV_ALLOWED_HOSTS:-}
     volumes:
       - ./examples:/data/examples:ro
-      # NAS share mounted on the VM (fstab/autofs), then add to MDV_ROOTS,
-      # e.g. MDV_ROOTS: "markdown=/data/markdown":
-      # - /mnt/nas/markdown:/data/markdown:ro
+      # NAS share mounted on the VM (fstab/autofs). Bind the PARENT of the mount
+      # point: rslave only propagates mounts made beneath the source. With the
+      # share at /mnt/nas/markdown, set MDV_ROOTS=markdown=/data/nas/markdown; a
+      # late or remounted NAS then appears without recreating the container.
+      # create_host_path: false stops Docker creating an empty source dir.
+      # - type: bind
+      #   source: /mnt/nas
+      #   target: /data/nas
+      #   read_only: true
+      #   bind:
+      #     propagation: rslave
+      #     create_host_path: false
     healthcheck:
       test: ["CMD", "/mdv", "healthcheck"]
       interval: 30s

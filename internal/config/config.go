@@ -69,7 +69,7 @@ func FromEnv() (*Config, error) {
 func Load(getenv func(string) string) (*Config, error) {
 	c := &Config{
 		Listen:         ":8080",
-		PollInterval:   3 * time.Second,
+		PollInterval:   2 * time.Second,
 		FSTimeout:      5 * time.Second,
 		FSMaxInflight:  4,
 		MaxListEntries: 20000,
