@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.12 full validation green (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with R2.13 (Opus phase review) meanwhile
+- Last major milestone: R2.13 Phase 2 review done (2026-10-12); follow-ups FIX-21 to FIX-27, DOC2, CH2 logged (D-27)
+- Next recommended task: FIX-21 🔒 (root swap escape), then FIX-22, FIX-23, FIX-24 before V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`)
 - Current blocker: None
 
 ## Key Decisions
@@ -58,7 +58,9 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Watchers: fsnotify `Add`/`Remove` bypass the FS timeouts (local disks only). A deleted root stays unwatched until restart. Delete + create of a parent with the file present merges to `modified`. Poll treats a file-to-dir swap as `modified` (B6/B7).
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
-- Long folders (R2.11): browser find-in-page only sees the rendered rows of a virtualized listing (use the name filter); tree folders page 200 at a time instead of virtualizing. Not yet measured on a real iPad (R2.13).
+- Long folders (R2.11): browser find-in-page only sees the rendered rows of a virtualized listing (use the name filter); tree folders page 200 at a time instead of virtualizing. Keyboard focus is lost when the focused row scrolls out of the overscan (R2.13). Emulated timings pass NFR-3 (R2.13); real iPad still unmeasured (V1).
+- Unmounted NAS (R2.13, D-27): the root reopens on the empty mount point, so it lists empty (200) instead of `available:false`, and poll watchers report `deleted` for open files.
+- NFR-3 perf harness lives only in ignored `build/r213/` until FIX-24 promotes it (rerun command in the R2.13 run log entry).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit` items in the markdownlint-cli2 chain are FIX-20.
 - Code view (R2.5): extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
@@ -83,6 +85,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.13)
+
+- Task: Phase 2 review + NFR-3 performance check. Three parallel Opus reviewers (backend, frontend, conformance + perf); orchestrator verified each medium finding in source and re-ran the root-swap repro.
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-27), `agents/Memory-History.md` only. No source changes.
+- Result: 14/15 Phase 2 requirements met, NFR-3 partial. Perf (median of 3, WebKit iPad Pro 11 emulation): 10k listing first row 121 ms, scroll-to-end 23 ms, filter key ≤ 25 ms; 459 KB doc with 5 Mermaid + 5 D2 all ready 3.7 s (chromium 1.4 s, chromium 4× CPU 5.4 s; target 2 s). `go vet`, `go test -race`, vitest 249 all green. Logged FIX-21 to FIX-27, DOC2, CH2.
+- Blockers or follow-up: Perf rerun: `docker run --rm -u $(id -u):$(id -g) -v $PWD:/src -w /src/build/r213 --ipc=host -e HOME=/src/build/.cache/home -e CI=1 mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test` (fixtures from `python3 build/r213/gen.py`, server `build/mdv` on 18081 with `MDV_ROOTS=perf=build/r213/perf`).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.12)
 
 - Task: Full Phase 2 validation run (as T2); run in the orchestrator (tool runs only, no authoring).
@@ -96,10 +105,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/browse/BrowseView.tsx` (`EntryList` → `VirtualEntryList` at ≥ 200 entries, `EntryRow`), `browse.css`, `web/src/workspace/WorkspaceTree.tsx` (`TREE_PAGE` 200, "Show more"), `tree.css`, `web/package.json` (`@tanstack/react-virtual` ^3.14.17, `npm audit --omit=dev` clean), unit tests, new `e2e/tests/large.spec.ts` (2,000 files in the `live` root), `docs/Architecture.md`, `docs/Tech-Stack.md`, `README.md`.
 - Result: e2e 8/8 red without the change. `make check` exit 0 (249 unit), `make e2e` 220 passed; logs `build/r211-*.log`.
 - Blockers or follow-up: jsdom tests must stub `HTMLElement.offsetHeight` (the virtualizer measures with it). The app has no route scroll restoration (pre-existing), so Back to a long folder does not return to the clicked row.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.10)
-
-- Task: Workspace tree live updates on create/delete/rename (FR-5.2); done in the orchestrator without a subagent.
-- Files changed: `web/src/workspace/WorkspaceTree.tsx` (`TreeChildren` calls `useLiveSubscription(root, dir, true)`), `WorkspaceTree.test.tsx` (fake `EventSource` asserts the sub set on expand/collapse), `e2e/tests/live.spec.ts` (add, delete, rename at two tree levels), `docs/Architecture.md`, `README.md`.
-- Result: component test and e2e (4/4) red without the change. `make check` exit 0, `make e2e` 212 passed; logs `build/r210-*.log`.
-- Blockers or follow-up: None. Tree and image subs share the low tier (sorted, so past the cap some deep folders or images go unwatched).
