@@ -208,7 +208,7 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 
 **Path encoding:** the client encodes each path segment with `encodeURIComponent`. On not-found, the server retries the NFC/NFD alternate form of the requested path (Mac SMB writes NFD names).
 
-**Markdown pipeline order (exact):** remark-gfm, remark-frontmatter, rehype-raw, rehype-sanitize (schema allows a `language-*` class on `code`), rehype-slug, then Shiki. Mermaid and D2 blocks are detected in the `code` component after sanitizing. Raw-HTML `id` values stay `user-content-` prefixed, while `[x](#heading)` links resolve to slugs.
+**Markdown pipeline order (exact):** remark-gfm, remark-frontmatter, remark-math, remark-alerts (in-repo), rehype-raw, rehype-sanitize (schema allows a `language-*`, `math-inline` or `math-display` class on `code`, and the alert classes on `div`/`p`), rehype-slug, rehype-katex (only when loaded, see R2.7), then Shiki. Mermaid and D2 blocks are detected in the `code` component after sanitizing. Raw-HTML `id` values stay `user-content-` prefixed, while `[x](#heading)` links resolve to slugs.
 
 **Markdown details (F3):**
 
@@ -218,6 +218,14 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - Anchor scroll runs on load and hash change: `getElementById(id)`, then `user-content-<id>`.
 - Heading slugs are unprefixed (by design), so a heading can reuse an app id such as `root`; app code must not read optional `window.*` globals (DOM clobbering).
 - `MarkdownView` is a lazy chunk; Mermaid/D2 blocks render through the `Diagram` component (see F4 details).
+
+**Math and alerts (FR-3.6, FR-3.7, R2.7):**
+
+- `remark-math` parses `$...$`, `$$...$$` and ```` ```math ```` fences. `rehype-katex` runs after sanitize and slug: the Markdown is sanitized first and KaTeX's own output is trusted, with `trust: false` (no `\href`, `\url`, `\html*`) and `strict: 'ignore'`. A parse error renders inline as `.katex-error`; the rest of the document is unaffected. Heading slugs come from the TeX source, and the TOC reads each formula's `application/x-tex` annotation.
+- KaTeX (JS, CSS and bundled fonts) is a lazy chunk (`markdown/katex.ts`, shared with Mermaid). `useMathPlugin` loads it when the text contains `$` or a `math` fence, and the body waits (`aria-busy`) until it is ready, so anchors and the TOC do not shift. If the chunk fails to load, math shows as code.
+- `katex` is pinned ≥ 0.19 with an npm `overrides` entry, so Mermaid and markdownlint use the same patched copy.
+- Like GitHub, a single `$` pair is math, so a paragraph like "$5 and $10" renders as math; escape with `\$`.
+- `remarkAlerts` (`markdown/alerts.ts`) turns a blockquote whose first line is exactly `[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` (any case) and that has content after it into `div.markdown-alert.markdown-alert-<type>` with a `p.markdown-alert-title`. Text after the marker on the same line, or no content, leaves a plain blockquote. Colors follow GitHub per theme; there are no icons.
 
 **Highlighting details (F3b):**
 
