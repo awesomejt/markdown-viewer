@@ -363,3 +363,117 @@ func TestOpenHandleMountsLater(t *testing.T) {
 		t.Fatalf("after mount: %+v %v", l, err)
 	}
 }
+
+// FIX-21: a root replaced by a symlink must not be followed on reopen.
+func TestLazyRootRefusesSymlinkSwap(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "docs")
+	outside := filepath.Join(base, "outside")
+	for _, d := range []string{dir, outside} {
+		if err := os.Mkdir(d, 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("s"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("initial listing %q", got)
+	}
+
+	if err := os.Rename(dir, dir+".old"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, dir); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 { // the swap is detected, then the retry fails the same way
+		_, err := l.ReadDir(".")
+		wantTimeout(t, err)
+		if !errors.Is(err, errRootMoved) {
+			t.Fatalf("err = %v, want errRootMoved", err)
+		}
+	}
+	if _, err := l.Open("secret.txt"); err == nil {
+		t.Fatal("read a file through the swapped symlink")
+	}
+
+	if err := os.Remove(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(dir+".old", dir); err != nil {
+		t.Fatal(err)
+	}
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("after restore: %q", got)
+	}
+}
+
+// A configured path that is a symlink is resolved once and keeps working,
+// including remount detection on the resolved directory.
+func TestLazyRootConfiguredSymlink(t *testing.T) {
+	base := t.TempDir()
+	target := filepath.Join(base, "mnt")
+	if err := os.Mkdir(target, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(base, "link")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: link}, OpenRoot)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	if got := rootNames(t, l); got != "" {
+		t.Fatalf("initial listing %q", got)
+	}
+	replaceDir(t, target, "nas.md")
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("after mount: %q", got)
+	}
+	// Retargeting the configured symlink is not followed: the root stays pinned.
+	other := filepath.Join(base, "other")
+	if err := os.Mkdir(other, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(link); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(other, link); err != nil {
+		t.Fatal(err)
+	}
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("after retarget: %q", got)
+	}
+}
+
+// An open that lands on another directory than the pinned path names (a swap
+// to a symlink and back around the open) is refused and closed.
+func TestLazyRootOpenedOtherDir(t *testing.T) {
+	base := t.TempDir()
+	dir := filepath.Join(base, "docs")
+	other := filepath.Join(base, "other")
+	for _, d := range []string{dir, other} {
+		if err := os.Mkdir(d, 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var opened *Root
+	open := func(c config.Root) (*Root, error) {
+		r, err := OpenRoot(config.Root{Name: c.Name, Path: other})
+		opened = r
+		return r, err
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, open)
+	defer func() { _ = l.Close() }()
+	_, err := l.ReadDir(".")
+	if !errors.Is(err, errRootMoved) {
+		t.Fatalf("err = %v, want errRootMoved", err)
+	}
+	if _, err := opened.Stat("."); err == nil {
+		t.Fatal("refused root was not closed")
+	}
+}

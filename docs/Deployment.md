@@ -115,6 +115,7 @@ MDV_PORT=8080
 - `MDV_ROOTS` uses the container paths. Add more roots with commas, for example `markdown=/data/nas/markdown,notes=/data/nas/notes`. Leave network roots on the default `poll` mode.
 - `MDV_UID`/`MDV_GID` must match the mount (see above).
 - `MDV_ALLOWED_HOSTS` is needed if you will open mdv by name. See [Opening by hostname](#opening-by-hostname).
+- A root may be a subfolder of a share (`notes=/data/nas/markdown/notes`), but then everyone who can write to its parent folders can rename or replace the root. mdv resolves the root path once (symlinks included) and refuses a root that was replaced by a symlink, so the root goes unavailable instead of exposing other files (FIX-21). Still, keep a root's parent folders, up to the mount point, writable only by trusted users: symlinks in those folders are resolved only at the first open. To point a root elsewhere, edit `MDV_ROOTS` and restart.
 
 The `.env` file holds no secrets, but keep it out of Git if it names private paths.
 
@@ -142,7 +143,7 @@ If you put a reverse proxy in front of mdv:
 
 - A root that is missing, erroring, or hung at boot (for example a NAS that is still starting) does not stop mdv. The root starts unavailable, a warning is logged, and a background probe opens it once it answers, with no restart.
 - A root path that exists but is not a directory fails startup, as do syntax errors in `MDV_ROOTS`.
-- If the mount-point directory exists but the share is not mounted yet, mdv opens the empty directory. While the root is in use, mdv compares the device and inode of the root path with the open directory at most every 2 seconds and reopens the root when they differ, so a share that mounts (or unmounts) later is picked up without a restart (FIX-16). Roots in `:fsnotify` mode may still miss change events until restart, so use polling for NAS roots.
+- If the mount-point directory exists but the share is not mounted yet, mdv opens the empty directory. While the root is in use, mdv compares the device and inode of the root path with the open directory at most every 2 seconds and reopens the root when they differ, so a share that mounts (or unmounts) later is picked up without a restart (FIX-16). A root path replaced by a symlink is not followed: the root goes unavailable until the directory is back (FIX-21). Roots in `:fsnotify` mode may still miss change events until restart, so use polling for NAS roots.
 
 ## Upgrade
 
