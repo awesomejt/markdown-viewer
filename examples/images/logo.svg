@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="80" viewBox="0 0 160 80" role="img" aria-label="Example logo">
+  <rect x="2" y="2" width="156" height="76" rx="12" fill="#1f6feb"/>
+  <circle cx="40" cy="40" r="22" fill="#ffffff"/>
+  <path d="M28 52 L40 28 L52 52 Z" fill="#1f6feb"/>
+  <text x="76" y="48" font-family="sans-serif" font-size="22" font-weight="bold" fill="#ffffff">mdv</text>
+</svg>

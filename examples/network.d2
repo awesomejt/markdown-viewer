@@ -1,0 +1,14 @@
+direction: right
+
+laptop: Laptop
+phone: Phone
+mdv: mdv server {
+  shape: hexagon
+}
+files: Markdown folder {
+  shape: cylinder
+}
+
+laptop -> mdv: HTTP
+phone -> mdv: HTTP
+mdv -> files: read
