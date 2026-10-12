@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-15/FIX-17 e2e flakes fixed (2026-10-12)
-- Next recommended task: DOC1 [S] README + deployment docs, then V1 (human)
+- Last major milestone: DOC1 README + deployment guide (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-2) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -38,7 +38,7 @@ Full log: `agents/Decisions.md`.
 
 - Since FIX-10, every e2e spec must import `test`/`expect` from `e2e/tests/fixtures.ts` (offline guard).
 - Since FIX-7, `/api/events` allows 16 streams per client IP. E2E runs every browser from one IP, so keep Playwright workers ≤ 16 (16 today) or raise the cap for tests. Behind a reverse proxy all tabs share the proxy IP.
-- Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work. DOC1 must say so.
+- Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work.
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
 
 - D2 Go module path is `github.com/d2lang/d2` (v0.9.0). Do not use `oss.terrastruct.com/d2` (frozen at v0.7.2).
@@ -58,7 +58,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
-- Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). DOC1 must cover boot ordering. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
+- Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
 ## Open Questions
@@ -75,6 +75,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (DOC1)
+
+- Task: README + deployment docs.
+- Files changed: `README.md` (rewritten: quick start, config table, hostname allowlist, live reload, startup, troubleshooting), new `docs/Deployment.md` (CIFS/NFS fstab, attribute caching, docker.service `RequiresMountsFor=` drop-in, `rslave` bind, `.env`).
+- Result: The orchestrator checked env vars, defaults, make targets, `503 busy` sources and the healthcheck against the code, and fixed a merged bullet. `make lint-md` and `make check` exit 0.
+- Blockers or follow-up: The fstab options and systemd drop-in are untested on the real VM. V1 must validate them.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-15, FIX-17)
 
 - Task: E2E flakes (drawer, firefox live folder); small enough to fix in the orchestrator without a subagent.
@@ -88,10 +95,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/browse/logic.ts` (`sortEntries`, `loadSort`/`saveSort`, key `mdv-sort`), `BrowseView.tsx` ("Sort by" select), `browse.css`, unit/component tests, `e2e/tests/browse.spec.ts` (live root folder with `utimesSync` mtimes, persists across reload).
 - Result: Folders first in both modes; date = newest first, name tie-break, missing mtime last. The orchestrator reviewed the diff and re-ran `make check` (154 unit) and `make e2e` twice (140 passed); all exit 0, logs `build/fix11-*.log`.
 - Blockers or follow-up: FIX-17 (firefox live-folder flake seen once by the subagent).
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-10)
-
-- Task: E2E gaps (back/forward, relative image, offline guard).
-- Files changed: `e2e/tests/fixtures.ts` (new auto fixture: aborts and records any non-local http(s) request, fails at teardown; `allowedRemote` option for D-26 remote images), all specs import `test`/`expect` from it, new tests in `flow`, `markdown`, `diagrams` specs.
-- Result: The route matches `^https?:` only, because routing `blob:` breaks WebKit diagram images. The orchestrator reviewed the diff and re-ran `make e2e` (136 passed) and `make check`; both exit 0, logs `build/fix10-*.log`.
-- Blockers or follow-up: None.

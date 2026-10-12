@@ -32,7 +32,6 @@ Packaging, tests, review:
 
 R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
 
-- [ ] **DOC1** [S] README quick start + Compose deployment; also cover `:fsnotify` for local roots, `MDV_ALLOWED_HOSTS`, NAS boot ordering (`remote-fs.target`/`RequiresMountsFor`) and bind propagation, behavior when a root is down at startup, no internet needed at runtime, LAN-only warning (deps: FIX-4 to FIX-17)
 - [ ] **V1** [Human] Deploy on VM + iPad manual checklist (deps: DOC1)
 
 ## Phase 2: Refinement
@@ -76,6 +75,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **DOC1** [S] README rewritten (quick start, full `MDV_*` table, `MDV_ALLOWED_HOSTS`, poll vs `:fsnotify`, startup/FIX-16, offline, troubleshooting); new `docs/Deployment.md` (CIFS/NFS fstab with low attribute caching, docker.service `RequiresMountsFor=`, `rslave` parent bind, `.env`); claims checked against code; `make check` green.
 - [x] 2026-10-12: **FIX-17** [S] Firefox live-folder e2e failure: SSE streams now start with a `: open` comment so Firefox fires EventSource `open` (refetch-on-open) immediately; e2e 3/3 red → 3/3 green (140 passed).
 - [x] 2026-10-12: **FIX-15** [S] Drawer e2e flake: closed drawer is `visibility: hidden` so role locators miss it; assert via `#sidebar` (not `is-open`, hidden, menu `aria-expanded=false`). No app race (close is synchronous on navigation).
 - [x] 2026-10-12: **FIX-11** [S] FR-1.2 "Sort by" control (name default / date newest first), folders first, persisted as `mdv-sort`; unit + component + e2e (live root, controlled mtimes, survives reload); `make check` green (154 unit), `make e2e` 140 passed twice.
