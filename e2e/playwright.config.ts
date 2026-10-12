@@ -12,6 +12,9 @@ const baseURL = `http://127.0.0.1:${port}`;
 // `make e2e` clears it first; specs use unique file names. The server needs the directory to exist at start.
 const liveDir = path.join(repo, 'build/e2e/live');
 mkdirSync(liveDir, { recursive: true });
+// Same, watched with fsnotify (the poll root above never fails a sub on a missing parent directory).
+const liveFsDir = path.join(repo, 'build/e2e/livefs');
+mkdirSync(liveFsDir, { recursive: true });
 
 export default defineConfig({
   testDir: './tests',
@@ -41,7 +44,7 @@ export default defineConfig({
     stdout: 'ignore',
     env: {
       MDV_LISTEN: `127.0.0.1:${port}`,
-      MDV_ROOTS: `fixtures=${path.join(repo, 'testdata/fixtures')},live=${liveDir}:poll`,
+      MDV_ROOTS: `fixtures=${path.join(repo, 'testdata/fixtures')},live=${liveDir}:poll,livefs=${liveFsDir}:fsnotify`,
       MDV_POLL_INTERVAL: '300ms',
     },
   },

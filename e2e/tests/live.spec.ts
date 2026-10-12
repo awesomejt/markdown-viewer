@@ -6,6 +6,7 @@ import path from 'node:path';
 
 // The `live` root is a writable directory under build/e2e/live (see playwright.config.ts).
 const liveDir = path.resolve(import.meta.dirname, '../../build/e2e/live');
+const liveFsDir = path.resolve(import.meta.dirname, '../../build/e2e/livefs');
 
 /** A unique folder per test keeps `fullyParallel` safe. */
 function newDir(): { name: string; abs: (f: string) => string } {
@@ -196,5 +197,22 @@ test('images in a markdown view reload when they change or appear', async ({ pag
   await expect.poll(() => width('Pic')).toBe(40);
   write(d.abs('img/later.svg'), svg(25));
   await expect.poll(() => width('Later')).toBe(25);
+  expect(await windowMarked(page)).toBe(true);
+});
+
+test('invalid image subs do not break live reload on an fsnotify root', async ({ page }) => {
+  const name = `t-${randomUUID().slice(0, 8)}`;
+  const dir = path.join(liveFsDir, name);
+  mkdirSync(dir, { recursive: true });
+  const doc = path.join(dir, 'doc.md');
+  // A control-character name (400) and an image whose parent directory is missing (404 on fsnotify).
+  const bad = '![](%01.png)\n\n![](missing-dir/x.png)\n';
+  write(doc, `# One\n\n${bad}`);
+  await page.goto(`/view/livefs/${name}/doc.md`);
+  await expect(page.getByRole('heading', { name: 'One', level: 1 })).toBeVisible();
+  await markWindow(page);
+
+  write(doc, `# Two\n\n${bad}`);
+  await expect(page.getByRole('heading', { name: 'Two', level: 1 })).toBeVisible();
   expect(await windowMarked(page)).toBe(true);
 });

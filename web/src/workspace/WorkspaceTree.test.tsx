@@ -101,7 +101,9 @@ describe('WorkspaceTree', () => {
         close() {}
       },
     );
-    const subs = () => new URL(urls.at(-1) ?? '/', 'http://x').searchParams.getAll('sub');
+    const params = () => new URL(urls.at(-1) ?? '/', 'http://x').searchParams;
+    // Tree folders go out as low-priority `lsub`; the viewed file is a normal `sub`.
+    const subs = () => [...params().getAll('sub'), ...params().getAll('lsub')];
     renderAt('/view/r/top.md?ws=', true);
     await within(tree()).findByRole('link', { name: 'top.md' });
     // The viewed file comes first: tree folders only fill the slots it leaves.

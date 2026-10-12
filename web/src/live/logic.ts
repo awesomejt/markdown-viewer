@@ -19,21 +19,33 @@ export function subKey(s: Sub): string {
   return `${s.root}:${s.path}`;
 }
 
-/**
- * Sorted, de-duplicated and capped at {@link MAX_SUBS} (extras dropped deterministically). `low` keys
- * (for example a document's images) only fill the slots the others leave free.
- */
-export function capSubs(keys: Iterable<string>, low: Iterable<string> = []): string[] {
-  const high = new Set(keys);
-  const rest = [...new Set(low)].filter((k) => !high.has(k)).sort();
-  return [...[...high].sort(), ...rest].slice(0, MAX_SUBS);
+/** The capped subscriptions: normal keys go out as `sub`, low-priority ones as `lsub`. */
+export interface CappedSubs {
+  sub: string[];
+  lsub: string[];
 }
 
-/** URL of the event stream for the given `root:path` keys, or `null` when there is nothing to watch. */
-export function buildEventsUrl(keys: readonly string[]): string | null {
-  if (keys.length === 0) return null;
+/**
+ * Sorted, de-duplicated and capped at {@link MAX_SUBS} in total (extras dropped deterministically). `low`
+ * keys (for example a document's images) only fill the slots the others leave free; the server drops
+ * invalid ones instead of failing the stream.
+ */
+export function capSubs(keys: Iterable<string>, low: Iterable<string> = []): CappedSubs {
+  const high = [...new Set(keys)].sort().slice(0, MAX_SUBS);
+  const highSet = new Set(high);
+  const rest = [...new Set(low)]
+    .filter((k) => !highSet.has(k))
+    .sort()
+    .slice(0, MAX_SUBS - high.length);
+  return { sub: high, lsub: rest };
+}
+
+/** URL of the event stream for the capped subscriptions, or `null` when there is nothing to watch. */
+export function buildEventsUrl({ sub, lsub }: CappedSubs): string | null {
+  if (sub.length + lsub.length === 0) return null;
   const params = new URLSearchParams();
-  for (const k of keys) params.append('sub', k);
+  for (const k of sub) params.append('sub', k);
+  for (const k of lsub) params.append('lsub', k);
   return `/api/events?${params.toString()}`;
 }
 

@@ -82,6 +82,15 @@ describe('LiveController', () => {
     c.stop();
   });
 
+  it('sends low-priority subs as lsub after the normal ones', () => {
+    const { c } = setup();
+    c.subscribe('r', 'img.png', true);
+    c.subscribe('r', 'a.md');
+    vi.advanceTimersByTime(100);
+    expect(last().url).toBe('/api/events?sub=r%3Aa.md&lsub=r%3Aimg.png');
+    c.stop();
+  });
+
   it('closes the stream when the last sub goes away', () => {
     const { c } = setup();
     const u = c.subscribe('r', 'a');
@@ -169,16 +178,15 @@ describe('LiveController', () => {
     const lows = Array.from({ length: 40 }, (_, i) => c.subscribe('r', `a${i}.png`, true));
     c.subscribe('r', 'z.md');
     vi.advanceTimersByTime(100);
-    const subs = new URL(last().url, 'http://x').searchParams.getAll('sub');
-    expect(subs).toHaveLength(32);
-    expect(subs[0]).toBe('r:z.md');
-    expect(subs.filter((s) => s.endsWith('.png'))).toHaveLength(31);
+    const params = new URL(last().url, 'http://x').searchParams;
+    expect(params.getAll('sub')).toEqual(['r:z.md']);
+    expect(params.getAll('lsub')).toHaveLength(31);
+    expect(params.getAll('lsub').every((s) => s.endsWith('.png'))).toBe(true);
     for (const u of lows.slice(1)) u();
     vi.advanceTimersByTime(100);
-    expect(new URL(last().url, 'http://x').searchParams.getAll('sub')).toEqual([
-      'r:z.md',
-      'r:a0.png',
-    ]);
+    const after = new URL(last().url, 'http://x').searchParams;
+    expect(after.getAll('sub')).toEqual(['r:z.md']);
+    expect(after.getAll('lsub')).toEqual(['r:a0.png']);
   });
 });
 
