@@ -41,9 +41,12 @@ function query(params: Record<string, string>): string {
   return new URLSearchParams(params).toString();
 }
 
-/** URL of the raw file body, for `<img src>` and downloads. */
-export function fileUrl(root: string, path: string): string {
-  return `/api/file?${query({ root, path })}`;
+/**
+ * URL of the raw file body, for `<img src>` and downloads. `version` (ignored by the server)
+ * changes the URL when the file changes, so a live `<img>` reloads instead of reusing its cache.
+ */
+export function fileUrl(root: string, path: string, version?: string): string {
+  return `/api/file?${query(version === undefined ? { root, path } : { root, path, v: version })}`;
 }
 
 async function parseError(res: Response): Promise<ApiError> {

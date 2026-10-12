@@ -49,14 +49,15 @@ function TextGate({
   return <>{children(file.data.text)}</>;
 }
 
-function ImageFile({ root, path }: { root: string; path: string }) {
+/** `version` comes from the parent listing, which live reload refetches on change (FIX-3). */
+function ImageFile({ root, path, version }: { root: string; path: string; version?: string }) {
   const name = baseName(path);
   return (
     <section className="file-view">
       <h1>{name}</h1>
       <img
         className="file-image"
-        src={fileUrl(root, path)}
+        src={fileUrl(root, path, version)}
         alt={name}
         referrerPolicy="no-referrer"
       />
@@ -86,12 +87,14 @@ function ViewByKind({
   path,
   ws,
   size,
+  version,
 }: {
   kind: EntryKind;
   root: string;
   path: string;
   ws?: string;
   size?: number;
+  version?: string;
 }) {
   switch (kind) {
     case 'markdown':
@@ -115,7 +118,7 @@ function ViewByKind({
         </TextGate>
       );
     case 'image':
-      return <ImageFile root={root} path={path} />;
+      return <ImageFile root={root} path={path} version={version} />;
     case 'text':
       return (
         <TextGate root={root} path={path} size={size}>
@@ -151,6 +154,7 @@ export function ViewFileView() {
       path={path}
       ws={ws}
       size={entry?.size}
+      version={entry && `${entry.mtime}-${entry.size}`}
     />
   );
 }

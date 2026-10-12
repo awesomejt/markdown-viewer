@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-15, FIX-17)
+
+- Task: E2E flakes (drawer, firefox live folder); small enough to fix in the orchestrator without a subagent.
+- Files changed: `e2e/tests/workspace.spec.ts` (closed drawer asserted via `#sidebar`: `visibility: hidden` drops it from role queries), `internal/api/events.go` + test (stream starts with `: open`), `docs/Architecture.md`.
+- Result: FIX-17 root cause: Firefox did not fire EventSource `open` on headers alone, so refetch-on-open never ran and a file created before the poll baseline was missed (3/3 red before, 3/3 green after, 140 passed each). `make check` exit 0; logs `build/fix15-*`, `build/fix17-*`.
+- Blockers or follow-up: None.
+
 ### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-11)
 
 - Task: FR-1.2 date sort.
