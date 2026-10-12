@@ -20,11 +20,22 @@ export function collectHeadings(container: ParentNode): TocEntry[] {
     'h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]',
   )) {
     if (el.classList.contains('sr-only')) continue;
-    const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const text = headingText(el).replace(/\s+/g, ' ').trim();
     if (text === '' || el.id === '') continue;
     entries.push({ id: el.id, text, level: Number(el.tagName.slice(1)) });
   }
   return entries;
+}
+
+/** Heading text, with each KaTeX formula read as its TeX source (not MathML plus HTML twice). */
+function headingText(el: HTMLElement): string {
+  if (!el.querySelector('.katex')) return el.textContent ?? '';
+  const copy = el.cloneNode(true) as HTMLElement;
+  for (const k of copy.querySelectorAll('.katex')) {
+    const tex = k.querySelector('annotation[encoding="application/x-tex"]')?.textContent ?? '';
+    k.replaceWith(tex);
+  }
+  return copy.textContent ?? '';
 }
 
 export function sameEntries(a: TocEntry[], b: TocEntry[]): boolean {
