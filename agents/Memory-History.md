@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Haiku 4.5 + Opus 5.5 verification (T2)
+
+- Task: Full validation run (plus CH1: `MEMORY.md` streamlined, old run log in `agents/Memory-History.md`).
+- Files changed: `TODO.md`, `MEMORY.md` (T2 is validation only).
+- Result: `make check`, `go test -race ./...`, `make e2e` (124 passed) and `docker compose build` all exit 0. The orchestrator checked the exit-code files and log summaries in `build/t2/` directly rather than trusting the Haiku report.
+- Blockers or follow-up: None. R1 should start from "Known Limitations And Accepted Risks".
+
 ### 2026-10-11 - Claude Opus 5.5 (R1)
 
 - Task: MVP phase review against Success Criteria 1 to 5 and the Security Model.

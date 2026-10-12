@@ -29,6 +29,8 @@ const (
 	defaultConcurrency  = 2
 	defaultCacheEntries = 256
 	defaultSlotWait     = time.Second
+	defaultCacheBytes   = 64 << 20
+	defaultEntryBytes   = 4 << 20
 )
 
 // Theme and layout names accepted by [Renderer.Render].
@@ -45,6 +47,9 @@ type Options struct {
 	Concurrency  int           // concurrent renders (default 2)
 	CacheEntries int           // LRU size (default 256)
 	SlotWait     time.Duration // max wait for a slot before ErrBusy (default 1s)
+
+	CacheBytes    int64 // total LRU size in bytes (default 64 MiB)
+	MaxEntryBytes int64 // largest cacheable entry in bytes (default 4 MiB, at most CacheBytes)
 }
 
 // slot is one unit of render concurrency. It owns a Ruler because
@@ -88,11 +93,18 @@ func New(o Options) *Renderer {
 	if o.SlotWait <= 0 {
 		o.SlotWait = defaultSlotWait
 	}
+	if o.CacheBytes <= 0 {
+		o.CacheBytes = defaultCacheBytes
+	}
+	if o.MaxEntryBytes <= 0 {
+		o.MaxEntryBytes = defaultEntryBytes
+	}
+	o.MaxEntryBytes = min(o.MaxEntryBytes, o.CacheBytes)
 	r := &Renderer{
 		timeout:  o.Timeout,
 		slotWait: o.SlotWait,
 		slots:    make(chan *slot, o.Concurrency),
-		cache:    newLRU(o.CacheEntries),
+		cache:    newLRU(o.CacheEntries, o.CacheBytes, o.MaxEntryBytes),
 		compile:  realCompile,
 		inflight: make(map[[32]byte]*call),
 	}

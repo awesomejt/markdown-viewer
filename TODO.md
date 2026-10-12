@@ -32,7 +32,6 @@ Packaging, tests, review:
 
 R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
 
-- [ ] **FIX-6** [S] D2 cache is bounded only by entry count (256); a 149 KB source gave a 6 MB SVG, so the cache can reach GBs. Bound by total bytes (for example 64 MiB) and skip caching any SVG over a few MiB (`internal/d2render/cache.go`) (deps: R1)
 - [ ] **FIX-7** [S] SSE limits: missing-path subs count toward `MaxWatches` (8 streams × 32 missing subs locked out valid subs with 503), and streams are uncapped globally and per client. Cap concurrent streams (global + per remote IP) and missing-path keys separately (`internal/watch/hub.go`, `internal/api/events.go`) (deps: R1)
 - [ ] **FIX-8** [S] Startup resilience: root `os.Stat`/`OpenHandle` run with no timeout and any failure exits (`config.go`, `fsroot/registry.go`, `cmd/mdv/main.go`), so a NAS that is down at boot causes a restart loop or a hang (unhealthy, not restarted). Run under `MDV_FS_TIMEOUT` and start such roots as `available:false` with the existing probe (deps: R1)
 - [ ] **FIX-9** [S] Compose/defaults: `MDV_ROOTS: ${MDV_ROOTS:-examples=/data/examples}`; long bind syntax with `propagation: rslave` for NAS mounts (late/remounted NAS stays invisible otherwise); default `MDV_POLL_INTERVAL` 2s in config and compose to meet SC3 (`hub.go` `DefaultPollInterval` already 2s) (deps: R1)
@@ -81,6 +80,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **FIX-6** [S] D2 SVG cache bounded by total bytes (64 MiB) as well as entries; SVGs over 4 MiB not cached but still returned (`Options.CacheBytes`/`MaxEntryBytes`, no new env var); 95.7% d2render, `make check` green.
 - [x] 2026-10-11: **FIX-5** 🔒 [S] Host allowlist on every route (API, SSE, SPA, `/healthz`): 421 `host_not_allowed` unless Host is an IP literal, `localhost` or in `MDV_ALLOWED_HOSTS` (`*` disables with a warning); healthcheck sends `Host: localhost`; compose passthrough; Opus review approved.
 - [x] 2026-10-11: **FIX-4** 🔒 [S] `POST /api/render/d2`: 415 unless `application/json`, `http.CrossOriginProtection` (JSON 403), `fileCSP` + nosniff on every render response; Go tests for form enctypes, Sec-Fetch-Site, Origin/Host, safe methods, headers; client test asserts the JSON header; Opus review approved; proxy must keep `Host` or use TLS (Architecture).
 - [x] 2026-10-11: **R1** [O] MVP review (3 parallel Opus reviewers: backend, frontend, conformance; orchestrator re-checked each logged finding in source). Path guard, sanitizer, diagram `<img>` isolation and `/api/file` headers hold. Logged FIX-4 to FIX-11 (Phase 1, block DOC1; FIX-4/5 🔒) and FIX-12 to FIX-14 (Phase 2); docs drift fixed; D-26.
