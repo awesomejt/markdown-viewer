@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.10 workspace tree live updates (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.11) meanwhile
+- Last major milestone: R2.11 virtualized long listings (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.12 full validation, then R2.13 review) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Watchers: fsnotify `Add`/`Remove` bypass the FS timeouts (local disks only). A deleted root stays unwatched until restart. Delete + create of a parent with the file present merges to `modified`. Poll treats a file-to-dir swap as `modified` (B6/B7).
 - Subscribe validates subs sequentially (worst case 32 × `MDV_FS_TIMEOUT` on a hung mount; accepted). `HostPath` has a small TOCTOU gap that leaks only "changed".
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
+- Long folders (R2.11): browser find-in-page only sees the rendered rows of a virtualized listing (use the name filter); tree folders page 200 at a time instead of virtualizing. Not yet measured on a real iPad (R2.13).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit` items in the markdownlint-cli2 chain are FIX-20.
 - Code view (R2.5): extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
@@ -81,6 +82,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.11)
+
+- Task: Virtualized long listings (NFR-3); done in the orchestrator without a subagent.
+- Files changed: `web/src/browse/BrowseView.tsx` (`EntryList` → `VirtualEntryList` at ≥ 200 entries, `EntryRow`), `browse.css`, `web/src/workspace/WorkspaceTree.tsx` (`TREE_PAGE` 200, "Show more"), `tree.css`, `web/package.json` (`@tanstack/react-virtual` ^3.14.17, `npm audit --omit=dev` clean), unit tests, new `e2e/tests/large.spec.ts` (2,000 files in the `live` root), `docs/Architecture.md`, `docs/Tech-Stack.md`, `README.md`.
+- Result: e2e 8/8 red without the change. `make check` exit 0 (249 unit), `make e2e` 220 passed; logs `build/r211-*.log`.
+- Blockers or follow-up: jsdom tests must stub `HTMLElement.offsetHeight` (the virtualizer measures with it). The app has no route scroll restoration (pre-existing), so Back to a long folder does not return to the clicked row.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.10)
 
 - Task: Workspace tree live updates on create/delete/rename (FR-5.2); done in the orchestrator without a subagent.
@@ -94,10 +102,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/d2render/render.go` (resolver uses the engine name, so `d2-config.layout-engine` applies when no layout is requested; empty layout is its own cache key) + test, `internal/api/render.go` (comment), `web/src/api/client.ts` (`D2Layout`), `D2Diagram.tsx` (Layout select, `keepPreviousData`), `DiagramFigure.tsx` (`tools`, `busy`, keeps the old image until the new URL exists), `MermaidDiagram.tsx` (keeps last SVG), unit tests, `e2e/tests/diagrams.spec.ts`, `examples/d2.md`, `docs/Architecture.md`, `README.md`.
 - Result: Go test red before the resolver fix; viewer-persistence test red with the old figure condition. `make check` exit 0 (245 unit), `make e2e` 208 passed; logs `build/r29-*.log`. Example checked on a live server (Auto = ELK ≠ dagre).
 - Blockers or follow-up: Theme re-render already existed (F4); now it no longer flashes "Rendering…". The R2.8 "viewer closes on live reload" limitation is fixed.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.8)
-
-- Task: Diagram source toggle, pan/zoom, full screen, iPad pinch (FR-4.6, FR-4.7); done in the orchestrator without a subagent.
-- Files changed: new `web/src/diagrams/panzoom.ts` (pure zoom/pan/pinch/wheel math), `DiagramViewer.tsx` (native modal `dialog` portaled to `body`), `DiagramFigure.tsx` (tools row), `app/app.css`, unit tests (`panzoom.test.ts`, `viewer.test.tsx`), `e2e/tests/diagrams.spec.ts`, `docs/Architecture.md`, `README.md`.
-- Result: `make check` exit 0 (242 unit), `make e2e` 204 passed (synthetic touch pointers pinch on all 4 projects); logs `build/r28-*.log`.
-- Blockers or follow-up: R2.9's "re-render on theme change" already exists since F4; only the ELK option remains there.

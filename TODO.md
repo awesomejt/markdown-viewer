@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.11** [S] Virtualized listings
 - [ ] **R2.12** [H] Full validation run
 - [ ] **R2.13** [O] Phase review + iPad performance check
 - [ ] **FIX-20** [S] Dev-tooling `npm audit`: `markdownlint-cli2` 0.23.3 pulls `smol-toml` 1.8.0 (moderate, fixed in 1.9.1: add an override) and `braces` 3.0.3 via `micromatch` (high, no fix published yet: re-check). Lint-time only, never in the bundle.
@@ -60,6 +59,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.11** [S] Browse listings with ≥ 200 shown entries use a measured `@tanstack/react-virtual` window list (`aria-setsize`/`aria-posinset`); tree folders page 200 children with "Show more" and always include the current item; unit tests plus e2e on a 2,000-file folder (8/8 red without it); `make check` green (249 unit), `make e2e` 220 passed.
 - [x] 2026-10-12: **R2.10** [S] Each folder shown in the workspace tree (workspace folder + expanded folders) subscribes to itself at low priority, so adds/removes/renames refresh it without crowding out the viewed file's sub; component test (fake `EventSource`) and e2e (4/4) red without it; `make check` green, `make e2e` 212 passed.
 - [x] 2026-10-12: **R2.9** [S] D2 "Layout" select (Auto/dagre/ELK) per figure; Auto sends no layout and the server now honors `vars.d2-config.layout-engine` (resolver used to ignore it; Go test red before); theme/layout/source re-renders keep the previous image (`aria-busy`), so tools and an open viewer stay mounted; `make check` green (245 unit), `make e2e` 208 passed.
 - [x] 2026-10-12: **R2.8** [S] Ready diagrams get "Source" (`aria-pressed`, `pre.diagram-source`) and "Full screen": a native modal `dialog` (portaled, same blob URL) with drag pan, wheel/pinch zoom about the pointer (0.25–8×), Zoom/Fit buttons and `+`/`-`/`0`; focus returns on close; `make check` green (242 unit), `make e2e` 204 passed.
