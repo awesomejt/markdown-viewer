@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-4)
+
+- Task: D2 render CSRF + CSP (🔒).
+- Files changed: `internal/api/render.go`, `internal/api/api.go` (`codeUnsupported`), `internal/api/render_test.go`, `web/src/api/client.test.ts`, `docs/Architecture.md` (415 row, render row, proxy note; tables re-padded for MD060).
+- Result: Stdlib `http.CrossOriginProtection` guards the route (over plain HTTP it compares `Origin` with `Host`, so a reverse proxy must keep `Host` or terminate TLS). Opus reviewer found no remaining cross-site path and approved. `make check` exit 0 and `make e2e` 124 passed (logs in `build/fix4/`).
+- Blockers or follow-up: One flaky webkit drawer e2e failure on the first run (see Known Limitations).
+
 ### 2026-10-11 - Claude Haiku 4.5 + Opus 5.5 verification (T2)
 
 - Task: Full validation run (plus CH1: `MEMORY.md` streamlined, old run log in `agents/Memory-History.md`).

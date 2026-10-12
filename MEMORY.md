@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-6 D2 cache byte bound merged (2026-10-11)
-- Next recommended task: FIX-7 [S] SSE stream and missing-path limits, then FIX-8 to FIX-11, then DOC1
+- Last major milestone: FIX-7 SSE stream and missing-path caps merged (2026-10-11)
+- Next recommended task: FIX-8 [S] startup resilience for roots that are down at boot, then FIX-9 to FIX-11, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -36,6 +36,7 @@ Full log: `agents/Decisions.md`.
 - Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
+- Since FIX-7, `/api/events` allows 16 streams per client IP. E2E runs every browser from one IP, so keep Playwright workers ≤ 16 (16 today) or raise the cap for tests. Behind a reverse proxy all tabs share the proxy IP.
 - Since FIX-5, opening mdv by hostname (for example `http://nas.local:8080` on the iPad) needs that name in `MDV_ALLOWED_HOSTS`; IP literals and `localhost` always work. DOC1 must say so.
 - Go module path: `github.com/awesomejt/markdown-viewer`; binary `mdv`; env prefix `MDV_`.
 
@@ -73,6 +74,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-7)
+
+- Task: SSE limits.
+- Files changed: `internal/watch/hub.go` (`MaxMissing`, `entry.missing` kept for the entry's life), `internal/api/events.go` + `api.go` (stream limiter keyed by `RemoteAddr` host), tests, `docs/Architecture.md`.
+- Result: No new env vars. The orchestrator reviewed the diff and re-ran `go test -race -count=3` (watch, api), `make check` and `make e2e` (124 passed, 16 workers); all exit 0, logs in `build/fix7/`.
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-6)
 
 - Task: D2 cache byte bound.
@@ -86,10 +94,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/config/config.go` (`MDV_ALLOWED_HOSTS`), `internal/api/api.go` (`hostGuard`, 421 `host_not_allowed`), `cmd/mdv/main.go` (healthcheck `Host: localhost`, `*` warning), `compose.yaml`, tests in config/api/web/cmd, `docs/Architecture.md`.
 - Result: Opus review found no bypass (odd IPv4 forms, brackets, trailing dots, absolute-form requests checked) and approved; its follow-ups were applied. `TestServeAndShutdown` hung 5 s because `Shutdown` treats a pooled but unused (`StateNew`) conn as idle only after 5 s; the test now closes idle client conns. `make check` exit 0, `make e2e` 124 passed.
 - Blockers or follow-up: None.
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-4)
-
-- Task: D2 render CSRF + CSP (🔒).
-- Files changed: `internal/api/render.go`, `internal/api/api.go` (`codeUnsupported`), `internal/api/render_test.go`, `web/src/api/client.test.ts`, `docs/Architecture.md` (415 row, render row, proxy note; tables re-padded for MD060).
-- Result: Stdlib `http.CrossOriginProtection` guards the route (over plain HTTP it compares `Origin` with `Host`, so a reverse proxy must keep `Host` or terminate TLS). Opus reviewer found no remaining cross-site path and approved. `make check` exit 0 and `make e2e` 124 passed (logs in `build/fix4/`).
-- Blockers or follow-up: One flaky webkit drawer e2e failure on the first run (see Known Limitations).
