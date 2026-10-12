@@ -172,3 +172,33 @@ func TestFromEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAllowedHosts(t *testing.T) {
+	d := t.TempDir()
+	load := func(v string) (*Config, error) {
+		return Load(env(map[string]string{"MDV_ROOTS": "docs=" + d, "MDV_ALLOWED_HOSTS": v}))
+	}
+	c, err := load(" NAS.lan. , ,mdv , a_b.example.com")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(c.AllowedHosts, "|"); got != "nas.lan|mdv|a_b.example.com" {
+		t.Errorf("hosts: %q", got)
+	}
+	if c, err = load("*"); err != nil || len(c.AllowedHosts) != 1 || c.AllowedHosts[0] != AllowAnyHost {
+		t.Errorf("wildcard: %v %+v", err, c)
+	}
+	if c, err = load(""); err != nil || len(c.AllowedHosts) != 0 {
+		t.Errorf("empty: %v %+v", err, c)
+	}
+	long := strings.Repeat("a.", 130) + "com"
+	for _, bad := range []string{
+		"http://nas.lan", "nas.lan:8080", "nas.lan/path", "nas lan", "[::1]", "-a.lan",
+		"a..b", "10.0.0.1", "[::1]", "nas.lan,*", "a.lan, evil host", long,
+	} {
+		_, err := load(bad)
+		if err == nil || !strings.Contains(err.Error(), "MDV_ALLOWED_HOSTS") {
+			t.Errorf("%q: want MDV_ALLOWED_HOSTS error, got %v", bad, err)
+		}
+	}
+}

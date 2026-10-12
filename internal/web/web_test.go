@@ -116,7 +116,7 @@ func TestEmbeddedDefault(t *testing.T) {
 }
 
 func TestIntegrationWithAPI(t *testing.T) {
-	cfg := &config.Config{}
+	cfg := &config.Config{AllowedHosts: []string{"example.com"}}
 	reg := fsroot.NewRegistryFromHandles()
 	srv := api.New(reg, cfg, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	srv.Mux().Handle("/", web.NewHandler(bundle()))

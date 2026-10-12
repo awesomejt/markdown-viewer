@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/netip"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/awesomejt/markdown-viewer/internal/config"
@@ -16,17 +19,18 @@ import (
 
 // Error codes used in the JSON error model.
 const (
-	codeBadRequest  = "bad_request"
-	codeForbidden   = "forbidden"
-	codeNotFound    = "not_found"
-	codeTooLarge    = "too_large"
-	codeFSTimeout   = "fs_timeout"
-	codeInternal    = "internal"
-	codeMethod      = "method_not_allowed"
-	codeRender      = "render_error"
-	codeBusy        = "busy"
-	codeRenderTO    = "render_timeout"
-	codeUnsupported = "unsupported_media_type"
+	codeBadRequest     = "bad_request"
+	codeForbidden      = "forbidden"
+	codeNotFound       = "not_found"
+	codeTooLarge       = "too_large"
+	codeFSTimeout      = "fs_timeout"
+	codeInternal       = "internal"
+	codeMethod         = "method_not_allowed"
+	codeRender         = "render_error"
+	codeBusy           = "busy"
+	codeRenderTO       = "render_timeout"
+	codeUnsupported    = "unsupported_media_type"
+	codeHostNotAllowed = "host_not_allowed"
 )
 
 // Server holds the API dependencies and the route table. Later tasks mount the
@@ -70,9 +74,47 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 // the SPA on "/") before the handler is served.
 func (s *Server) Mux() *http.ServeMux { return s.mux }
 
-// Handler returns the mux wrapped in the recover and logging middleware.
+// Handler returns the mux wrapped in the recover and logging middleware, with
+// the Host allowlist guarding every route (DNS rebinding defense).
 func (s *Server) Handler() http.Handler {
-	return s.middleware(s.mux)
+	return s.middleware(s.hostGuard(s.mux))
+}
+
+// hostGuard answers 421 unless the request Host is an IP literal, localhost,
+// or listed in MDV_ALLOWED_HOSTS. The port is ignored. A "*" entry disables it.
+func (s *Server) hostGuard(next http.Handler) http.Handler {
+	allowed := make(map[string]bool, len(s.cfg.AllowedHosts))
+	for _, h := range s.cfg.AllowedHosts {
+		if h == config.AllowAnyHost {
+			return next
+		}
+		allowed[h] = true
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !hostAllowed(r.Host, allowed) {
+			s.logger.DebugContext(r.Context(), "host rejected", "host", r.Host)
+			writeError(w, http.StatusMisdirectedRequest, codeHostNotAllowed, "host not allowed; add it to MDV_ALLOWED_HOSTS")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// hostAllowed reports whether a Host header value names an IP literal,
+// localhost, or an entry in allowed (lowercase, no trailing dot).
+func hostAllowed(hostport string, allowed map[string]bool) bool {
+	host := hostport
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		host = h
+	}
+	host = strings.TrimSuffix(strings.ToLower(strings.TrimSuffix(strings.TrimPrefix(host, "["), "]")), ".")
+	if host == "" {
+		return false
+	}
+	if _, err := netip.ParseAddr(host); err == nil {
+		return true
+	}
+	return host == "localhost" || allowed[host]
 }
 
 // get restricts a handler to GET and HEAD with a JSON 405 otherwise.

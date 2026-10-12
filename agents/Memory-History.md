@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Opus 5.5 (R1)
+
+- Task: MVP phase review against Success Criteria 1 to 5 and the Security Model.
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-26), `agents/Memory-History.md`, `docs/Implementation.md` (R2.1), `docs/Tech-Stack.md` and `docs/Architecture.md` (drift fixes).
+- Result: Three parallel Opus reviewers (backend security, frontend security, requirements/deployment); the orchestrator re-checked each logged finding in source. Path guard, sanitizer, `resolveLink`, diagram `<img>` isolation and `/api/file` headers hold. Main defects: `POST /api/render/d2` is cross-site postable (`text/plain`) and returns SVG without CSP (reproduced with `javascript:` links), no Host check (DNS rebinding), D2 cache unbounded by bytes, SSE watch cap exhaustible, a down NAS at boot stops the server. Outputs in `build/r1/`.
+- Blockers or follow-up: FIX-4 to FIX-11 block DOC1. A part A reviewer's `pkill -f build/r1/mdv` may have killed another reviewer's probe server (harmless).
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (T1)
 
 - Task: Cross-browser e2e suite + iPad viewport.

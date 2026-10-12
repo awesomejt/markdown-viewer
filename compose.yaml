@@ -22,6 +22,8 @@ services:
       MDV_ROOTS: "examples=/data/examples"
       MDV_POLL_INTERVAL: "3s"
       MDV_LOG_LEVEL: "info"
+      # Extra Host names to accept (IP literals and localhost always pass).
+      MDV_ALLOWED_HOSTS: ${MDV_ALLOWED_HOSTS:-}
     volumes:
       - ./examples:/data/examples:ro
       # NAS share mounted on the VM (fstab/autofs), then add to MDV_ROOTS,
