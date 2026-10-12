@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-19)
+
+- Task: Recent e2e flake; done in the orchestrator without a subagent.
+- Files changed: `e2e/tests/recent.spec.ts` (`newestRecent` reads `mdv-recent`; `expect.poll` after each folder/file visit before moving on).
+- Result: red/green shown by temporarily delaying `recordRecent` 500 ms (old spec fails, new passes on 4 projects; delay reverted). `make check` exit 0, `make e2e` 192 passed three times; logs `build/fix19-*.log`.
+- Blockers or follow-up: None. Pattern for future e2e: wait on the recorded state, not on visible content, before a full `goto`.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.7)
 
 - Task: KaTeX math (FR-3.6) and GitHub alerts (FR-3.7); done in the orchestrator without a subagent.

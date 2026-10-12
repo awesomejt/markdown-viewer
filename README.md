@@ -97,6 +97,7 @@ The port is ignored and names are case-insensitive. Set `MDV_ALLOWED_HOSTS=*` to
 - `poll` (default): mdv checks modification times every `MDV_POLL_INTERVAL`. Works on any filesystem, including SMB and NFS.
 - `fsnotify`: uses inotify and reacts immediately, but only on local disks. SMB and NFS shares usually produce no events, so keep network roots on `poll`. Opt in per root: `notes=/data/notes:fsnotify`.
 - NAS attribute caching can delay changes by seconds to minutes regardless of mode. See [docs/Deployment.md](docs/Deployment.md#mount-the-nas-on-the-vm).
+- The open file, the browsed folder and the folders shown in the workspace sidebar update live: new, deleted and renamed files appear or disappear without a reload.
 - Each browser tab holds one event stream. The server allows 16 streams per client IP (and 64 in total); extra tabs get `503 busy`. Behind a reverse proxy, all tabs share the proxy's IP and therefore one cap of 16.
 
 ## Startup and availability

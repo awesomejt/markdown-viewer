@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.10** [S] Workspace tree live updates
 - [ ] **R2.11** [S] Virtualized listings
 - [ ] **R2.12** [H] Full validation run
 - [ ] **R2.13** [O] Phase review + iPad performance check
@@ -61,6 +60,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.10** [S] Each folder shown in the workspace tree (workspace folder + expanded folders) subscribes to itself at low priority, so adds/removes/renames refresh it without crowding out the viewed file's sub; component test (fake `EventSource`) and e2e (4/4) red without it; `make check` green, `make e2e` 212 passed.
 - [x] 2026-10-12: **R2.9** [S] D2 "Layout" select (Auto/dagre/ELK) per figure; Auto sends no layout and the server now honors `vars.d2-config.layout-engine` (resolver used to ignore it; Go test red before); theme/layout/source re-renders keep the previous image (`aria-busy`), so tools and an open viewer stay mounted; `make check` green (245 unit), `make e2e` 208 passed.
 - [x] 2026-10-12: **R2.8** [S] Ready diagrams get "Source" (`aria-pressed`, `pre.diagram-source`) and "Full screen": a native modal `dialog` (portaled, same blob URL) with drag pan, wheel/pinch zoom about the pointer (0.25–8×), Zoom/Fit buttons and `+`/`-`/`0`; focus returns on close; `make check` green (242 unit), `make e2e` 204 passed.
 - [x] 2026-10-12: **R2.7** [S] KaTeX math (`$`, `$$`, ```` ```math ````) via remark-math + lazy rehype-katex after sanitize (`trust: false`), body waits for the chunk; TOC/slugs use the TeX source; in-repo `remarkAlerts` for the 5 GitHub alert types; `katex` override ≥ 0.19 clears the advisory (mermaid + markdownlint); 7 unit tests red without the plugins; `make check` green (229 unit), `make e2e` 196 passed.
