@@ -47,3 +47,21 @@ test('a #fragment scrolls the heading into view on load and on click', async ({ 
   });
   await expect(page.locator('#tasks')).toBeInViewport();
 });
+
+test('code.md highlights known languages and leaves unknown ones plain', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/code.md');
+  const body = doc(page);
+  await expect(body.getByRole('heading', { name: 'Code', level: 1 })).toBeVisible();
+
+  const ts = body.locator('pre.shiki:has(code.language-ts)');
+  await expect(ts).toHaveCount(1);
+  await expect(ts).toContainText('const answer: number = 42;');
+  const colored = ts.locator('span[style*="color"]');
+  expect(await colored.count()).toBeGreaterThan(2);
+  await expect(body.locator('pre.shiki:has(code.language-go)')).toHaveCount(1);
+
+  await expect(body.locator('pre:has(code.language-notalang)')).not.toHaveClass(/shiki/);
+  await expect(body.locator('pre:has(code.language-notalang)')).toHaveText('just some text\n');
+  await expect(body.locator('pre.shiki')).toHaveCount(2);
+  await expect(body.getByText('bare block')).toBeVisible();
+});

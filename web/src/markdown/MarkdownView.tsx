@@ -2,6 +2,7 @@ import { Children, isValidElement, useEffect, type ComponentProps, type ReactNod
 import Markdown, { type Components } from 'react-markdown';
 import { Link, useLocation } from 'react-router';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
+import CodeBlock from './CodeBlock';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
 
@@ -101,7 +102,7 @@ function makeComponents(ctx: LinkContext): Components {
       );
     },
     pre({ node: _node, children, ...rest }: ComponentProps<'pre'> & { node?: unknown }) {
-      // F4 replaces this placeholder with the rendered diagram.
+      // F4 replaces the diagram placeholder; other fenced blocks are highlighted by Shiki (F3b).
       const code = Children.toArray(children)[0];
       if (isValidElement<{ className?: string; children?: ReactNode }>(code)) {
         const kind = detectDiagram(code.props.className);
@@ -110,6 +111,20 @@ function makeComponents(ctx: LinkContext): Components {
             <pre className="diagram-placeholder" data-diagram={kind}>
               {textOf(code.props.children)}
             </pre>
+          );
+        }
+        const className = code.props.className;
+        const lang = /(?:^|\s)language-(\S+)/.exec(className ?? '')?.[1];
+        if (lang) {
+          return (
+            <CodeBlock
+              lang={lang}
+              className={className}
+              code={textOf(code.props.children)}
+              preProps={rest}
+            >
+              {children}
+            </CodeBlock>
           );
         }
       }
