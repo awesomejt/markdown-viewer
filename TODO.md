@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.3** [S] Recent files/folders
 - [ ] **R2.4** [S] Web-app manifest + home-screen icons
 - [ ] **R2.5** [S] Highlighting for standalone code files
 - [ ] **R2.6** [S] Table of contents
@@ -67,6 +66,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.3** [S] Recent files/folders (`mdv-recent`, 10 newest, keeps `ws`) recorded only once a file/folder is confirmed by its listing; shown on the home page and in the sidebar outside a workspace, with "Clear recent"; component test red without recording; `make check` green (207 unit), `make e2e` 172 passed.
 - [x] 2026-10-12: **R2.2** [S] Copy button on every non-diagram fenced block (async clipboard, `execCommand` fallback for plain-HTTP LAN origins); non-blank front matter shown raw in a collapsed panel above the body; 4 component tests red without it; `make check` green (198 unit), `make e2e` 168 passed.
 - [x] 2026-10-12: **R2.1** [S] "Show hidden files" checkbox in the browse toolbar (default off, persisted as `mdv-show-hidden`) shared with the workspace tree via one store; unit/component tests red without it; `make check` green (184 unit), `make e2e` 160 passed.
 - [x] 2026-10-12: **FIX-18** [S] Root-relative Markdown images carry `v=<mtime>-<size>` from their folder listing and subscribe to the image file (low priority, so past the 32-sub cap they are dropped before the document's own sub); e2e red (4/4) with no version or a folder sub; `make check` green (175 unit), `make e2e` 156 passed.

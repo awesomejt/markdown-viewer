@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-18)
+
+- Task: Live reload for images embedded in Markdown; done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/MarkdownImage.tsx` (version from `useList(parentDir)`, `src` held until the listing settles, low-priority file sub), `links.ts` (asset result carries `path`), `MarkdownView.tsx`, `live/logic.ts` (`capSubs(keys, low)`), `live/controller.ts` + `LiveProvider.tsx` (`low` flag), `baseName` moved to `fileview/logic.ts`, unit tests, `e2e/tests/live.spec.ts`, `docs/Architecture.md`.
+- Result: E2E red on 4/4 projects with the version disabled, and again with a folder sub instead of a file sub (the first draft; folder subs miss content changes, and the test now changes one file at a time so a listing refresh cannot mask it). `make check` exit 0 (175 unit), `make e2e` 156 passed; logs `build/fix18-*.log`.
+- Blockers or follow-up: Images past the free sub slots (about 31 per page) still version correctly on any listing refetch but get no live events of their own. A truncated listing (`MDV_MAX_LIST_ENTRIES`) can omit an image, which then uses the plain URL.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-16)
 
 - Task: Reopen a root whose mount appeared after boot; small enough to do in the orchestrator without a subagent.
