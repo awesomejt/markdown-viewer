@@ -324,3 +324,17 @@ a:focus-visible {
 .markdown-body [id] {
   scroll-margin-top: calc(var(--header-h) + 8px);
 }
+
+/* Shiki dual themes: light colors are inline, dark ones come from --shiki-dark variables. */
+.markdown-body .shiki {
+  padding: 0.8em 1em;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+:root[data-theme='dark'] .shiki,
+:root[data-theme='dark'] .shiki span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}

@@ -214,6 +214,13 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - Heading slugs are unprefixed (by design), so a heading can reuse an app id such as `root`; app code must not read optional `window.*` globals (DOM clobbering).
 - `MarkdownView` is a lazy chunk; Mermaid/D2 blocks render as `pre[data-diagram]` placeholders until F4.
 
+**Highlighting details (F3b):**
+
+- Shiki runs in the `pre` component, after sanitize, as the last step; the remark/rehype plugin order is unchanged and `@shikijs/rehype` is not used. `CodeBlock` shows the plain `pre > code` first, then swaps in the highlighted tree. Unknown or missing languages, and any load or highlight error, keep the plain block.
+- `shiki/core` with the JavaScript regex engine (no WASM) and the themes load through a singleton dynamic `import()`; each language is a literal `import('@shikijs/langs/<id>')` from a fixed map (with aliases such as `ts`, `sh`, `yml`), loaded only when a block uses it. Blocks without a language never load Shiki.
+- Dual themes (`github-light` and `github-dark`, `defaultColor: 'light'`) emit CSS variables; `:root[data-theme='dark']` selects `--shiki-dark` and `--shiki-dark-bg`, so a theme switch needs no re-highlighting.
+- `codeToHast` output is converted with `hast-util-to-jsx-runtime` (no `dangerouslySetInnerHTML`), so code stays text nodes. Results are cached per (class, code) in a bounded map.
+
 **Client resilience:** the SPA handles `vite:preloadError` by reloading once.
 
 **Frontend shell (F1):**

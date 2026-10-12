@@ -19,7 +19,7 @@ This document lists the chosen languages, frameworks, and libraries, with the re
 | Server state | TanStack Query | 5.104 |
 | Markdown | `react-markdown` (unified/remark/rehype) | 10.1 |
 | Markdown plugins | `remark-gfm` 4, `remark-frontmatter` 5, `rehype-slug` 6, `rehype-raw` 7, `rehype-sanitize` 6 | — |
-| Code highlighting | Shiki (`@shikijs/rehype`) | 4.5 |
+| Code highlighting | Shiki (`shiki/core`, JS regex engine, `@shikijs/langs`/`themes`, `hast-util-to-jsx-runtime`) | 4.5 |
 | Mermaid | `mermaid` (lazy-loaded, client-side) | 12.1 |
 | Math (should-have) | KaTeX via `remark-math` / `rehype-katex` | 0.19 |
 | Diagram pan/zoom | `svg-pan-zoom` or a small custom handler | 3.6 |
