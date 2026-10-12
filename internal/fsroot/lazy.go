@@ -2,9 +2,12 @@ package fsroot
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/awesomejt/markdown-viewer/internal/config"
@@ -27,12 +30,27 @@ import (
 // mount appeared or went away, or the directory was replaced) the root is
 // reopened. The replaced root is retired rather than closed, because calls may
 // still be using it; it is closed at the next swap or by Close.
+//
+// Path pinning (FIX-21): symlinks in the root's parent folders are resolved
+// once, at the first open attempt that finds them, and every open uses that
+// pinned path. The root itself must be a real directory. After each open, the
+// pinned path is walked without following symlinks and must name the opened
+// directory. Someone who can write to a parent folder therefore cannot
+// redirect the root by replacing it (or a parent) with a symlink, before or
+// after startup: the open fails and the root stays unavailable until the
+// directory is back.
 type lazyRoot struct {
 	cfg        config.Root
 	open       func(config.Root) (*Root, error)
 	checkEvery time.Duration
 
 	openMu sync.Mutex // serializes open and revalidation attempts
+
+	// pinned is the root path with its parent folders resolved; set once by
+	// the first resolve and then read only under openMu. hostDir publishes it
+	// to [Handle.HostPath] without taking openMu.
+	pinned  string
+	hostDir atomic.Pointer[string]
 
 	mu        sync.Mutex // guards the fields below
 	root      *Root
@@ -53,6 +71,10 @@ const rootCheckInterval = 2 * time.Second
 var _ FS = (*lazyRoot)(nil)
 
 var errRootClosed = errors.New("root closed")
+
+// errRootMoved means the pinned root path does not name the opened directory
+// without following a symlink, for example because it was replaced by one.
+var errRootMoved = errors.New("root path is a symlink or was replaced")
 
 func newLazyRoot(cfg config.Root, open func(config.Root) (*Root, error)) *lazyRoot {
 	return &lazyRoot{cfg: cfg, open: open, checkEvery: rootCheckInterval}
@@ -111,7 +133,7 @@ func (l *lazyRoot) revalidate(op string, cur *Root) (*Root, error) {
 	if !hasID {
 		return cur, nil
 	}
-	fi, err := os.Stat(l.cfg.Path)
+	fi, err := os.Stat(l.pinned)
 	if err != nil {
 		return cur, nil
 	}
@@ -125,16 +147,7 @@ func (l *lazyRoot) revalidate(op string, cur *Root) (*Root, error) {
 // open). If the open fails, old is retired so the next call retries. Callers
 // hold openMu.
 func (l *lazyRoot) reopen(op string, old *Root) (*Root, error) {
-	r, err := l.open(l.cfg)
-	var id fileID
-	var hasID bool
-	if err == nil {
-		// Identify the directory actually opened, not whatever the path names
-		// now; a failure only disables remount detection for this root.
-		if fi, serr := r.root.Stat("."); serr == nil {
-			id, hasID = fileIdentity(fi)
-		}
-	}
+	r, id, hasID, err := l.openPinned()
 	l.mu.Lock()
 	if l.closed {
 		// Closed while the open was in flight: do not leak the new root.
@@ -161,6 +174,77 @@ func (l *lazyRoot) reopen(op string, old *Root) (*Root, error) {
 		return nil, timeoutErr(op, ".", "root unavailable", err)
 	}
 	return r, nil
+}
+
+// openPinned pins the root path on first use, opens it and checks that the
+// pinned path, walked without following any symlink, still names the opened
+// directory. It returns the identity of the opened directory (hasID is false
+// where identities are unsupported, which also disables the check). Callers
+// hold openMu.
+func (l *lazyRoot) openPinned() (r *Root, id fileID, hasID bool, err error) {
+	if l.pinned == "" {
+		p, perr := pinPath(l.cfg.Path)
+		if perr != nil {
+			return nil, fileID{}, false, perr
+		}
+		l.pinned = p
+		l.hostDir.Store(&p)
+	}
+	cfg := l.cfg
+	cfg.Path = l.pinned
+	if r, err = l.open(cfg); err != nil {
+		return nil, fileID{}, false, err
+	}
+	// Identify the directory actually opened, not whatever the path names
+	// now; a failure only disables remount detection for this root.
+	fi, serr := r.root.Stat(".")
+	if serr == nil {
+		id, hasID = fileIdentity(fi)
+	}
+	if !hasID {
+		return r, id, false, nil
+	}
+	// The open followed symlinks; the walk does not. A root (or a parent
+	// folder) replaced by a symlink, or swapped and restored around the open,
+	// fails here.
+	now, werr := dirIdentityNoFollow(l.pinned)
+	if werr == nil && now == id {
+		return r, id, true, nil
+	}
+	_ = r.Close()
+	if werr == nil || errors.Is(werr, errRootMoved) {
+		werr = errRootMoved
+	}
+	return nil, fileID{}, false, fmt.Errorf("fsroot: root %q: %w", cfg.Name, werr)
+}
+
+// pinPath returns the absolute root path with symlinks resolved in its parent
+// folders only. The last component stays literal: the root itself must be a
+// real directory (or a mount point), never a symlink, so a root swapped for a
+// symlink is refused even when that swap happened before startup.
+func pinPath(path string) (string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	dir, base := filepath.Split(abs)
+	if base == "" { // the filesystem root
+		return abs, nil
+	}
+	dir, err = filepath.EvalSymlinks(dir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, base), nil
+}
+
+// HostDir returns the pinned absolute host path of the root, or "" before the
+// first open attempt that found its parent folder.
+func (l *lazyRoot) HostDir() string {
+	if p := l.hostDir.Load(); p != nil {
+		return *p
+	}
+	return ""
 }
 
 func (l *lazyRoot) Stat(rel string) (fs.FileInfo, error) {

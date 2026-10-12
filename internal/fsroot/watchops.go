@@ -51,7 +51,7 @@ func (h *Handle) readNames(rel, name string) (*DirState, error) {
 // path together with the file info. It exists for the fsnotify watcher, which
 // must hand a real path to the kernel; the result must never reach a client.
 //
-// The path is resolved lexically against the root's directory after the
+// The path is resolved lexically against the root's pinned directory after the
 // check, so a component swapped for an escaping symlink in between could
 // redirect the watch. That leaks only the fact that something changed, never
 // content. Handles built without a host directory (tests) fail with
@@ -72,10 +72,14 @@ func (h *Handle) HostPath(ctx context.Context, rel string) (string, fs.FileInfo,
 	if err != nil {
 		return "", nil, err
 	}
-	if h.hostDir == "" {
+	var dir string
+	if h.hostDirFn != nil {
+		dir = h.hostDirFn()
+	}
+	if dir == "" {
 		return "", nil, &PathError{Kind: KindInternal, Op: "hostpath", Path: rel, Reason: "root has no host directory"}
 	}
-	return filepath.Join(h.hostDir, filepath.FromSlash(f.name)), f.fi, nil
+	return filepath.Join(dir, filepath.FromSlash(f.name)), f.fi, nil
 }
 
 // HostPathMissing is [Handle.HostPath] for a path that does not exist yet. It

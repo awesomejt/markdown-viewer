@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -52,7 +51,7 @@ var _ FS = (*Root)(nil)
 type Handle struct {
 	name       string
 	watch      config.WatchMode
-	hostDir    string // absolute host path of the root; empty for test handles
+	hostDirFn  func() string // pinned absolute host path of the root; nil for test handles
 	fs         FS
 	closer     func() error
 	timeout    time.Duration
@@ -93,9 +92,7 @@ func openHandle(root config.Root, cfg *config.Config, open func(config.Root) (*R
 	lr := newLazyRoot(root, open)
 	h := NewHandle(root.Name, root.Watch, lr, cfg.FSTimeout, cfg.FSMaxInflight, cfg.MaxListEntries)
 	h.closer = lr.Close
-	if abs, aerr := filepath.Abs(root.Path); aerr == nil {
-		h.hostDir = abs
-	}
+	h.hostDirFn = lr.HostDir
 	_, err := run(context.Background(), h, "open", ".", func() (struct{}, error) {
 		fi, err := lr.Stat(".")
 		if err == nil && !fi.IsDir() {
