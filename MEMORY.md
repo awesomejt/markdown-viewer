@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: T1 cross-browser e2e (chromium, firefox, webkit, iPad) (2026-10-11)
-- Next recommended task: T2 [H] Full validation run
+- Last major milestone: T2 full validation run green (2026-10-11)
+- Next recommended task: R1 [O] MVP phase review (start in a fresh session)
 - Current blocker: None
 
 ## Key Decisions
@@ -70,6 +70,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Haiku 4.5 + Opus 5.5 verification (T2)
+
+- Task: Full validation run (plus CH1: `MEMORY.md` streamlined, old run log in `agents/Memory-History.md`).
+- Files changed: `TODO.md`, `MEMORY.md` (T2 is validation only).
+- Result: `make check`, `go test -race ./...`, `make e2e` (124 passed) and `docker compose build` all exit 0. The orchestrator checked the exit-code files and log summaries in `build/t2/` directly rather than trusting the Haiku report.
+- Blockers or follow-up: None. R1 should start from "Known Limitations And Accepted Risks".
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (T1)
 
 - Task: Cross-browser e2e suite + iPad viewport.
@@ -83,10 +90,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `Dockerfile`, `.dockerignore`, `compose.yaml`, `Makefile` (`docker` target), `docs/Tech-Stack.md`.
 - Result: Images `node:24.21-bookworm-slim`, `golang:1.27.2-bookworm`, `gcr.io/distroless/static-debian12:nonroot` (image user 65532). Compose overrides with `MDV_UID`/`MDV_GID` (default 1000:1000), `MDV_PORT` (8080), `MDV_VERSION` (image tag + build arg). No tmpfs needed (nothing writes temp files). `.dockerignore` excludes `*.md`, docs, examples, e2e, testdata. The orchestrator re-ran hadolint/yamllint, `docker compose build`/`up` (healthy; `/healthz`, `/api/list`, SPA route, `POST /api/render/d2` 200 on the read-only rootfs; inspect shows RO, CapDrop ALL, no-new-privileges, unless-stopped) and `make check` (exit 0).
 - Blockers or follow-up: Real NAS UID/GID still open (Needs Attention). Port 8080 was busy on the dev host; smoke tests used `MDV_PORT=18080`.
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (EX1)
-
-- Task: Example Markdown set.
-- Files changed: `examples/` (README index, `gfm-tour.md`, `mermaid.md`, `d2.md`, `flowchart.mmd`, `network.d2`, `guide/` nested cross-linked pages, `images/`, `broken-diagrams.md`, `broken.mmd`, `broken.d2`).
-- Result: markdownlint clean (broken files excluded by existing `examples/broken*` ignore). Opus verified: all Mermaid sources parse with the project's `mermaid` (jsdom), the broken ones fail. Fresh-build server returns 200 for every valid D2 source and 422 for the broken ones. All folders list and both images serve. `make check` passes. Sonnet's sequence diagram cited non-existent endpoints; corrected.
-- Blockers or follow-up: Browser render of examples is covered by T1 (e2e over examples).
