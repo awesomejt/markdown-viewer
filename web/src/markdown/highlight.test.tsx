@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   highlightToHast,
   isHighlighterStarted,
+  languageForFile,
   languageLoaders,
   resetHighlighter,
   resolveLanguage,
@@ -44,6 +45,30 @@ describe('resolveLanguage', () => {
     expect(resolveLanguage('constructor')).toBeNull();
     expect(resolveLanguage('__proto__')).toBeNull();
     expect(resolveLanguage(undefined)).toBeNull();
+  });
+});
+
+describe('languageForFile', () => {
+  it('maps extensions, including file-only aliases', () => {
+    expect(languageForFile('a/b/sample.go')).toBe('go');
+    expect(languageForFile('config.YAML')).toBe('yaml');
+    expect(languageForFile('x.yml')).toBe('yaml');
+    expect(languageForFile('run.sh')).toBe('bash');
+    expect(languageForFile('lib.h')).toBe('c');
+    expect(languageForFile('lib.hpp')).toBe('cpp');
+    expect(languageForFile('tsconfig.jsonc')).toBe('json');
+    expect(languageForFile('build.gradle.kts')).toBe('kotlin');
+    expect(languageForFile('stub.pyi')).toBe('python');
+  });
+
+  it('returns null without a supported extension', () => {
+    expect(languageForFile('notes.txt')).toBeNull();
+    expect(languageForFile('data.csv')).toBeNull();
+    expect(languageForFile('Makefile')).toBeNull();
+    expect(languageForFile('.bashrc')).toBeNull();
+    expect(languageForFile('dir.go/file')).toBeNull();
+    expect(languageForFile('x.constructor')).toBeNull();
+    expect(languageForFile('x.hasOwnProperty')).toBeNull();
   });
 });
 

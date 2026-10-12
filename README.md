@@ -8,6 +8,7 @@ Features:
 
 - Browse named roots (local folders or mounted NAS shares) and open any folder as a workspace.
 - GitHub-flavored Markdown with syntax-highlighted code, front matter, relative links, and anchors.
+- Syntax-highlighted code and config files (Go, Python, TypeScript, YAML, and more).
 - Mermaid diagrams render in the browser. D2 diagrams render on the server.
 - Live reload when a file changes (mtime polling, or inotify for local disks).
 - Light and dark themes, usable on an iPad.

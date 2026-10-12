@@ -79,6 +79,31 @@ export function resolveLanguage(lang: string | undefined): string | null {
   return Object.hasOwn(languageLoaders, id) ? id : null;
 }
 
+// File extensions that are not fence aliases (fence aliases and ids also work as extensions).
+const extAliases: Record<string, string> = {
+  h: 'c',
+  cc: 'cpp',
+  cxx: 'cpp',
+  hh: 'cpp',
+  hpp: 'cpp',
+  jsonc: 'json',
+  json5: 'json',
+  kts: 'kotlin',
+  pyi: 'python',
+};
+
+/**
+ * Maps a file name to a supported language id by its extension, or null (FR-1.5). A leading dot
+ * does not start an extension, as in `fileKind`.
+ */
+export function languageForFile(path: string): string | null {
+  const base = path.slice(path.lastIndexOf('/') + 1);
+  const i = base.lastIndexOf('.');
+  if (i <= 0) return null;
+  const ext = base.slice(i + 1).toLowerCase();
+  return resolveLanguage(Object.hasOwn(extAliases, ext) ? extAliases[ext] : ext);
+}
+
 let highlighterPromise: Promise<HighlighterCore> | null = null;
 const loadedLangs = new Map<string, Promise<void>>();
 const cache = new Map<string, Root>();

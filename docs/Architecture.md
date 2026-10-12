@@ -226,6 +226,11 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - Dual themes (`github-light` and `github-dark`, `defaultColor: 'light'`) emit CSS variables; `:root[data-theme='dark']` selects `--shiki-dark` and `--shiki-dark-bg`, so a theme switch needs no re-highlighting.
 - `codeToHast` output is converted with `hast-util-to-jsx-runtime` (no `dangerouslySetInnerHTML`), so code stays text nodes. Results are cached per (class, code) in a bounded map.
 
+**Standalone code files (R2.5):**
+
+- `text` files render through `fileview/CodeFile`, which reuses the lazy `CodeBlock`: the plain `pre.text-file` first, then Shiki colors. `languageForFile` maps the extension through the same fence aliases and ids, plus a few file-only ones (`h`, `hpp`, `jsonc`, `kts`, `pyi`, ...). Extensionless names (`Makefile`, `Dockerfile`) and unsupported extensions (`txt`, `csv`, ...) stay plain and never load Shiki.
+- Files over 100,000 characters stay plain, because `codeToHast` runs on the main thread (NFR-3 on the iPad).
+
 **Copy button and front matter panel (R2.2):**
 
 - Every fenced (or indented) code block that is not a diagram sits in a `.code-block` wrapper with a `CopyButton` in its top-right corner, with or without a language. It copies the code text without its trailing newline and shows "Copied" or "Copy failed" for 2 s.

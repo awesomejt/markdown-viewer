@@ -91,6 +91,20 @@ test('image, text and other file views', async ({ page }) => {
   await expect(link).toHaveAttribute('href', '/api/file?root=fixtures&path=other%2Fblob.bin');
 });
 
+test('code files are highlighted by extension; plain text stays plain', async ({ page }) => {
+  await page.goto('/view/fixtures/text/sample.go');
+  const go = page.locator('.file-view pre.shiki code.language-go');
+  await expect(go).toContainText('func Hello() string');
+  await expect(go.locator('span[style*="color"]').first()).toBeVisible();
+
+  await page.goto('/view/fixtures/text/config.yaml');
+  await expect(page.locator('.file-view pre.shiki code.language-yaml')).toHaveCount(1);
+
+  await page.goto('/view/fixtures/text/notes.txt');
+  await expect(page.locator('pre.text-file')).toContainText('Plain text notes.');
+  await expect(page.locator('.file-view .shiki')).toHaveCount(0);
+});
+
 test('large text file asks before loading', async ({ page }) => {
   await page.goto('/view/fixtures/generated/large.txt');
   await expect(page.getByText(/^File is 6\.\d MB$/)).toBeVisible();

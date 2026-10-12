@@ -7,6 +7,7 @@ import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
 import { useRecordRecent } from '../recent/RecentList';
 import { formatSize } from '../browse/logic';
+import { CodeFile } from './CodeFile';
 import { baseName, fileKind, parentDir } from './logic';
 import './fileview.css';
 
@@ -122,7 +123,7 @@ function ViewByKind({
           {(text) => (
             <section className="file-view">
               <h1>{baseName(path)}</h1>
-              <pre className="text-file">{text}</pre>
+              <CodeFile path={path} text={text} />
             </section>
           )}
         </TextGate>
