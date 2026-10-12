@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (DOC1)
+
+- Task: README + deployment docs.
+- Files changed: `README.md` (rewritten: quick start, config table, hostname allowlist, live reload, startup, troubleshooting), new `docs/Deployment.md` (CIFS/NFS fstab, attribute caching, docker.service `RequiresMountsFor=` drop-in, `rslave` bind, `.env`).
+- Result: The orchestrator checked env vars, defaults, make targets, `503 busy` sources and the healthcheck against the code, and fixed a merged bullet. `make lint-md` and `make check` exit 0.
+- Blockers or follow-up: The fstab options and systemd drop-in are untested on the real VM. V1 must validate them.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-15, FIX-17)
 
 - Task: E2E flakes (drawer, firefox live folder); small enough to fix in the orchestrator without a subagent.

@@ -45,7 +45,7 @@ type Server struct {
 	hub    *watch.Hub
 
 	pingInterval time.Duration // SSE keep-alive; tests shorten it
-	writeTimeout time.Duration // per-write SSE deadline; tests shorten it
+	writeTimeout time.Duration // per-write SSE and /api/file chunk deadline; tests shorten it
 
 	maxStreams      int // concurrent event streams overall; tests shrink it
 	maxStreamsPerIP int // concurrent event streams per remote IP; tests shrink it
