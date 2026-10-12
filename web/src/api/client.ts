@@ -108,18 +108,22 @@ export async function getFile(
   };
 }
 
+/** D2 layout engine; empty uses the source's `d2-config` layout-engine, else dagre. */
+export type D2Layout = '' | 'dagre' | 'elk';
+
 /** Renders D2 source on the server; returns the SVG text. Throws ApiError on any non-200. */
 export async function renderD2(
   source: string,
   theme: 'light' | 'dark',
   signal?: AbortSignal,
+  layout: D2Layout = '',
 ): Promise<string> {
   let res: Response;
   try {
     res = await fetch('/api/render/d2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ source, theme }),
+      body: JSON.stringify(layout ? { source, theme, layout } : { source, theme }),
       signal,
     });
   } catch (e) {

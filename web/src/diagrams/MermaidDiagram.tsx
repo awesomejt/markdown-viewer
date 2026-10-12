@@ -30,5 +30,15 @@ export default function MermaidDiagram({ source }: { source: string }) {
   }, [source, theme, key]);
 
   const current = result?.key === key ? result : null;
-  return <DiagramFigure kind="mermaid" source={source} svg={current?.svg} error={current?.error} />;
+  // While a new theme or source renders, keep the last good SVG on screen.
+  const svg = current ? current.svg : result?.svg;
+  return (
+    <DiagramFigure
+      kind="mermaid"
+      source={source}
+      svg={svg}
+      error={current?.error}
+      busy={!current && svg !== undefined}
+    />
+  );
 }

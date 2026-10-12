@@ -43,6 +43,18 @@ describe('DiagramFigure tools', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
+  it('keeps the viewer open with the new image when the svg changes', () => {
+    let n = 0;
+    URL.createObjectURL = vi.fn(() => `blob:v${++n}`);
+    const { rerender } = render(<DiagramFigure kind="d2" source="a" svg={SVG} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }));
+    rerender(<DiagramFigure kind="d2" source="b" svg={'<svg id="b"/>'} busy />);
+    expect(screen.getByRole('dialog').querySelector('img')).toHaveAttribute('src', 'blob:v2');
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:v1');
+    // Not unmounted and reopened in between (which would also reset pan/zoom).
+    expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledTimes(1);
+  });
+
   it('opens the full-screen viewer and returns focus on close', () => {
     render(<DiagramFigure kind="d2" source="a -> b" svg={SVG} />);
     const open = screen.getByRole('button', { name: 'Full screen' });

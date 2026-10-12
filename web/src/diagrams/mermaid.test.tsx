@@ -111,14 +111,22 @@ describe('MermaidDiagram', () => {
   });
 
   it('re-renders with the dark theme when data-theme changes', async () => {
-    render(<MermaidDiagram source="graph TD; A-->B" />);
+    const { container } = render(<MermaidDiagram source="graph TD; A-->B" />);
     await screen.findByRole('img');
+    let release!: (v: { svg: string }) => void;
+    mocks.render.mockImplementationOnce(() => new Promise((r) => (release = r)));
     act(() => setTheme('dark'));
     await waitFor(() =>
       expect(mocks.initialize).toHaveBeenLastCalledWith(expect.objectContaining({ theme: 'dark' })),
     );
     await waitFor(() => expect(mocks.render).toHaveBeenCalledTimes(2));
+    // The light diagram stays (busy) until the dark one is ready.
+    const fig = container.querySelector('figure')!;
+    expect(fig).toHaveAttribute('data-state', 'ready');
+    expect(fig).toHaveAttribute('aria-busy', 'true');
+    await act(async () => release({ svg: '<svg id="dark"/>' }));
     await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-1'));
+    expect(fig).toHaveAttribute('aria-busy', 'false');
   });
 
   it('revokes the object URL on unmount', async () => {

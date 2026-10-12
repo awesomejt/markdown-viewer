@@ -196,6 +196,16 @@ describe('renderD2', () => {
     expect(JSON.parse(init?.body as string)).toEqual({ source: 'a -> b', theme: 'dark' });
   });
 
+  it('sends a chosen layout', async () => {
+    const fn = mockFetch(() => new Response('<svg/>'));
+    await renderD2('a', 'light', undefined, 'elk');
+    expect(JSON.parse(fn.mock.calls[0]![1]?.body as string)).toEqual({
+      source: 'a',
+      theme: 'light',
+      layout: 'elk',
+    });
+  });
+
   it('parses the JSON error body into an ApiError', async () => {
     mockFetch(() => json({ error: { code: 'render_error', message: 'line 1' } }, 422));
     await expect(renderD2('x', 'light')).rejects.toMatchObject({
