@@ -22,6 +22,13 @@ const (
 	indexName      = "index.html"
 )
 
+// extraTypes covers extensions missing from Go's built-in MIME table (the
+// distroless image has no /etc/mime.types), which would otherwise be sniffed
+// as text/plain.
+var extraTypes = map[string]string{
+	".webmanifest": "application/manifest+json",
+}
+
 // Handler serves the embedded SPA bundle.
 func Handler() http.Handler {
 	sub, err := fs.Sub(distFS, "dist")
@@ -102,5 +109,8 @@ func (s *spa) serve(w http.ResponseWriter, r *http.Request, name string, data []
 		cc = cacheImmutable
 	}
 	w.Header().Set("Cache-Control", cc)
+	if ct, ok := extraTypes[path.Ext(name)]; ok {
+		w.Header().Set("Content-Type", ct)
+	}
 	http.ServeContent(w, r, name, time.Time{}, bytes.NewReader(data))
 }
