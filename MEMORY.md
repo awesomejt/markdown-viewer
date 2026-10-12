@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.7 KaTeX math + GitHub alerts (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.8) meanwhile
+- Last major milestone: R2.8 diagram source toggle + full-screen pan/zoom (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.9) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -62,6 +62,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and switches within ~2 s of the mount appearing (FIX-16); `:fsnotify` roots may still miss events after a remount (host-path inotify watches are not re-added). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
+- Diagram viewer (R2.8): if live reload changes a diagram's source while it is open full screen, the figure passes through loading, so the viewer closes and reopens at Fit.
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
 - `docs/Deployment.md` fstab options and the systemd `RequiresMountsFor=` drop-in are untested on the real VM; V1 must validate them (DOC1).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
@@ -80,6 +81,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.8)
+
+- Task: Diagram source toggle, pan/zoom, full screen, iPad pinch (FR-4.6, FR-4.7); done in the orchestrator without a subagent.
+- Files changed: new `web/src/diagrams/panzoom.ts` (pure zoom/pan/pinch/wheel math), `DiagramViewer.tsx` (native modal `dialog` portaled to `body`), `DiagramFigure.tsx` (tools row), `app/app.css`, unit tests (`panzoom.test.ts`, `viewer.test.tsx`), `e2e/tests/diagrams.spec.ts`, `docs/Architecture.md`, `README.md`.
+- Result: `make check` exit 0 (242 unit), `make e2e` 204 passed (synthetic touch pointers pinch on all 4 projects); logs `build/r28-*.log`.
+- Blockers or follow-up: R2.9's "re-render on theme change" already exists since F4; only the ELK option remains there.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.7)
 
 - Task: KaTeX math (FR-3.6) and GitHub alerts (FR-3.7); done in the orchestrator without a subagent.
@@ -93,10 +101,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `e2e/tests/recent.spec.ts` (`newestRecent` reads `mdv-recent`; `expect.poll` after each folder/file visit before moving on).
 - Result: red/green shown by temporarily delaying `recordRecent` 500 ms (old spec fails, new passes on 4 projects; delay reverted). `make check` exit 0, `make e2e` 192 passed three times; logs `build/fix19-*.log`.
 - Blockers or follow-up: None. Pattern for future e2e: wait on the recorded state, not on visible content, before a full `goto`.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.6)
-
-- Task: Table of contents (FR-2.5); done in the orchestrator without a subagent.
-- Files changed: new `web/src/markdown/toc.ts` (`collectHeadings` from the rendered DOM, `mdv-toc-open`), `Toc.tsx`, `MarkdownView.tsx` (`.markdown-doc` wrapper, layout-effect heading read), `app/app.css` (sticky column at ≥ 1400 px), unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`, `README.md`.
-- Result: `make check` exit 0 (220 unit), `make e2e` 192 passed twice; logs `build/r26-*.log`.
-- Blockers or follow-up: First e2e run hit an unrelated `recent.spec.ts` race (logged as FIX-19). With the panel open above the body, a live reload that changes the heading count can shift the restored scroll.
