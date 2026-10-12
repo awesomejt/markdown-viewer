@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-10)
+
+- Task: E2E gaps (back/forward, relative image, offline guard).
+- Files changed: `e2e/tests/fixtures.ts` (new auto fixture: aborts and records any non-local http(s) request, fails at teardown; `allowedRemote` option for D-26 remote images), all specs import `test`/`expect` from it, new tests in `flow`, `markdown`, `diagrams` specs.
+- Result: The route matches `^https?:` only, because routing `blob:` breaks WebKit diagram images. The orchestrator reviewed the diff and re-ran `make e2e` (136 passed) and `make check`; both exit 0, logs `build/fix10-*.log`.
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-9)
 
 - Task: Compose/defaults.
