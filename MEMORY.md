@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-3 image live reload (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-12) meanwhile
+- Last major milestone: FIX-12 `/api/file` write deadline (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-13) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -60,6 +60,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
+- `docs/Deployment.md` fstab options and the systemd `RequiresMountsFor=` drop-in are untested on the real VM; V1 must validate them (DOC1).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
 ## Open Questions
@@ -76,6 +77,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-12)
+
+- Task: `/api/file` write deadline; small enough to fix in the orchestrator without a subagent.
+- Files changed: `internal/api/file.go` (`chunkWriter` arms `writeTimeout` (10 s) before every `ServeContent` chunk and hides `io.ReaderFrom`), new `internal/api/file_test.go`, `docs/Architecture.md`, comments in `events.go`/`api.go`/`cmd/mdv/main.go`.
+- Result: Stalled raw-TCP client test hangs 15 s without the wrapper and passes in 0.3 s with it. No explicit deadline clear is needed: `net/http` resets the write deadline before reusing a kept-alive connection (keep-alive test guards it). `make check` exit 0, `make e2e` 148 passed; logs `build/fix12-*.log`.
+- Blockers or follow-up: Minimum throughput is now 32 KiB per 10 s per chunk; a slower client is cut off (fine on a LAN).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-3)
 
 - Task: Live reload for image views; small enough to fix in the orchestrator without a subagent.
@@ -89,10 +97,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/fileview/ViewFileView.tsx` (diagram case wrapped in `TextGate`), `web/src/diagrams/DiagramPage.tsx` (takes `source`, no fetch), `web/src/fileview/logic.ts` + new `logic.test.ts` (`fileKind` mirrors `ClassifyName`), `testdata/mkfixtures.sh` (`large.d2` ~6 MiB), `e2e/tests/diagrams.spec.ts`.
 - Result: The orchestrator checked the extension lists against `internal/fsroot/kind.go` (identical) and re-ran `make check` (171 unit, exit 0); `make e2e` 144 passed. Logs `build/fix2-*.log`.
 - Blockers or follow-up: A forced diagram over 5 MiB still cannot render (D2 render body cap 256 KiB, Mermaid `maxTextSize` ~50 KB), so it shows the error figure; recorded under Known Limitations (raising the caps is an owner call).
-
-### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (DOC1)
-
-- Task: README + deployment docs.
-- Files changed: `README.md` (rewritten: quick start, config table, hostname allowlist, live reload, startup, troubleshooting), new `docs/Deployment.md` (CIFS/NFS fstab, attribute caching, docker.service `RequiresMountsFor=` drop-in, `rslave` bind, `.env`).
-- Result: The orchestrator checked env vars, defaults, make targets, `503 busy` sources and the healthcheck against the code, and fixed a merged bullet. `make lint-md` and `make check` exit 0.
-- Blockers or follow-up: The fstab options and systemd drop-in are untested on the real VM. V1 must validate them.
