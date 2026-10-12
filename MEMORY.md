@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.6 table of contents (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-19, then R2.7) meanwhile
+- Last major milestone: FIX-19 recent e2e flake fixed (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.7) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -78,6 +78,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-19)
+
+- Task: Recent e2e flake; done in the orchestrator without a subagent.
+- Files changed: `e2e/tests/recent.spec.ts` (`newestRecent` reads `mdv-recent`; `expect.poll` after each folder/file visit before moving on).
+- Result: red/green shown by temporarily delaying `recordRecent` 500 ms (old spec fails, new passes on 4 projects; delay reverted). `make check` exit 0, `make e2e` 192 passed three times; logs `build/fix19-*.log`.
+- Blockers or follow-up: None. Pattern for future e2e: wait on the recorded state, not on visible content, before a full `goto`.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.6)
 
 - Task: Table of contents (FR-2.5); done in the orchestrator without a subagent.
@@ -91,10 +98,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/markdown/highlight.ts` (`languageForFile`: extension → fence alias/id, plus `h`/`hpp`/`jsonc`/`kts`/`pyi`...), new `web/src/fileview/CodeFile.tsx` (lazy `CodeBlock` reuse, plain above 100,000 chars), `ViewFileView.tsx`, `fileview.css`, unit/component tests, `e2e/tests/workspace.spec.ts`, `docs/Architecture.md`, `README.md`.
 - Result: new e2e red (chromium) with the old plain view. `make check` exit 0 (215 unit), `make e2e` 184 passed; logs `build/r25-*.log`.
 - Blockers or follow-up: Extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.4)
-
-- Task: Web-app manifest and home-screen icons (FR-6.3); done in the orchestrator without a subagent.
-- Files changed: new `web/icons/icon.svg` + `mkicons.sh` (rsvg-convert → committed `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`), `web/public/manifest.webmanifest`, `favicon.svg` (M-arrow mark replaces the Vite logo), `web/index.html` (manifest, touch icon, Apple meta, two `theme-color` metas), `app/theme.ts` (`THEME_COLOR`, `applyTheme` syncs the metas), `internal/web/web.go` (`.webmanifest` → `application/manifest+json`), unit/Go tests, `e2e/tests/shell.spec.ts`, `docs/Architecture.md`, `docs/Deployment.md`.
-- Result: Go test red (text/plain) before the MIME fix. `make check` exit 0, `make e2e` 180 passed; logs `build/r24-*.log`.
-- Blockers or follow-up: Standalone mode hides Safari's back button and reload; V1 should add to Home Screen on the iPad and check icon, title, status bar and back navigation.

@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **FIX-19** [S] E2E flake in `recent.spec.ts` (chromium, 1 of 3 runs): the test leaves `deep.md` once its heading shows, which can happen before the parent listing records it; wait for the recording (for example the sidebar/`mdv-recent` entry) before `goto('/')`.
 - [ ] **R2.7** [S] KaTeX math; GitHub alerts (also clear the low-severity `npm audit` katex advisory pulled in by mermaid 12.1: katex ≥ 0.19 or an override, verified with Mermaid math)
 - [ ] **R2.8** [S] Diagram source toggle, pan/zoom, full screen
 - [ ] **R2.9** [S] D2 ELK option; theme-aware re-render
@@ -64,6 +63,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **FIX-19** [S] `recent.spec.ts` polls the newest `mdv-recent` entry after each visit before navigating on (the file is recorded only once its parent listing loads); with a 500 ms recording delay injected the old spec fails and the new one passes on all 4 projects; `make check` green, `make e2e` 192 passed three times.
 - [x] 2026-10-12: **R2.6** [S] Markdown TOC: "Contents" `details` with the rendered heading ids (read from the DOM, footnotes label skipped), nested by level, shown with ≥ 2 headings; collapsed above the body, sticky column at ≥ 1400 px; open state `mdv-toc-open`; `make check` green (220 unit), `make e2e` 192 passed twice.
 - [x] 2026-10-12: **R2.5** [S] `text` files get Shiki colors by extension (`languageForFile` reuses fence aliases plus `h`/`hpp`/`jsonc`/`kts`/`pyi`), plain first via the lazy `CodeBlock`; unsupported/extensionless names and files over 100,000 chars stay plain without loading Shiki; e2e red without it; `make check` green (215 unit), `make e2e` 184 passed.
 - [x] 2026-10-12: **R2.4** [S] `manifest.webmanifest` (standalone, 192/512 + maskable PNGs), 180 px apple-touch-icon, Apple meta tags and an M-arrow icon rendered from `web/icons/icon.svg`; `theme-color` follows the app theme; `.webmanifest` served as `application/manifest+json` (Go test red before); `make check` green, `make e2e` 180 passed.
