@@ -36,13 +36,13 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.7** [S] KaTeX math; GitHub alerts (also clear the low-severity `npm audit` katex advisory pulled in by mermaid 12.1: katex ≥ 0.19 or an override, verified with Mermaid math)
 - [ ] **R2.8** [S] Diagram source toggle, pan/zoom, full screen
 - [ ] **R2.9** [S] D2 ELK option; theme-aware re-render
 - [ ] **R2.10** [S] Workspace tree live updates
 - [ ] **R2.11** [S] Virtualized listings
 - [ ] **R2.12** [H] Full validation run
 - [ ] **R2.13** [O] Phase review + iPad performance check
+- [ ] **FIX-20** [S] Dev-tooling `npm audit`: `markdownlint-cli2` 0.23.3 pulls `smol-toml` 1.8.0 (moderate, fixed in 1.9.1: add an override) and `braces` 3.0.3 via `micromatch` (high, no fix published yet: re-check). Lint-time only, never in the bundle.
 
 ## Phase 3: Future
 
@@ -63,6 +63,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.7** [S] KaTeX math (`$`, `$$`, ```` ```math ````) via remark-math + lazy rehype-katex after sanitize (`trust: false`), body waits for the chunk; TOC/slugs use the TeX source; in-repo `remarkAlerts` for the 5 GitHub alert types; `katex` override ≥ 0.19 clears the advisory (mermaid + markdownlint); 7 unit tests red without the plugins; `make check` green (229 unit), `make e2e` 196 passed.
 - [x] 2026-10-12: **FIX-19** [S] `recent.spec.ts` polls the newest `mdv-recent` entry after each visit before navigating on (the file is recorded only once its parent listing loads); with a 500 ms recording delay injected the old spec fails and the new one passes on all 4 projects; `make check` green, `make e2e` 192 passed three times.
 - [x] 2026-10-12: **R2.6** [S] Markdown TOC: "Contents" `details` with the rendered heading ids (read from the DOM, footnotes label skipped), nested by level, shown with ≥ 2 headings; collapsed above the body, sticky column at ≥ 1400 px; open state `mdv-toc-open`; `make check` green (220 unit), `make e2e` 192 passed twice.
 - [x] 2026-10-12: **R2.5** [S] `text` files get Shiki colors by extension (`languageForFile` reuses fence aliases plus `h`/`hpp`/`jsonc`/`kts`/`pyi`), plain first via the lazy `CodeBlock`; unsupported/extensionless names and files over 100,000 chars stay plain without loading Shiki; e2e red without it; `make check` green (215 unit), `make e2e` 184 passed.
