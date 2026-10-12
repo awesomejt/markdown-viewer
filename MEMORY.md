@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F6 live reload client complete; all Phase 1 frontend tasks done (2026-10-11)
-- Next recommended task: EX1 [S] Example Markdown set
+- Last major milestone: EX1 example Markdown set in `examples/` (2026-10-11)
+- Next recommended task: D1 [S] Dockerfile + compose.yaml (default UID:GID documented; NAS values still an open question)
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (EX1)
+
+- Task: Example Markdown set.
+- Files changed: `examples/` (README index, `gfm-tour.md`, `mermaid.md`, `d2.md`, `flowchart.mmd`, `network.d2`, `guide/` nested cross-linked pages, `images/`, `broken-diagrams.md`, `broken.mmd`, `broken.d2`).
+- Result: markdownlint clean (broken files excluded by existing `examples/broken*` ignore). Opus verified: all Mermaid sources parse with the project's `mermaid` (jsdom), the broken ones fail. Fresh-build server returns 200 for every valid D2 source and 422 for the broken ones. All folders list and both images serve. `make check` passes. Sonnet's sequence diagram cited non-existent endpoints; corrected.
+- Blockers or follow-up: Browser render of examples is covered by T1 (e2e over examples).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F6)
 

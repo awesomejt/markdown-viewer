@@ -30,7 +30,6 @@ All frontend tasks are done.
 
 Packaging, tests, review:
 
-- [ ] **EX1** [S] Example Markdown set in `examples/` (GFM, Mermaid, D2, cross-links) (deps: F4)
 - [ ] **D1** [S] Dockerfile + compose.yaml, hardened, hadolint/yamllint clean (deps: B4b, F1)
 - [ ] **T1** [S] Complete cross-browser e2e suite + iPad viewport (deps: T0, F6, D1, EX1)
 - [ ] **T2** [H] Full validation run (deps: T1)
@@ -75,6 +74,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **EX1** `examples/`: GFM tour + front matter, Mermaid (5 types + `.mmd`), D2 (basic, containers, sql_table, sequence + `.d2`), nested cross-linked `guide/`, PNG/SVG images, `broken*` diagrams of each kind; markdownlint clean, D2 200/422 verified on server, Mermaid parse verified.
 - [x] 2026-10-11: **F6** `web/src/live/`: one EventSource per tab via `LiveProvider`/`LiveController` (ref-counted, sorted, ≤ 32 subs, 50 ms debounced reopen, CLOSED → jittered backoff 1–30 s); `change` invalidates file + parent/own `list` queries; `open`/visible invalidate active roots/list/file; Markdown keeps the nearest heading's offset; e2e `live` poll root under `build/e2e/live`; 147 unit, 28 e2e (incl. 3-tab acceptance).
 - [x] 2026-10-11: **F5** `web/src/workspace/` lazy tree at `?ws=` (aria-expanded toggles, ancestors auto-expanded, `aria-current`), `scopeWs` drops `ws` outside the workspace (browse entries, breadcrumbs); `web/src/fileview/` views by server kind from the parent listing (markdown, diagram, image, text, other/download), 413 "Load anyway" with `force=1`; route `errorElement` inside the layout; 129 unit, 24 e2e.
 - [x] 2026-10-11: **F4** `web/src/diagrams/`: Mermaid 12.1 (lazy, strict, `htmlLabels: false`, serialized queue) and D2 (`renderD2` + TanStack query, 503/504 retried) shown as `<img src=blob:>` (D-25); error box + source, per-diagram error boundary, theme observer re-render, full-page `.mmd`/`.mermaid`/`.d2` views; 116 unit, 18 e2e.
