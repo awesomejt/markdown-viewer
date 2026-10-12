@@ -18,7 +18,8 @@ import (
 var ErrClosed = errors.New("watch: hub closed")
 
 // ErrTooManyWatches is returned by [Hub.Subscribe] when registering the
-// request would push the hub past [Options.MaxWatches] distinct keys.
+// request would push the hub past [Options.MaxWatches] present keys or
+// [Options.MaxMissing] missing-path keys.
 var ErrTooManyWatches = errors.New("watch: too many watched paths")
 
 // Defaults for [Options] fields left zero.
@@ -26,13 +27,15 @@ const (
 	DefaultPollInterval = 2 * time.Second
 	DefaultCoalesce     = 250 * time.Millisecond
 	DefaultMaxWatches   = 256
+	DefaultMaxMissing   = 64
 )
 
 // Options configures a [Hub].
 type Options struct {
 	PollInterval time.Duration // poll roots; default [DefaultPollInterval]
 	Coalesce     time.Duration // per-path event window; default [DefaultCoalesce]
-	MaxWatches   int           // distinct (root, path) keys; default [DefaultMaxWatches]
+	MaxWatches   int           // distinct (root, path) keys whose path exists; default [DefaultMaxWatches]
+	MaxMissing   int           // distinct keys whose path did not exist when first watched; default [DefaultMaxMissing]
 	Logger       *slog.Logger  // nil discards
 }
 
@@ -50,6 +53,10 @@ type watcher interface{ stop() }
 type entry struct {
 	subs map[*Subscription]struct{}
 	w    watcher
+	// missing records that the path did not exist when the entry was created.
+	// It counts against MaxMissing for the entry's whole life, even once the
+	// path appears, so the counts need no re-evaluation.
+	missing bool
 }
 
 // Hub fans filesystem changes out to subscribers, with one watcher per
@@ -66,6 +73,7 @@ type Hub struct {
 	mu      sync.Mutex
 	closed  bool
 	entries map[key]*entry
+	missing int         // entries with missing set
 	fsn     *fsnotifier // created on first fsnotify subscription
 }
 
@@ -79,6 +87,9 @@ func New(reg *fsroot.Registry, opts Options) *Hub {
 	}
 	if opts.MaxWatches <= 0 {
 		opts.MaxWatches = DefaultMaxWatches
+	}
+	if opts.MaxMissing <= 0 {
+		opts.MaxMissing = DefaultMaxMissing
 	}
 	logger := opts.Logger
 	if logger == nil {
@@ -173,13 +184,17 @@ func (h *Hub) Subscribe(ctx context.Context, subs []Sub) (*Subscription, error) 
 		h.mu.Unlock()
 		return nil, ErrClosed
 	}
-	fresh := 0
+	var fresh, freshMissing int
 	for _, t := range targets {
 		if h.entries[t.key] == nil {
-			fresh++
+			if t.gone {
+				freshMissing++
+			} else {
+				fresh++
+			}
 		}
 	}
-	if len(h.entries)+fresh > h.opts.MaxWatches {
+	if len(h.entries)-h.missing+fresh > h.opts.MaxWatches || h.missing+freshMissing > h.opts.MaxMissing {
 		h.mu.Unlock()
 		return nil, ErrTooManyWatches
 	}
@@ -203,7 +218,7 @@ func (h *Hub) Subscribe(ctx context.Context, subs []Sub) (*Subscription, error) 
 
 // startLocked creates the entry and watcher for a key's first subscriber.
 func (h *Hub) startLocked(t target) (*entry, error) {
-	e := &entry{subs: make(map[*Subscription]struct{})}
+	e := &entry{subs: make(map[*Subscription]struct{}), missing: t.gone}
 	co := newCoalescer(t.key.root, h.opts.Coalesce, func(ev Event) { h.dispatch(e, ev) })
 	if t.h.Watch() == config.WatchFSNotify {
 		if h.fsn == nil {
@@ -229,6 +244,9 @@ func (h *Hub) startLocked(t target) (*entry, error) {
 		e.w = startPoller(h.ctx, &h.wg, t.h, t.key.path, h.opts.PollInterval, co, t.base)
 	}
 	h.entries[t.key] = e
+	if e.missing {
+		h.missing++
+	}
 	return e, nil
 }
 
@@ -254,6 +272,9 @@ func (h *Hub) detachLocked(sub *Subscription) []watcher {
 		delete(e.subs, sub)
 		if len(e.subs) == 0 {
 			delete(h.entries, k)
+			if e.missing {
+				h.missing--
+			}
 			stops = append(stops, e.w)
 		}
 	}
@@ -287,6 +308,7 @@ func (h *Hub) Close() {
 		}
 	}
 	clear(h.entries)
+	h.missing = 0
 	fsn := h.fsn
 	h.mu.Unlock()
 

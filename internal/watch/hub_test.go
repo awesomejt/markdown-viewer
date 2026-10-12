@@ -592,3 +592,44 @@ func TestRearmCleanup(t *testing.T) {
 		t.Fatalf("left behind: %v %v %v", hub.fsn.dirs, hub.fsn.refs, hub.fsn.w.WatchList())
 	}
 }
+
+func TestMaxMissing(t *testing.T) {
+	for _, mode := range modes {
+		t.Run(string(mode), func(t *testing.T) {
+			hub, dir := newEnv(t, mode)
+			hub.opts.MaxWatches, hub.opts.MaxMissing = 2, 2
+			for _, n := range []string{"a.md", "b.md", "c.md"} {
+				write(t, filepath.Join(dir, n), "x")
+			}
+			sm := subscribe(t, hub, "m1.md", "m2.md")
+			// A third missing key fails and registers nothing, even with a
+			// valid sibling in the same request.
+			_, err := hub.Subscribe(context.Background(), []Sub{{"r", "a.md"}, {"r", "m3.md"}})
+			if !errors.Is(err, ErrTooManyWatches) {
+				t.Fatalf("err = %v, want ErrTooManyWatches", err)
+			}
+			if n := hub.Watching(); n != 2 {
+				t.Fatalf("watching %d, want 2", n)
+			}
+			// Missing keys do not use up the present cap.
+			subscribe(t, hub, "a.md", "b.md")
+			if _, err := hub.Subscribe(context.Background(), []Sub{{"r", "c.md"}}); !errors.Is(err, ErrTooManyWatches) {
+				t.Fatalf("present cap: err = %v", err)
+			}
+			// An already watched missing key costs nothing.
+			subscribe(t, hub, "m1.md")
+			// Closing frees a missing slot (m1 is still held by the other sub).
+			sm.Close()
+			if s := subscribe(t, hub, "m3.md"); s == nil {
+				t.Fatal("no subscription")
+			}
+		})
+	}
+}
+
+func TestDefaultMaxMissing(t *testing.T) {
+	hub, _ := newEnv(t, config.WatchPoll)
+	if hub.opts.MaxMissing != DefaultMaxMissing {
+		t.Fatalf("MaxMissing = %d", hub.opts.MaxMissing)
+	}
+}
