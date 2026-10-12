@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.4)
+
+- Task: Web-app manifest and home-screen icons (FR-6.3); done in the orchestrator without a subagent.
+- Files changed: new `web/icons/icon.svg` + `mkicons.sh` (rsvg-convert → committed `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`), `web/public/manifest.webmanifest`, `favicon.svg` (M-arrow mark replaces the Vite logo), `web/index.html` (manifest, touch icon, Apple meta, two `theme-color` metas), `app/theme.ts` (`THEME_COLOR`, `applyTheme` syncs the metas), `internal/web/web.go` (`.webmanifest` → `application/manifest+json`), unit/Go tests, `e2e/tests/shell.spec.ts`, `docs/Architecture.md`, `docs/Deployment.md`.
+- Result: Go test red (text/plain) before the MIME fix. `make check` exit 0, `make e2e` 180 passed; logs `build/r24-*.log`.
+- Blockers or follow-up: Standalone mode hides Safari's back button and reload; V1 should add to Home Screen on the iPad and check icon, title, status bar and back navigation.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.3)
 
 - Task: Recent files/folders (FR-2.6); done in the orchestrator without a subagent.
