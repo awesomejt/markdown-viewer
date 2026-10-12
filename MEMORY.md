@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-13 `HostPath` NFC/NFD fix (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-14) meanwhile
+- Last major milestone: FIX-14 Mermaid temp-id fix (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-16) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -49,7 +49,7 @@ Full log: `agents/Decisions.md`.
 
 ## Known Limitations And Accepted Risks
 
-Open items carried from archived run log entries (`agents/Memory-History.md`). R1 confirmed these as accepted; new R1 defects are FIX-4 to FIX-14 in `TODO.md`.
+Open items carried from archived run log entries (`agents/Memory-History.md`). R1 confirmed these as accepted; new R1 defects are FIX-4 to FIX-14 in `TODO.md` (all done).
 
 - Live reload: any missing `sub` path makes `/api/events` return 404 for the whole stream, and the client has no special handling, so deleting a viewed file can break live reload for that tab (B6/B7).
 - Live reload: late height changes (Shiki, diagrams) after the scroll restore can shift the position slightly (F6). The workspace tree has no subscriptions of its own (R2.10).
@@ -77,6 +77,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-14)
+
+- Task: Mermaid temp ids vs heading slugs; small enough to fix in the orchestrator without a subagent.
+- Files changed: `web/src/diagrams/mermaid.ts` (id `mdv-mermaid-N` → `mdvMermaid-N`; slugs are lowercase, raw-HTML ids are `user-content-` prefixed), `web/src/diagrams/mermaid.test.tsx`, look-alike headings appended to `testdata/fixtures/diagrams/inline.md` (no new fixture file, so Go list counts are unchanged), `e2e/tests/diagrams.spec.ts`.
+- Result: Unit test (headings survive) and e2e (4/4 projects) red without the fix, green with it. `make check` exit 0 (172 unit), `make e2e` 152 passed; logs `build/fix14-*.log`.
+- Blockers or follow-up: None. Mermaid also removes existing `#id` elements before rendering, so any future temp id must stay outside the slug alphabet (uppercase) and be CSS-selector safe.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-13)
 
 - Task: `HostPath` NFC/NFD join; small enough to fix in the orchestrator without a subagent.
@@ -90,10 +97,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/api/file.go` (`chunkWriter` arms `writeTimeout` (10 s) before every `ServeContent` chunk and hides `io.ReaderFrom`), new `internal/api/file_test.go`, `docs/Architecture.md`, comments in `events.go`/`api.go`/`cmd/mdv/main.go`.
 - Result: Stalled raw-TCP client test hangs 15 s without the wrapper and passes in 0.3 s with it. No explicit deadline clear is needed: `net/http` resets the write deadline before reusing a kept-alive connection (keep-alive test guards it). `make check` exit 0, `make e2e` 148 passed; logs `build/fix12-*.log`.
 - Blockers or follow-up: Minimum throughput is now 32 KiB per 10 s per chunk; a slower client is cut off (fine on a LAN).
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-3)
-
-- Task: Live reload for image views; small enough to fix in the orchestrator without a subagent.
-- Files changed: `web/src/api/client.ts` (`fileUrl` optional `version` → `v=`), `web/src/fileview/ViewFileView.tsx` (`ImageFile` uses `<mtime>-<size>` from the listing entry), unit tests, `e2e/tests/live.spec.ts`.
-- Result: New e2e (SVG rewritten, `naturalWidth` 10 → 40) fails on 4/4 projects with the cache-buster disabled and passes with it. `make check` exit 0 (171 unit), `make e2e` 148 passed; logs `build/fix3-*.log`.
-- Blockers or follow-up: Images embedded in Markdown still use plain URLs; they refresh only when the Markdown re-renders with a new `<img>` (logged as FIX-18).
