@@ -36,11 +36,11 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **FIX-3** [S] Live reload for image files: `ImageFile` uses a plain `<img src>`, so an on-disk change never shows; add a cache-buster (listing mtime) to the URL
 - [ ] **FIX-12** [S] `/api/file` has no write deadline: a client that stops reading holds the handler and fd forever; add a per-chunk deadline via `ResponseController` like SSE (`cmd/mdv/main.go`, `internal/api/file.go`)
 - [ ] **FIX-13** [S] `HostPath` resolves NFC/NFD for the stat but joins the original form (`internal/fsroot/watchops.go`), so fsnotify roots never match the base name (dead live reload) or 500 on dir keys for mismatched normalization; return and use the name that succeeded
 - [ ] **FIX-14** [S] Mermaid temp ids `mdv-mermaid-N` can equal a heading slug and `getElementById(id)?.remove()` deletes the heading; use an id a slug cannot produce (`web/src/diagrams/mermaid.ts`)
 - [ ] **FIX-16** [S] A root opened before its NAS mounts keeps the `os.Root` fd on the empty mount-point dir even though `rslave` makes the mount visible; detect a device change (`st_dev` of the host path vs the open root) in the probe/poll and reopen the `lazyRoot` (`internal/fsroot/lazy.go`)
+- [ ] **FIX-18** [S] Images embedded in Markdown keep a fixed `/api/file` URL, so an on-disk image change does not show until reload (FIX-3 covered only the image view); subscribe to relative image paths or add a cache-buster
 - [ ] **R2.1** [S] Hidden-files toggle (date sort moved to FIX-11)
 - [ ] **R2.2** [S] Copy-code button; front-matter panel
 - [ ] **R2.3** [S] Recent files/folders
@@ -74,6 +74,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **FIX-3** [S] Image view `<img>` URL carries `v=<mtime>-<size>` from the parent listing, so live reload shows on-disk changes; e2e red (4/4) without it, green with it; `make check` green, `make e2e` 148 passed.
 - [x] 2026-10-12: **FIX-2** [S] Standalone diagrams go through `TextGate` (413 → size notice + "Load anyway" `force=1`); `fileKind` fallback mirrors `ClassifyName` (markdown/diagram/image/text); `large.d2` fixture + e2e; `make check` green (171 unit), `make e2e` 144 passed.
 - [x] 2026-10-12: **DOC1** [S] README rewritten (quick start, full `MDV_*` table, `MDV_ALLOWED_HOSTS`, poll vs `:fsnotify`, startup/FIX-16, offline, troubleshooting); new `docs/Deployment.md` (CIFS/NFS fstab with low attribute caching, docker.service `RequiresMountsFor=`, `rslave` parent bind, `.env`); claims checked against code; `make check` green.
 - [x] 2026-10-12: **FIX-17** [S] Firefox live-folder e2e failure: SSE streams now start with a `: open` comment so Firefox fires EventSource `open` (refetch-on-open) immediately; e2e 3/3 red → 3/3 green (140 passed).

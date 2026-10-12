@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-2 diagram "Load anyway" + fallback kinds (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-3) meanwhile
+- Last major milestone: FIX-3 image live reload (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-12) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -76,6 +76,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-3)
+
+- Task: Live reload for image views; small enough to fix in the orchestrator without a subagent.
+- Files changed: `web/src/api/client.ts` (`fileUrl` optional `version` → `v=`), `web/src/fileview/ViewFileView.tsx` (`ImageFile` uses `<mtime>-<size>` from the listing entry), unit tests, `e2e/tests/live.spec.ts`.
+- Result: New e2e (SVG rewritten, `naturalWidth` 10 → 40) fails on 4/4 projects with the cache-buster disabled and passes with it. `make check` exit 0 (171 unit), `make e2e` 148 passed; logs `build/fix3-*.log`.
+- Blockers or follow-up: Images embedded in Markdown still use plain URLs; they refresh only when the Markdown re-renders with a new `<img>` (logged as FIX-18).
+
 ### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-2)
 
 - Task: Oversized standalone diagram "Load anyway"; `/view` fallback kinds.
@@ -89,10 +96,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `README.md` (rewritten: quick start, config table, hostname allowlist, live reload, startup, troubleshooting), new `docs/Deployment.md` (CIFS/NFS fstab, attribute caching, docker.service `RequiresMountsFor=` drop-in, `rslave` bind, `.env`).
 - Result: The orchestrator checked env vars, defaults, make targets, `503 busy` sources and the healthcheck against the code, and fixed a merged bullet. `make lint-md` and `make check` exit 0.
 - Blockers or follow-up: The fstab options and systemd drop-in are untested on the real VM. V1 must validate them.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-15, FIX-17)
-
-- Task: E2E flakes (drawer, firefox live folder); small enough to fix in the orchestrator without a subagent.
-- Files changed: `e2e/tests/workspace.spec.ts` (closed drawer asserted via `#sidebar`: `visibility: hidden` drops it from role queries), `internal/api/events.go` + test (stream starts with `: open`), `docs/Architecture.md`.
-- Result: FIX-17 root cause: Firefox did not fire EventSource `open` on headers alone, so refetch-on-open never ran and a file created before the poll baseline was missed (3/3 red before, 3/3 green after, 140 passed each). `make check` exit 0; logs `build/fix15-*`, `build/fix17-*`.
-- Blockers or follow-up: None.
