@@ -341,16 +341,3 @@ func TestRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-
-func TestRegistryOpenFailureClosesAll(t *testing.T) {
-	cfg := &config.Config{
-		FSTimeout: time.Second, FSMaxInflight: 1, MaxListEntries: 1,
-		Roots: []config.Root{
-			{Name: "ok", Path: t.TempDir()},
-			{Name: "bad", Path: filepath.Join(t.TempDir(), "missing")},
-		},
-	}
-	if reg, err := NewRegistry(cfg); err == nil || reg != nil {
-		t.Fatalf("want error, got %v %v", reg, err)
-	}
-}

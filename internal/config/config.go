@@ -254,12 +254,9 @@ func parseRoots(raw string) ([]Root, error) {
 		case !filepath.IsAbs(path):
 			fail("root %q: path %q must be absolute", name, path)
 		default:
+			// Existence is deliberately not checked: a root on a network mount
+			// may be down at boot and is opened lazily by fsroot.
 			path = filepath.Clean(path)
-			if st, err := os.Stat(path); err != nil {
-				fail("root %q: %v", name, err)
-			} else if !st.IsDir() {
-				fail("root %q: path %q is not a directory", name, path)
-			}
 		}
 		if !bad {
 			roots = append(roots, Root{Name: name, Path: path, Watch: mode})

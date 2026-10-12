@@ -203,6 +203,11 @@ type Root struct {
 func OpenRoot(cfg config.Root) (*Root, error) {
 	r, err := os.OpenRoot(cfg.Path)
 	if err != nil {
+		// os.Root reports a non-directory with an unmatchable error; recheck so
+		// callers can tell "not a directory" (fatal) from an outage.
+		if st, serr := os.Stat(cfg.Path); serr == nil && !st.IsDir() {
+			err = syscall.ENOTDIR
+		}
 		return nil, fmt.Errorf("fsroot: open root %q: %w", cfg.Name, err)
 	}
 	return &Root{name: cfg.Name, root: r}, nil

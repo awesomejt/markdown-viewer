@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -279,4 +280,71 @@ func TestHealthcheckSendsLocalhostHost(t *testing.T) {
 	if host != "localhost" {
 		t.Errorf("Host = %q", host)
 	}
+}
+
+func TestServeMissingRootStarts(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ready := make(chan net.Addr, 1)
+	done := make(chan int, 1)
+	var errb syncBuffer
+	go func() {
+		done <- serve(ctx, env(map[string]string{
+			"MDV_ROOTS":  "gone=" + filepath.Join(t.TempDir(), "missing"),
+			"MDV_LISTEN": "127.0.0.1:0",
+		}), &errb, ready)
+	}()
+	var addr net.Addr
+	select {
+	case addr = <-ready:
+	case code := <-done:
+		t.Fatalf("exited early: %d %s", code, errb.String())
+	case <-time.After(5 * time.Second):
+		t.Fatal("not ready")
+	}
+	base := "http://" + addr.String()
+	if err := healthcheck(ctx, base+"/healthz"); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.Get(base + "/api/roots")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	if resp.StatusCode != 200 || !strings.Contains(string(body), `"available":false`) {
+		t.Errorf("roots = %d %s", resp.StatusCode, body)
+	}
+	if log := errb.String(); !strings.Contains(log, "root unavailable at startup") || !strings.Contains(log, `"root":"gone"`) {
+		t.Errorf("log = %s", log)
+	}
+	http.DefaultClient.CloseIdleConnections()
+	cancel()
+	select {
+	case code := <-done:
+		if code != 0 {
+			t.Fatalf("code = %d", code)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no shutdown")
+	}
+}
+
+// syncBuffer is a bytes.Buffer safe for the server goroutine to write while
+// the test reads.
+type syncBuffer struct {
+	mu sync.Mutex
+	b  bytes.Buffer
+}
+
+func (s *syncBuffer) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.Write(p)
+}
+
+func (s *syncBuffer) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.b.String()
 }
