@@ -106,9 +106,13 @@ function ViewByKind({
       );
     case 'diagram':
       return (
-        <Suspense fallback={<Loading />}>
-          <DiagramPage root={root} path={path} />
-        </Suspense>
+        <TextGate root={root} path={path} size={size}>
+          {(text) => (
+            <Suspense fallback={<Loading />}>
+              <DiagramPage path={path} source={text} />
+            </Suspense>
+          )}
+        </TextGate>
       );
     case 'image':
       return <ImageFile root={root} path={path} />;

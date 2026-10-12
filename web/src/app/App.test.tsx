@@ -75,11 +75,11 @@ describe('shell', () => {
   });
 
   it('decodes the path on the view route', async () => {
-    renderAt('/view/docs/a%20b/c%23d.txt');
-    expect(await screen.findByRole('heading', { name: 'c#d.txt' })).toBeInTheDocument();
+    renderAt('/view/docs/a%20b/c%23d.bin');
+    expect(await screen.findByRole('heading', { name: 'c#d.bin' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Download/ })).toHaveAttribute(
       'href',
-      '/api/file?root=docs&path=a+b%2Fc%23d.txt',
+      '/api/file?root=docs&path=a+b%2Fc%23d.bin',
     );
   });
 });

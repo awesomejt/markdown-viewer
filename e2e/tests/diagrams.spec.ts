@@ -77,3 +77,14 @@ test('a Markdown page with Mermaid and D2 makes no non-local requests', async ({
   await page.waitForLoadState('networkidle');
   expect(remoteRequests).toEqual([]);
 });
+
+test('oversized standalone diagram asks before loading', async ({ page }) => {
+  await page.goto('/view/fixtures/generated/large.d2');
+  await expect(page.getByText(/^File is 6\.\d MB$/)).toBeVisible();
+  await page.getByRole('button', { name: 'Load anyway' }).click();
+  await expect(page.getByRole('heading', { name: 'large.d2' })).toBeVisible();
+  // The server caps D2 render requests at 256 KiB, so the forced source is shown as an
+  // error figure; the point here is that the diagram page replaced the size notice.
+  await expect(figures(page, 'd2')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Load anyway' })).toHaveCount(0);
+});
