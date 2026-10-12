@@ -41,10 +41,17 @@ export default function DiagramFigure({
     if (svg === undefined) return;
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
     setShown({ svg, url });
-    return () => URL.revokeObjectURL(url);
+    return () => {
+      URL.revokeObjectURL(url);
+      // Never keep a revoked URL; the next effect (same commit) sets the new one.
+      setShown((s) => (s?.url === url ? null : s));
+    };
   }, [svg]);
 
   if (error !== undefined) {
+    // An error figure has no tools: reset them so a fixed diagram does not reopen the viewer.
+    if (fullScreen) setFullScreen(false);
+    if (showSource) setShowSource(false);
     return (
       <figure ref={figureRef} className="diagram" data-diagram={kind} data-state="error">
         <DiagramError kind={kind} message={error} source={source} />

@@ -27,6 +27,7 @@ export default function DiagramViewer({
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const pointers = useRef(new Map<number, Point>());
   const [view, setView] = useState<View>(FIT);
@@ -36,6 +37,8 @@ export default function DiagramViewer({
     if (!d) return;
     if (typeof d.showModal === 'function') d.showModal();
     else d.setAttribute('open', '');
+    // `autoFocus` would run before the dialog is open, so focus Close explicitly.
+    closeButton.current?.focus();
   }, []);
 
   // React registers wheel listeners as passive, so preventDefault needs a native one.
@@ -117,6 +120,7 @@ export default function DiagramViewer({
           Fit
         </button>
         <button
+          ref={closeButton}
           type="button"
           className="btn diagram-viewer-close"
           onClick={() => {
@@ -124,7 +128,6 @@ export default function DiagramViewer({
             if (d && typeof d.close === 'function') d.close();
             else onClose();
           }}
-          autoFocus
         >
           Close
         </button>

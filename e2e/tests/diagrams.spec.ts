@@ -1,4 +1,10 @@
 import { expect, test } from './fixtures';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+// Writable `live` root (see playwright.config.ts).
+const liveDir = path.resolve(import.meta.dirname, '../../build/e2e/live');
 
 const figures = (page: import('@playwright/test').Page, kind: string) =>
   page.locator(`figure.diagram[data-diagram="${kind}"]`);
@@ -216,4 +222,40 @@ test('a D2 diagram re-renders with the ELK layout', async ({ page }) => {
   expect(
     await fig.locator('img').evaluate((el: HTMLImageElement) => el.naturalWidth),
   ).toBeGreaterThan(0);
+});
+
+test('full screen opens with Close focused', async ({ page }) => {
+  await page.goto('/view/fixtures/diagrams/flow.mmd');
+  const fig = figures(page, 'mermaid');
+  await expect(fig).toHaveAttribute('data-state', 'ready');
+  await fig.getByRole('button', { name: 'Full screen' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Mermaid diagram, full screen' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused();
+});
+
+test('a fixed diagram does not reopen the full-screen viewer after a live-reload error', async ({
+  page,
+}) => {
+  const name = `t-${randomUUID().slice(0, 8)}`;
+  const dir = path.join(liveDir, name);
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, 'd.mmd');
+  const good = 'graph TD\n  A --> B\n';
+  writeFileSync(file, good);
+  await page.goto(`/view/live/${name}/d.mmd`);
+  const fig = figures(page, 'mermaid');
+  await expect(fig).toHaveAttribute('data-state', 'ready');
+  await fig.getByRole('button', { name: 'Full screen' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Mermaid diagram, full screen' });
+  await expect(dialog).toBeVisible();
+
+  writeFileSync(file, 'graph TD\n  A --> --> ((\n');
+  await expect(fig).toHaveAttribute('data-state', 'error');
+  await expect(dialog).toHaveCount(0);
+
+  writeFileSync(file, good);
+  await expect(fig).toHaveAttribute('data-state', 'ready');
+  await expect(fig.locator('img')).toHaveAttribute('src', /^blob:/);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
