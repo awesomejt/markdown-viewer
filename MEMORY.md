@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: F5 workspace tree + file views complete (2026-10-11)
-- Next recommended task: F6 [S] Live reload client
+- Last major milestone: F6 live reload client complete; all Phase 1 frontend tasks done (2026-10-11)
+- Next recommended task: EX1 [S] Example Markdown set
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F6)
+
+- Task: Live reload client.
+- Files changed: `web/src/live/{logic,controller,scrollAnchor}.ts`, `LiveProvider.tsx` + tests, `web/src/app/App.tsx`, `web/src/{fileview/ViewFileView,browse/BrowseView,markdown/MarkdownView}.tsx`, `web/vite.config.ts` (`src/live` in coverage), `e2e/{playwright.config.ts,tests/live.spec.ts}`, `Makefile` (e2e clears `build/e2e/live`), `docs/Architecture.md`.
+- Result: `useLiveSubscription(root, path)` is a no-op without a provider (existing tests unchanged). Each reopen fires `open`, which invalidates active roots/list/file queries (one extra refetch per navigation that changes the sub set; accepted per spec). D2 render queries are never invalidated. Markdown scroll snapshot is taken in render and restored in a layout effect, and suppresses the hash scroll once. E2E has a second root `live=build/e2e/live:poll` with `MDV_POLL_INTERVAL=300ms`, created in the Playwright config; specs use unique `t-<uuid>` folders. The orchestrator reviewed the diff and re-ran `make check` (147 web tests, 93.46% lines) and `make e2e` (28).
+- Blockers or follow-up: FIX-3 (image files never refresh: plain `<img src>`). Late height changes (Shiki, diagrams) after restore can shift scroll slightly. Workspace tree still has no own subscriptions (R2.10).
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (F5)
 

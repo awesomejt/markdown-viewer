@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 
 // Runs inside the pinned Playwright image (see the Makefile `e2e` target): the repo is mounted at
@@ -6,6 +7,11 @@ import path from 'node:path';
 const repo = path.resolve(import.meta.dirname, '..');
 const port = Number(process.env.E2E_PORT ?? 18080);
 const baseURL = `http://127.0.0.1:${port}`;
+
+// Writable root for the live-reload specs (under the ignored build/; fixtures are tracked and read-only).
+// `make e2e` clears it first; specs use unique file names. The server needs the directory to exist at start.
+const liveDir = path.join(repo, 'build/e2e/live');
+mkdirSync(liveDir, { recursive: true });
 
 export default defineConfig({
   testDir: './tests',
@@ -30,7 +36,8 @@ export default defineConfig({
     stdout: 'ignore',
     env: {
       MDV_LISTEN: `127.0.0.1:${port}`,
-      MDV_ROOTS: `fixtures=${path.join(repo, 'testdata/fixtures')}`,
+      MDV_ROOTS: `fixtures=${path.join(repo, 'testdata/fixtures')},live=${liveDir}:poll`,
+      MDV_POLL_INTERVAL: '300ms',
     },
   },
 });

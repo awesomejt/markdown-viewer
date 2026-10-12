@@ -22,7 +22,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text-summary', 'lcov'],
       reportsDirectory: '../build/coverage/web',
-      include: ['src/api/**', 'src/markdown/**', 'src/diagrams/**'],
+      include: ['src/api/**', 'src/markdown/**', 'src/diagrams/**', 'src/live/**'],
       thresholds: {
         lines: 80,
       },

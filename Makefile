@@ -113,6 +113,7 @@ run: build
 ## e2e: run end-to-end tests
 # Runs inside the pinned Playwright image (no host browsers); reports go to build/e2e/ (HTML: build/e2e/report).
 e2e: build fixtures build/.stamp-e2e-deps
+	rm -rf build/e2e/live
 	mkdir -p build/e2e build/.cache/home
 	$(DOCKER_RUN) --ipc=host -e HOME=/src/build/.cache/home -e CI=1 -w /src/e2e $(PLAYWRIGHT_IMAGE) npx playwright test
 
