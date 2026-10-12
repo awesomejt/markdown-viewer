@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-12 `/api/file` write deadline (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-13) meanwhile
+- Last major milestone: FIX-13 `HostPath` NFC/NFD fix (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-14) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -77,6 +77,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-13)
+
+- Task: `HostPath` NFC/NFD join; small enough to fix in the orchestrator without a subagent.
+- Files changed: `internal/fsroot/watchops.go` (`HostPath` runs its own `withRetry` stat and joins the name that succeeded; `HostPathMissing` inherits it), tests in `internal/fsroot/watchops_test.go` and `internal/watch/hub_test.go`.
+- Result: New hub test (NFC sub, NFD names, file + dir keys) is red in fsnotify mode without the fix (file key silent, dir key Add fails) and green with it in both modes. `make check` exit 0, `make e2e` 148 passed; logs `build/fix13-*.log`.
+- Blockers or follow-up: The retry is whole-path only; a path whose components mix NFC and NFD on disk is still not found (unchanged, pre-existing).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-12)
 
 - Task: `/api/file` write deadline; small enough to fix in the orchestrator without a subagent.
@@ -90,10 +97,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/api/client.ts` (`fileUrl` optional `version` → `v=`), `web/src/fileview/ViewFileView.tsx` (`ImageFile` uses `<mtime>-<size>` from the listing entry), unit tests, `e2e/tests/live.spec.ts`.
 - Result: New e2e (SVG rewritten, `naturalWidth` 10 → 40) fails on 4/4 projects with the cache-buster disabled and passes with it. `make check` exit 0 (171 unit), `make e2e` 148 passed; logs `build/fix3-*.log`.
 - Blockers or follow-up: Images embedded in Markdown still use plain URLs; they refresh only when the Markdown re-renders with a new `<img>` (logged as FIX-18).
-
-### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-2)
-
-- Task: Oversized standalone diagram "Load anyway"; `/view` fallback kinds.
-- Files changed: `web/src/fileview/ViewFileView.tsx` (diagram case wrapped in `TextGate`), `web/src/diagrams/DiagramPage.tsx` (takes `source`, no fetch), `web/src/fileview/logic.ts` + new `logic.test.ts` (`fileKind` mirrors `ClassifyName`), `testdata/mkfixtures.sh` (`large.d2` ~6 MiB), `e2e/tests/diagrams.spec.ts`.
-- Result: The orchestrator checked the extension lists against `internal/fsroot/kind.go` (identical) and re-ran `make check` (171 unit, exit 0); `make e2e` 144 passed. Logs `build/fix2-*.log`.
-- Blockers or follow-up: A forced diagram over 5 MiB still cannot render (D2 render body cap 256 KiB, Mermaid `maxTextSize` ~50 KB), so it shows the error figure; recorded under Known Limitations (raising the caps is an owner call).

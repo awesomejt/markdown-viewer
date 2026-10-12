@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-2)
+
+- Task: Oversized standalone diagram "Load anyway"; `/view` fallback kinds.
+- Files changed: `web/src/fileview/ViewFileView.tsx` (diagram case wrapped in `TextGate`), `web/src/diagrams/DiagramPage.tsx` (takes `source`, no fetch), `web/src/fileview/logic.ts` + new `logic.test.ts` (`fileKind` mirrors `ClassifyName`), `testdata/mkfixtures.sh` (`large.d2` ~6 MiB), `e2e/tests/diagrams.spec.ts`.
+- Result: The orchestrator checked the extension lists against `internal/fsroot/kind.go` (identical) and re-ran `make check` (171 unit, exit 0); `make e2e` 144 passed. Logs `build/fix2-*.log`.
+- Blockers or follow-up: A forced diagram over 5 MiB still cannot render (D2 render body cap 256 KiB, Mermaid `maxTextSize` ~50 KB), so it shows the error figure; recorded under Known Limitations (raising the caps is an owner call).
+
 ### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (DOC1)
 
 - Task: README + deployment docs.

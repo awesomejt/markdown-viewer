@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **FIX-13** [S] `HostPath` resolves NFC/NFD for the stat but joins the original form (`internal/fsroot/watchops.go`), so fsnotify roots never match the base name (dead live reload) or 500 on dir keys for mismatched normalization; return and use the name that succeeded
 - [ ] **FIX-14** [S] Mermaid temp ids `mdv-mermaid-N` can equal a heading slug and `getElementById(id)?.remove()` deletes the heading; use an id a slug cannot produce (`web/src/diagrams/mermaid.ts`)
 - [ ] **FIX-16** [S] A root opened before its NAS mounts keeps the `os.Root` fd on the empty mount-point dir even though `rslave` makes the mount visible; detect a device change (`st_dev` of the host path vs the open root) in the probe/poll and reopen the `lazyRoot` (`internal/fsroot/lazy.go`)
 - [ ] **FIX-18** [S] Images embedded in Markdown keep a fixed `/api/file` URL, so an on-disk image change does not show until reload (FIX-3 covered only the image view); subscribe to relative image paths or add a cache-buster
@@ -73,6 +72,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **FIX-13** [S] `HostPath` joins the NFC/NFD form its stat succeeded with, so fsnotify watches on-disk names (file keys no longer silent, dir keys no longer fail); hub test red in fsnotify mode without the fix; `make check` green, `make e2e` 148 passed.
 - [x] 2026-10-12: **FIX-12** [S] `/api/file` body copied through `chunkWriter` (fresh 10 s write deadline per chunk, no `ReaderFrom` bypass); stalled-client test red without it (15 s hang) and green with it; keep-alive reuse after the deadline verified; `make check` green, `make e2e` 148 passed.
 - [x] 2026-10-12: **FIX-3** [S] Image view `<img>` URL carries `v=<mtime>-<size>` from the parent listing, so live reload shows on-disk changes; e2e red (4/4) without it, green with it; `make check` green, `make e2e` 148 passed.
 - [x] 2026-10-12: **FIX-2** [S] Standalone diagrams go through `TextGate` (413 → size notice + "Load anyway" `force=1`); `fileKind` fallback mirrors `ClassifyName` (markdown/diagram/image/text); `large.d2` fixture + e2e; `make check` green (171 unit), `make e2e` 144 passed.
