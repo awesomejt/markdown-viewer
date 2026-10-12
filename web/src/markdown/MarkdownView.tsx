@@ -12,6 +12,8 @@ import { Link, useLocation } from 'react-router';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
 import Diagram, { type DiagramKind } from '../diagrams/Diagram';
 import CodeBlock from './CodeBlock';
+import CopyButton from './CopyButton';
+import { extractFrontMatter } from './frontMatter';
 import MarkdownImage from './MarkdownImage';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
@@ -125,18 +127,19 @@ function makeComponents(ctx: LinkContext): Components {
         }
         const className = code.props.className;
         const lang = /(?:^|\s)language-(\S+)/.exec(className ?? '')?.[1];
-        if (lang) {
-          return (
-            <CodeBlock
-              lang={lang}
-              className={className}
-              code={textOf(code.props.children)}
-              preProps={rest}
-            >
-              {children}
-            </CodeBlock>
-          );
-        }
+        const text = textOf(code.props.children);
+        return (
+          <div className="code-block">
+            {lang ? (
+              <CodeBlock lang={lang} className={className} code={text} preProps={rest}>
+                {children}
+              </CodeBlock>
+            ) : (
+              <pre {...rest}>{children}</pre>
+            )}
+            <CopyButton text={text.replace(/\n$/, '')} />
+          </div>
+        );
       }
       return <pre {...rest}>{children}</pre>;
     },
@@ -180,16 +183,28 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
+  const frontMatter = extractFrontMatter(text);
+
   return (
-    <div className="markdown-body" ref={bodyRef}>
-      <Markdown
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={rehypePlugins}
-        remarkRehypeOptions={{ clobberPrefix: '' }}
-        components={components}
-      >
-        {text}
-      </Markdown>
-    </div>
+    <>
+      {frontMatter?.trim() && (
+        <details className="front-matter">
+          <summary>Front matter</summary>
+          <pre>
+            <code>{frontMatter}</code>
+          </pre>
+        </details>
+      )}
+      <div className="markdown-body" ref={bodyRef}>
+        <Markdown
+          remarkPlugins={remarkPlugins}
+          rehypePlugins={rehypePlugins}
+          remarkRehypeOptions={{ clobberPrefix: '' }}
+          components={components}
+        >
+          {text}
+        </Markdown>
+      </div>
+    </>
   );
 }

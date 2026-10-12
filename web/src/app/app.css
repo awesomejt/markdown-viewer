@@ -325,6 +325,57 @@ a:focus-visible {
   scroll-margin-top: calc(var(--header-h) + 8px);
 }
 
+/* Fenced code: the copy button stays in the corner while the block scrolls (R2.2). */
+.markdown-body .code-block {
+  position: relative;
+  margin: 1em 0;
+}
+
+.markdown-body .code-block > pre {
+  margin: 0;
+}
+
+.copy-code {
+  position: absolute;
+  top: 0.4em;
+  right: 0.4em;
+  padding: 0.15em 0.6em;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+}
+
+.copy-code:hover,
+.copy-code:focus-visible {
+  color: inherit;
+}
+
+/* Front matter panel above the document (R2.2), collapsed by default. */
+.front-matter {
+  max-width: 50rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.front-matter summary {
+  padding: 0.4em 0.8em;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.front-matter pre {
+  margin: 0;
+  padding: 0.8em 1em;
+  border-top: 1px solid var(--border);
+  background: var(--bg-alt);
+  overflow-x: auto;
+}
+
 /* Shiki dual themes: light colors are inline, dark ones come from --shiki-dark variables. */
 .markdown-body .shiki {
   padding: 0.8em 1em;
