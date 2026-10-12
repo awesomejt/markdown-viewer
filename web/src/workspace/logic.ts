@@ -22,9 +22,9 @@ export function expandedFor(path: string, ws: string, isFolder: boolean): Set<st
   return set;
 }
 
-/** Visible tree children: dot-files hidden, folders first, then files, each by name. */
-export function treeEntries(entries: ListEntry[]): ListEntry[] {
-  const visible = filterEntries(entries, { query: '', mdOnly: false });
+/** Visible tree children: dot-files hidden unless `showHidden`, folders first, then by name. */
+export function treeEntries(entries: ListEntry[], showHidden = false): ListEntry[] {
+  const visible = filterEntries(entries, { query: '', mdOnly: false, showHidden });
   const rank = (e: ListEntry) => (e.type === 'dir' ? 0 : 1);
   return [...visible].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 }

@@ -40,6 +40,11 @@ describe('filterEntries', () => {
       'blob.bin',
     ]);
   });
+  it('keeps dot-files when showHidden is on', () => {
+    expect(
+      filterEntries(entries, { query: '', mdOnly: false, showHidden: true }).map((e) => e.name),
+    ).toEqual(['sub', '.hidden', 'Guide.md', 'flow.mmd', 'blob.bin']);
+  });
   it('filters case-insensitively by substring', () => {
     expect(filterEntries(entries, { query: 'GUI', mdOnly: false }).map((e) => e.name)).toEqual([
       'Guide.md',

@@ -35,4 +35,8 @@ describe('treeEntries', () => {
     const out = treeEntries([e('b.md', 'file'), e('.git', 'dir'), e('z', 'dir'), e('a', 'dir')]);
     expect(out.map((x) => x.name)).toEqual(['a', 'z', 'b.md']);
   });
+  it('keeps dot-files when showHidden is on', () => {
+    const out = treeEntries([e('b.md', 'file'), e('.git', 'dir'), e('a', 'dir')], true);
+    expect(out.map((x) => x.name)).toEqual(['.git', 'a', 'b.md']);
+  });
 });

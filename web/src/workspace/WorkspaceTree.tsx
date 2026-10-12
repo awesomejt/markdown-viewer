@@ -5,6 +5,7 @@ import { useList } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
 import { KindIcon } from '../browse/KindIcon';
 import { joinPath, kindOf } from '../browse/logic';
+import { useShowHidden } from '../browse/showHidden';
 import { expandedFor, treeEntries } from './logic';
 import './tree.css';
 
@@ -45,9 +46,10 @@ interface Ctx extends TreeProps {
 
 function TreeChildren({ dir, ...ctx }: Ctx & { dir: string }) {
   const list = useList(ctx.root, dir);
+  const [showHidden] = useShowHidden();
   if (list.isPending) return <Loading />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => void list.refetch()} />;
-  const entries = treeEntries(list.data.entries);
+  const entries = treeEntries(list.data.entries, showHidden);
   if (entries.length === 0) return <p className="muted tree-empty">Empty folder</p>;
   return (
     <ul className="tree-list">

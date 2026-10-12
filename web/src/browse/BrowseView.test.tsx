@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { resetShowHiddenCache } from './showHidden';
 
 const mtime = '2026-01-02T03:04:05Z';
 const listing = (path: string, entries: object[], truncated = false) => ({
@@ -28,6 +29,7 @@ const bodies: Record<string, unknown> = {
 
 beforeEach(() => {
   window.localStorage.clear();
+  resetShowHiddenCache();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
@@ -78,6 +80,31 @@ describe('BrowseView', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Markdown/diagrams only' }));
     expect(within(list).queryByText('data.bin')).toBeNull();
     expect(window.localStorage.getItem('mdv-md-only')).toBe('1');
+  });
+
+  it('shows hidden files when toggled (persisted)', async () => {
+    const user = userEvent.setup();
+    renderAt('/browse/r');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    const toggle = screen.getByRole('checkbox', { name: 'Show hidden files' });
+    expect(toggle).not.toBeChecked();
+    await user.click(toggle);
+    expect(within(list).getByRole('link', { name: '.git' })).toHaveAttribute(
+      'href',
+      '/browse/r/.git',
+    );
+    expect(window.localStorage.getItem('mdv-show-hidden')).toBe('1');
+    await user.click(toggle);
+    expect(within(list).queryByText('.git')).toBeNull();
+    expect(window.localStorage.getItem('mdv-show-hidden')).toBe('0');
+  });
+
+  it('restores a persisted show-hidden choice', async () => {
+    window.localStorage.setItem('mdv-show-hidden', '1');
+    renderAt('/browse/r');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    expect(within(list).getByRole('link', { name: '.git' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Show hidden files' })).toBeChecked();
   });
 
   it('sorts by date and persists the choice', async () => {

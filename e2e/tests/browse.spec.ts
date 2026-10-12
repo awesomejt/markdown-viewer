@@ -39,6 +39,28 @@ test('filter narrows the list and dot-folders are hidden', async ({ page }) => {
   await expect(list.getByRole('link', { name: 'name with spaces.md' })).toBeVisible();
 });
 
+test('show hidden files reveals dot-entries everywhere and persists', async ({ page }) => {
+  await page.goto('/browse/fixtures?ws=');
+  const list = entries(page);
+  // The closed iPad drawer is `visibility: hidden`, so count tree links by CSS, not role.
+  const treeLink = (name: string) => page.locator('#sidebar a.tree-link', { hasText: name });
+  await expect(list.getByRole('link', { name: 'README.md' })).toBeVisible();
+  await expect(list.getByRole('link', { name: '.hidden' })).toHaveCount(0);
+  await expect(treeLink('README.md')).toHaveCount(1);
+  await expect(treeLink('.dotfile.md')).toHaveCount(0);
+
+  await page.getByRole('checkbox', { name: 'Show hidden files' }).check();
+  await expect(list.getByRole('link', { name: '.dotfile.md' })).toBeVisible();
+  await expect(treeLink('.dotfile.md')).toHaveCount(1);
+
+  await page.reload();
+  await expect(page.getByRole('checkbox', { name: 'Show hidden files' })).toBeChecked();
+  await list.getByRole('link', { name: '.hidden' }).click();
+  await expect(page).toHaveURL(/\/browse\/fixtures\/\.hidden\?ws=$/);
+  await entries(page).getByRole('link', { name: 'secret.md' }).click();
+  await expect(page.getByRole('heading', { name: 'Secret' })).toBeVisible();
+});
+
 test('markdown-only toggle hides non-markdown files', async ({ page }) => {
   await page.goto('/browse/fixtures/text');
   const list = entries(page);

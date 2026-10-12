@@ -6,6 +6,7 @@ import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
 import { Breadcrumbs } from './Breadcrumbs';
 import { KindIcon } from './KindIcon';
+import { useShowHidden } from './showHidden';
 import {
   filterEntries,
   formatMtime,
@@ -39,11 +40,11 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
   useLiveSubscription(root, path);
   const [query, setQuery] = useState('');
   const [mdOnly, setMdOnly] = useState(loadMdOnly);
-
+  const [showHidden, setShowHidden] = useShowHidden();
   const [sort, setSort] = useState<SortKey>(loadSort);
 
   const entries = list.data
-    ? sortEntries(filterEntries(list.data.entries, { query, mdOnly }), sort)
+    ? sortEntries(filterEntries(list.data.entries, { query, mdOnly, showHidden }), sort)
     : [];
 
   return (
@@ -79,6 +80,14 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
                 }}
               />
               Markdown/diagrams only
+            </label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={showHidden}
+                onChange={(e) => setShowHidden(e.target.checked)}
+              />
+              Show hidden files
             </label>
             <label className="sort-control">
               Sort by
