@@ -124,12 +124,12 @@ func themeID(theme string) (int64, error) {
 	return 0, &BadRequestError{Msg: fmt.Sprintf("unknown theme %q (want light or dark)", theme)}
 }
 
+// layoutName validates a requested layout. Empty stays empty: the source's
+// d2-config layout-engine then applies, falling back to dagre.
 func layoutName(layout string) (string, error) {
 	switch layout {
-	case "", LayoutDagre:
-		return LayoutDagre, nil
-	case LayoutELK:
-		return LayoutELK, nil
+	case "", LayoutDagre, LayoutELK:
+		return layout, nil
 	}
 	return "", &BadRequestError{Msg: fmt.Sprintf("unknown layout %q (want dagre or elk)", layout)}
 }
@@ -270,10 +270,6 @@ func realCompile(ctx context.Context, s *slot, source string, themeID int64, lay
 		}
 		s.ruler = ruler
 	}
-	var lg d2graph.LayoutGraph = d2dagrelayout.DefaultLayout
-	if layout == LayoutELK {
-		lg = d2elklayout.DefaultLayout
-	}
 	renderOpts := &d2svg.RenderOpts{Pad: go2.Pointer(int64(5)), ThemeID: go2.Pointer(themeID)}
 	opts := &d2lib.CompileOptions{
 		Ruler: s.ruler,
@@ -281,8 +277,18 @@ func realCompile(ctx context.Context, s *slot, source string, themeID int64, lay
 		// through d2compiler to d2ir, which opens imports with os.Open when FS
 		// is nil and with FS.Open otherwise. A nil FS would therefore read the
 		// host, so an explicit empty FS is always set.
-		FS:             emptyFS{},
-		LayoutResolver: func(string) (d2graph.LayoutGraph, error) { return lg, nil },
+		FS: emptyFS{},
+		// The engine is the requested layout, else the source's d2-config
+		// layout-engine, else dagre. Unknown engines (tala) fall back to dagre.
+		LayoutResolver: func(engine string) (d2graph.LayoutGraph, error) {
+			if engine == LayoutELK {
+				return d2elklayout.DefaultLayout, nil
+			}
+			return d2dagrelayout.DefaultLayout, nil
+		},
+	}
+	if layout != "" {
+		opts.Layout = &layout
 	}
 	diagram, _, err := d2lib.Compile(ctx, source, opts, renderOpts)
 	if err != nil {

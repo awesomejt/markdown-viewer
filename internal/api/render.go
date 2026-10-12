@@ -21,7 +21,7 @@ type d2Renderer interface {
 type renderRequest struct {
 	Source string `json:"source"`
 	Theme  string `json:"theme"`  // "light" (default when empty) or "dark"
-	Layout string `json:"layout"` // "dagre" (default when empty) or "elk"
+	Layout string `json:"layout"` // "dagre" or "elk"; empty uses the source d2-config, else dagre
 }
 
 // setRenderHeaders sandboxes the response so a cross-site navigation to it
