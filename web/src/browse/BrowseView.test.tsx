@@ -25,6 +25,10 @@ const bodies: Record<string, unknown> = {
   docs: listing('docs', [f('a.md', 'markdown')]),
   empty: listing('empty', []),
   big: listing('big', [f('x.md', 'markdown')], true),
+  many: listing(
+    'many',
+    Array.from({ length: 1000 }, (_, i) => f(`f${String(i).padStart(4, '0')}.md`, 'markdown')),
+  ),
 };
 
 beforeEach(() => {
@@ -41,7 +45,10 @@ beforeEach(() => {
     }),
   );
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });
@@ -179,5 +186,27 @@ describe('BrowseView', () => {
     const nav = await screen.findByRole('navigation', { name: 'Breadcrumb' });
     expect(within(nav).getByRole('link', { name: 'r' })).toHaveAttribute('href', '/browse/r');
     expect(within(nav).getByText('docs')).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('renders only the rows near the viewport for a long folder', async () => {
+    // jsdom has no layout: give every element a row's height so the virtualizer measures something.
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(45);
+    renderAt('/browse/r/many');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    const rows = await within(list).findAllByRole('listitem');
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.length).toBeLessThan(100);
+    expect(rows[0]).toHaveAttribute('aria-posinset', '1');
+    expect(rows[0]).toHaveAttribute('aria-setsize', '1000');
+    expect(within(list).queryByRole('link', { name: 'f0999.md' })).not.toBeInTheDocument();
+
+    // The filter reaches every entry; a short result renders as a plain list.
+    await userEvent.type(screen.getByRole('searchbox', { name: 'Filter by name' }), 'f0999');
+    const only = within(screen.getByRole('list', { name: 'Entries' })).getByRole('listitem');
+    expect(only).not.toHaveAttribute('aria-setsize');
+    expect(within(only).getByRole('link', { name: 'f0999.md' })).toHaveAttribute(
+      'href',
+      '/view/r/many/f0999.md',
+    );
   });
 });

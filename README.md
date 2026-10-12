@@ -6,7 +6,7 @@ mdv is a self-hosted, read-only Markdown viewer for a home network. One server o
 
 Features:
 
-- Browse named roots (local folders or mounted NAS shares) and open any folder as a workspace.
+- Browse named roots (local folders or mounted NAS shares) and open any folder as a workspace. Folders with thousands of files stay responsive: long listings render only the visible rows, and the sidebar tree shows 200 entries at a time ("Show more").
 - GitHub-flavored Markdown with syntax-highlighted code, KaTeX math (`$...$`, `$$...$$`, ```` ```math ````), GitHub alerts (`> [!NOTE]`), front matter, relative links, anchors, and a table of contents.
 - Syntax-highlighted code and config files (Go, Python, TypeScript, YAML, and more).
 - Mermaid diagrams render in the browser. D2 diagrams render on the server. Each diagram can show its source or open full screen with pan and zoom (drag, wheel, pinch on iPad, `+`/`-`/`0`). D2 supports the dagre (default) and ELK layouts: pick one from a diagram's Layout menu, or set `vars: {d2-config: {layout-engine: elk}}` in the source.

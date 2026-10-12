@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.8)
+
+- Task: Diagram source toggle, pan/zoom, full screen, iPad pinch (FR-4.6, FR-4.7); done in the orchestrator without a subagent.
+- Files changed: new `web/src/diagrams/panzoom.ts` (pure zoom/pan/pinch/wheel math), `DiagramViewer.tsx` (native modal `dialog` portaled to `body`), `DiagramFigure.tsx` (tools row), `app/app.css`, unit tests (`panzoom.test.ts`, `viewer.test.tsx`), `e2e/tests/diagrams.spec.ts`, `docs/Architecture.md`, `README.md`.
+- Result: `make check` exit 0 (242 unit), `make e2e` 204 passed (synthetic touch pointers pinch on all 4 projects); logs `build/r28-*.log`.
+- Blockers or follow-up: R2.9's "re-render on theme change" already exists since F4; only the ELK option remains there.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-19)
 
 - Task: Recent e2e flake; done in the orchestrator without a subagent.
