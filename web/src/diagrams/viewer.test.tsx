@@ -55,6 +55,23 @@ describe('DiagramFigure tools', () => {
     expect(HTMLDialogElement.prototype.showModal).toHaveBeenCalledTimes(1);
   });
 
+  it('resets the viewer and source toggle after an error, with a fresh image URL', () => {
+    let n = 0;
+    URL.createObjectURL = vi.fn(() => `blob:v${++n}`);
+    const { rerender } = render(<DiagramFigure kind="mermaid" source="a" svg={SVG} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Source' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    rerender(<DiagramFigure kind="mermaid" source="a b" error="bad" />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    rerender(<DiagramFigure kind="mermaid" source="a" svg={SVG} />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.querySelector('.diagram-source')).toBeNull();
+    const img = screen.getByRole('img', { name: 'Mermaid diagram' });
+    expect(img).toHaveAttribute('src', 'blob:v2');
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:v1');
+  });
+
   it('opens the full-screen viewer and returns focus on close', () => {
     render(<DiagramFigure kind="d2" source="a -> b" svg={SVG} />);
     const open = screen.getByRole('button', { name: 'Full screen' });
@@ -128,6 +145,18 @@ describe('DiagramViewer', () => {
     });
     expect(e.defaultPrevented).toBe(true);
     expect(screen.getByRole('img').style.transform).toMatch(/scale\(1\.2\d*\)$/);
+  });
+
+  it('focuses Close once opened', () => {
+    render(<DiagramViewer kind="d2" url="blob:x" onClose={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
+  });
+
+  it('focuses Close in the open-attribute fallback too', () => {
+    // @ts-expect-error simulate a browser without modal dialogs
+    HTMLDialogElement.prototype.showModal = undefined;
+    render(<DiagramViewer kind="d2" url="blob:x" onClose={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
   });
 
   it('falls back to the open attribute without showModal', () => {

@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-24 NFR-3 viewport render under 2 s on iPad emulation, `make perf` added (2026-10-12); remaining R2.13 follow-ups FIX-25 to FIX-28, DOC2, CH2
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-25 (diagram viewer reset/focus) meanwhile
+- Last major milestone: FIX-25 diagram viewer reset/focus fixed (2026-10-12); remaining R2.13 follow-ups FIX-26 to FIX-28, DOC2, CH2
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-26 (Shiki/KaTeX render limits in Markdown) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-25)
+
+- Task: full-screen diagram viewer reopened after a fixed live-reload error, and initial focus missed Close; Sonnet coder, orchestrator reviewed the diff and ran the gates.
+- Files changed: `web/src/diagrams/DiagramFigure.tsx` (reset during render in the error branch, cleanup clears `shown`), `DiagramViewer.tsx` (Close ref focused after `showModal()`), `viewer.test.tsx` (3 tests), `e2e/tests/diagrams.spec.ts` (focus + live-reload reopen specs on the `live` root).
+- Result: the 3 unit tests fail on the old code; the e2e reopen spec should fail on it too by inspection (the viewer stays open; not run on old code). `make check` exit 0 (vitest 261), `make e2e` 232 passed; logs `build/fix25-*.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-24)
 
 - Task: NFR-3 doc render over 2 s; Sonnet coder in two rounds, orchestrator reviewed the queue code and ran the gates.
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/markdown/MarkdownView.tsx` (`useMemo` for components and the `<Markdown>` element, hoisted `remarkRehypeOptions`), `web/src/markdown/MarkdownView.test.tsx` (render-stability test).
 - Result: Mermaid renders once per diagram across TOC, same-props and hash re-renders; the new test fails on the old code (4 renders for 2 diagrams). `make check` exit 0 (vitest 253), `make e2e` 224 passed; logs `build/fix23-*.log`.
 - Blockers or follow-up: FIX-24 re-measures NFR-3 now that the double render is gone.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-22)
-
-- Task: One bad image or tree sub kills live reload; Sonnet implementer, orchestrator reviewed the diff and re-ran the gates.
-- Files changed: `internal/watch/hub.go` (`Sub.Low`, `overCapLocked`), `internal/api/events.go` (`lsub`), `web/src/live/logic.ts` (`capSubs` returns `{sub, lsub}`), tests in both, `e2e/tests/live.spec.ts` + `livefs` fsnotify root in `e2e/playwright.config.ts`, `Makefile` (cleans `build/e2e/livefs`), `docs/Architecture.md`.
-- Result: server-side drop chosen over the client-side listing/control-char filter (covers every case in one place). `make check` exit 0, `make e2e` 224 passed. First `make check` failed on MD060 table alignment, a `WorkspaceTree` test parsing only `sub`, and staticcheck QF1006; all fixed.
-- Blockers or follow-up: a normal `sub` that fails (viewed file's directory deleted on an `:fsnotify` root) still fails the stream (Known Limitations).
