@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.2)
+
+- Task: Copy-code button and front matter panel (FR-3.2, FR-3.4); done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/copy.ts` (`copyText`: async clipboard in secure contexts, else `execCommand` on an off-screen textarea), `CopyButton.tsx`, `frontMatter.ts` (`extractFrontMatter`, remark-frontmatter `yaml` fences), `MarkdownView.tsx` (`.code-block` wrapper; collapsed `details.front-matter` above `.markdown-body`), `app/app.css`, unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`.
+- Result: 4 component tests red without the wiring. `make check` exit 0 (198 unit), `make e2e` 168 passed; logs `build/r22-*.log`.
+- Blockers or follow-up: The plain-HTTP `execCommand` fallback is unit-tested only (e2e runs on `localhost`, a secure context); V1 should tap Copy on the iPad.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.1)
 
 - Task: Hidden-files toggle (FR-1.4); small enough to do in the orchestrator without a subagent.
