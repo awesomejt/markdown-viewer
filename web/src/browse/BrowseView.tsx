@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { browseHref, viewHref } from '../api/client';
 import { useList } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
+import { useLiveSubscription } from '../live/LiveProvider';
 import { Breadcrumbs } from './Breadcrumbs';
 import { KindIcon } from './KindIcon';
 import {
@@ -31,6 +32,7 @@ export function BrowseView() {
 function FolderView({ root, path, ws }: { root: string; path: string; ws?: string }) {
   const navigate = useNavigate();
   const list = useList(root, path);
+  useLiveSubscription(root, path);
   const [query, setQuery] = useState('');
   const [mdOnly, setMdOnly] = useState(loadMdOnly);
 

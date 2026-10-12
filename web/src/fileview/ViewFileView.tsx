@@ -4,6 +4,7 @@ import { ApiError, fileUrl } from '../api/client';
 import { useFile, useList } from '../api/hooks';
 import type { EntryKind } from '../api/types';
 import { ErrorState, Loading } from '../app/states';
+import { useLiveSubscription } from '../live/LiveProvider';
 import { formatSize } from '../browse/logic';
 import { fileKind, parentDir } from './logic';
 import './fileview.css';
@@ -135,6 +136,7 @@ export function ViewFileView() {
   const path = params['*'] ?? '';
   const ws = search.get('ws') ?? undefined;
   const list = useList(root, parentDir(path));
+  useLiveSubscription(root, path);
   if (list.isPending) return <Loading />;
   const entry = list.data?.entries.find((e) => e.type === 'file' && e.name === baseName(path));
   return (

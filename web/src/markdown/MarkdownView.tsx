@@ -1,4 +1,12 @@
-import { Children, isValidElement, useEffect, type ComponentProps, type ReactNode } from 'react';
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type ComponentProps,
+  type ReactNode,
+} from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import { Link, useLocation } from 'react-router';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
@@ -6,6 +14,7 @@ import Diagram, { type DiagramKind } from '../diagrams/Diagram';
 import CodeBlock from './CodeBlock';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
+import { captureScroll, restoreScroll, type ScrollSnapshot } from '../live/scrollAnchor';
 
 export type { DiagramKind };
 
@@ -134,8 +143,31 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
   const { hash } = useLocation();
   const components = makeComponents({ root, docPath, ws });
 
-  // After content renders, and again on every hash change.
+  // Live reload: when the text changes under a mounted view, keep the heading nearest the viewport
+  // top at the same offset. The snapshot is taken in render, while the DOM still shows the old text.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const prevText = useRef(text);
+  const snapshot = useRef<ScrollSnapshot | null>(null);
+  const restored = useRef(false);
+  if (prevText.current !== text) {
+    prevText.current = text;
+    snapshot.current = bodyRef.current ? captureScroll(bodyRef.current) : null;
+  }
+  useLayoutEffect(() => {
+    const snap = snapshot.current;
+    snapshot.current = null;
+    if (snap && bodyRef.current) {
+      restoreScroll(bodyRef.current, snap);
+      restored.current = true;
+    }
+  }, [text]);
+
+  // After content renders, and again on every hash change (but not over a live-reload restore).
   useEffect(() => {
+    if (restored.current) {
+      restored.current = false;
+      return;
+    }
     scrollToHash(hash || window.location.hash);
   }, [hash, text]);
   useEffect(() => {
@@ -145,7 +177,7 @@ export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewPr
   }, []);
 
   return (
-    <div className="markdown-body">
+    <div className="markdown-body" ref={bodyRef}>
       <Markdown
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
