@@ -291,7 +291,7 @@ func TestDeadlineErrorMapsToTimeout(t *testing.T) {
 }
 
 func TestLRUEviction(t *testing.T) {
-	c := newLRU(2)
+	c := newLRU(2, 1<<20, 1<<20)
 	k := func(b byte) [32]byte { return [32]byte{b} }
 	c.put(k(1), result{svg: []byte("1")})
 	c.put(k(2), result{svg: []byte("2")})
@@ -312,6 +312,99 @@ func TestLRUEviction(t *testing.T) {
 	c.put(k(4), result{}) // evicts 3
 	if _, ok := c.get(k(3)); ok {
 		t.Fatal("3 should be evicted")
+	}
+}
+
+func TestLRUByteEviction(t *testing.T) {
+	k := func(b byte) [32]byte { return [32]byte{b} }
+	blob := func(n int) result { return result{svg: make([]byte, n)} }
+	per := int64(100 + entryOverhead)
+	c := newLRU(100, 3*per, 1000)
+	c.put(k(1), blob(100))
+	c.put(k(2), blob(100))
+	c.put(k(3), blob(100))
+	if c.len() != 3 || c.size() != 3*per {
+		t.Fatalf("len=%d bytes=%d", c.len(), c.size())
+	}
+	c.get(k(1))            // 2 is now least recent
+	c.put(k(4), blob(100)) // evicts 2
+	if _, ok := c.get(k(2)); ok {
+		t.Fatal("2 should be evicted")
+	}
+	if c.len() != 3 || c.size() != 3*per {
+		t.Fatalf("len=%d bytes=%d", c.len(), c.size())
+	}
+	// A bigger entry evicts several from the back (3, then 1).
+	c.put(k(5), blob(250))
+	if _, ok := c.get(k(3)); ok {
+		t.Fatal("3 should be evicted")
+	}
+	if _, ok := c.get(k(1)); ok {
+		t.Fatal("1 should be evicted")
+	}
+	if want := per + 250 + entryOverhead; c.len() != 2 || c.size() != want {
+		t.Fatalf("len=%d bytes=%d want %d", c.len(), c.size(), want)
+	}
+}
+
+func TestLRUUpdateAdjustsBytes(t *testing.T) {
+	k := [32]byte{1}
+	c := newLRU(10, 10000, 1000)
+	c.put(k, result{svg: make([]byte, 100)})
+	c.put(k, result{svg: make([]byte, 40)})
+	if c.len() != 1 || c.size() != 40+entryOverhead {
+		t.Fatalf("len=%d bytes=%d", c.len(), c.size())
+	}
+}
+
+func TestLRUOversizeNotCached(t *testing.T) {
+	k := [32]byte{1}
+	c := newLRU(10, 10000, 200)
+	c.put(k, result{svg: make([]byte, 100)})
+	c.put(k, result{svg: make([]byte, 500)}) // removes the stale smaller entry
+	if _, ok := c.get(k); ok || c.len() != 0 || c.size() != 0 {
+		t.Fatalf("oversize kept: len=%d bytes=%d", c.len(), c.size())
+	}
+	c.put(k, result{svg: make([]byte, 500)})
+	if c.len() != 0 || c.size() != 0 {
+		t.Fatalf("oversize stored: len=%d bytes=%d", c.len(), c.size())
+	}
+}
+
+func TestLRUErrorCountsBytes(t *testing.T) {
+	c := newLRU(10, 10000, 1000)
+	c.put([32]byte{1}, result{err: errors.New("boom")})
+	if want := int64(len("boom")) + entryOverhead; c.size() != want {
+		t.Fatalf("bytes=%d want %d", c.size(), want)
+	}
+}
+
+func TestNewCacheDefaultsAndClamp(t *testing.T) {
+	r := New(Options{})
+	if r.cache.maxBytes != defaultCacheBytes || r.cache.maxEntry != defaultEntryBytes {
+		t.Fatalf("defaults: %d %d", r.cache.maxBytes, r.cache.maxEntry)
+	}
+	r = New(Options{CacheBytes: 1000, MaxEntryBytes: 5000})
+	if r.cache.maxBytes != 1000 || r.cache.maxEntry != 1000 {
+		t.Fatalf("clamp: %d %d", r.cache.maxBytes, r.cache.maxEntry)
+	}
+}
+
+func TestOversizeSVGNotCached(t *testing.T) {
+	var n atomic.Int32
+	r := New(Options{CacheBytes: 1 << 20, MaxEntryBytes: 1024})
+	fake(r, func(context.Context, *slot, string, int64, string) ([]byte, error) {
+		n.Add(1)
+		return make([]byte, 2048), nil
+	})
+	for i := 1; i <= 2; i++ {
+		svg, err := r.Render(context.Background(), "a", "", "")
+		if err != nil || len(svg) != 2048 {
+			t.Fatalf("render %d: len=%d err=%v", i, len(svg), err)
+		}
+		if int(n.Load()) != i {
+			t.Fatalf("compile ran %d times after render %d", n.Load(), i)
+		}
 	}
 }
 
