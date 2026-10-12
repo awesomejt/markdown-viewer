@@ -633,3 +633,27 @@ func TestDefaultMaxMissing(t *testing.T) {
 		t.Fatalf("MaxMissing = %d", hub.opts.MaxMissing)
 	}
 }
+
+// A sub requested in NFC for names stored in NFD (macOS, some shares) must
+// watch the on-disk names: file keys and dir keys both deliver events.
+func TestNormalizationMismatch(t *testing.T) {
+	const nfc, nfd = "café", "café"
+	for _, mode := range modes {
+		t.Run(string(mode), func(t *testing.T) {
+			hub, dir := newEnv(t, mode)
+			// File key: the parent watch is fine, but events carry the NFD name.
+			f := filepath.Join(dir, nfd+".md")
+			write(t, f, "one")
+			s := subscribe(t, hub, nfc+".md")
+			write(t, f, "two, longer")
+			expect(t, s, ev(nfc+".md", OpModified))
+
+			// Dir key: the watch itself must be added on the NFD directory.
+			mkdirAll(t, filepath.Join(dir, nfd))
+			dirKey := nfc
+			s = subscribe(t, hub, dirKey)
+			write(t, filepath.Join(dir, nfd, "new.md"), "x")
+			expect(t, s, ev(dirKey, OpModified))
+		})
+	}
+}
