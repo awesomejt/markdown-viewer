@@ -109,6 +109,19 @@
   border-top: 1px solid var(--border);
 }
 
+.entries.is-virtual {
+  position: relative;
+  box-sizing: content-box;
+}
+
+/* Virtual rows are placed by a transform; the list height is the measured total. */
+.entries.is-virtual .entry {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
 .entry {
   position: relative;
   display: grid;

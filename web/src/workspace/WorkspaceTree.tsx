@@ -4,7 +4,7 @@ import { browseHref, viewHref } from '../api/client';
 import { useList } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
 import { KindIcon } from '../browse/KindIcon';
-import { joinPath, kindOf } from '../browse/logic';
+import { isWithin, joinPath, kindOf } from '../browse/logic';
 import { useShowHidden } from '../browse/showHidden';
 import { useLiveSubscription } from '../live/LiveProvider';
 import { expandedFor, treeEntries } from './logic';
@@ -43,6 +43,9 @@ export function WorkspaceTree({ root, ws, path, isFolder }: TreeProps) {
   );
 }
 
+/** A folder shows this many children at first, then this many more per "Show more" (NFR-3). */
+const TREE_PAGE = 200;
+
 interface Ctx extends TreeProps {
   isOpen: (p: string) => boolean;
   toggle: (p: string) => void;
@@ -54,13 +57,18 @@ function TreeChildren({ dir, ...ctx }: Ctx & { dir: string }) {
   // Child adds/removes/renames refresh this listing (FR-5.2). Low priority: a deep tree must not push
   // the viewed document or browsed folder out of the per-stream sub cap.
   useLiveSubscription(ctx.root, dir, true);
+  const [limit, setLimit] = useState(TREE_PAGE);
   if (list.isPending) return <Loading />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => void list.refetch()} />;
   const entries = treeEntries(list.data.entries, showHidden);
   if (entries.length === 0) return <p className="muted tree-empty">Empty folder</p>;
+  // Never hide the current item or the folder leading to it.
+  const current = entries.findIndex((e) => isWithin(ctx.path, joinPath(dir, e.name)));
+  const shown = entries.slice(0, Math.max(limit, current + 1));
+  const rest = entries.length - shown.length;
   return (
     <ul className="tree-list">
-      {entries.map((e) => {
+      {shown.map((e) => {
         const child = joinPath(dir, e.name);
         const current = child === ctx.path && (e.type === 'dir') === ctx.isFolder;
         const kind = kindOf(e);
@@ -98,6 +106,17 @@ function TreeChildren({ dir, ...ctx }: Ctx & { dir: string }) {
           </li>
         );
       })}
+      {rest > 0 && (
+        <li>
+          <button
+            type="button"
+            className="btn tree-more"
+            onClick={() => setLimit(shown.length + TREE_PAGE)}
+          >
+            Show more ({rest} left)
+          </button>
+        </li>
+      )}
     </ul>
   );
 }

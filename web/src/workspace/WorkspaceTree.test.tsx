@@ -13,6 +13,9 @@ const bodies: Record<string, object[]> = {
   '': [ent('docs', 'dir'), ent('.git', 'dir'), ent('top.md', 'file', 'markdown')],
   docs: [ent('sub', 'dir'), ent('a.md', 'file', 'markdown')],
   'docs/sub': [ent('deep.md', 'file', 'markdown')],
+  many: Array.from({ length: 450 }, (_, i) =>
+    ent(`n${String(i).padStart(3, '0')}.md`, 'file', 'markdown'),
+  ),
 };
 
 beforeEach(() => {
@@ -107,5 +110,24 @@ describe('WorkspaceTree', () => {
     await waitFor(() => expect(subs()).toEqual(['r:top.md', 'r:', 'r:docs']));
     await userEvent.click(screen.getByRole('button', { name: 'Collapse docs' }));
     await waitFor(() => expect(subs()).toEqual(['r:top.md', 'r:']));
+  });
+
+  it('pages a long folder and always shows the current file', async () => {
+    renderAt('/view/r/many/n300.md?ws=many');
+    const current = await within(tree()).findByRole('link', { name: 'n300.md', current: 'page' });
+    expect(current).toBeInTheDocument();
+    expect(within(tree()).queryByRole('link', { name: 'n301.md' })).not.toBeInTheDocument();
+    await userEvent.click(within(tree()).getByRole('button', { name: 'Show more (149 left)' }));
+    expect(within(tree()).getByRole('link', { name: 'n449.md' })).toBeInTheDocument();
+    expect(within(tree()).queryByRole('button', { name: /Show more/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the first page of a long folder', async () => {
+    renderAt('/browse/r/many?ws=many');
+    await within(tree()).findByRole('link', { name: 'n199.md' });
+    expect(within(tree()).queryByRole('link', { name: 'n200.md' })).not.toBeInTheDocument();
+    await userEvent.click(within(tree()).getByRole('button', { name: 'Show more (250 left)' }));
+    expect(within(tree()).getByRole('link', { name: 'n399.md' })).toBeInTheDocument();
+    expect(within(tree()).getByRole('button', { name: 'Show more (50 left)' })).toBeInTheDocument();
   });
 });

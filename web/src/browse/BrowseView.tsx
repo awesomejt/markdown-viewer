@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
+import type { ListEntry } from '../api/types';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { browseHref, viewHref } from '../api/client';
 import { useList } from '../api/hooks';
@@ -126,34 +128,110 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
                 : 'No entries match the current filter.'}
             </p>
           ) : (
-            <ul className="entries" aria-label="Entries">
-              {entries.map((e) => {
-                const child = joinPath(path, e.name);
-                const kind = kindOf(e);
-                return (
-                  <li key={e.name} className={`entry${kind === 'markdown' ? ' is-markdown' : ''}`}>
-                    <KindIcon kind={kind} />
-                    <Link
-                      className="entry-name"
-                      to={
-                        e.type === 'dir'
-                          ? browseHref(root, child, scopeWs(child, ws))
-                          : viewHref(root, child, scopeWs(child, ws))
-                      }
-                    >
-                      {e.name}
-                    </Link>
-                    <span className="entry-size">{formatSize(e)}</span>
-                    <time className="entry-time" dateTime={e.mtime} title={e.mtime}>
-                      {formatMtime(e.mtime)}
-                    </time>
-                  </li>
-                );
-              })}
-            </ul>
+            <EntryList root={root} path={path} ws={ws} entries={entries} />
           )}
         </>
       )}
     </section>
+  );
+}
+
+/** Folders with at least this many shown entries render only the rows near the viewport (NFR-3). */
+const VIRTUAL_MIN = 200;
+
+interface ListProps {
+  root: string;
+  path: string;
+  ws?: string;
+  entries: readonly ListEntry[];
+}
+
+function EntryList(props: ListProps) {
+  if (props.entries.length >= VIRTUAL_MIN) return <VirtualEntryList {...props} />;
+  return (
+    <ul className="entries" aria-label="Entries">
+      {props.entries.map((e) => (
+        <EntryRow key={e.name} entry={e} {...props} />
+      ))}
+    </ul>
+  );
+}
+
+/** Window-scrolled virtual list: rows are measured, so wrapped names and phone layouts fit. */
+function VirtualEntryList(props: ListProps) {
+  const { entries } = props;
+  const listRef = useRef<HTMLUListElement>(null);
+  // The list's offset in the page; the toolbar above it can wrap, so re-check after every render.
+  const [margin, setMargin] = useState(0);
+  useLayoutEffect(() => {
+    const top = listRef.current
+      ? Math.round(listRef.current.getBoundingClientRect().top + window.scrollY)
+      : 0;
+    if (top !== margin) setMargin(top);
+  });
+  const virtualizer = useWindowVirtualizer({
+    count: entries.length,
+    estimateSize: () => 45,
+    overscan: 10,
+    scrollMargin: margin,
+    getItemKey: (i) => entries[i]!.name,
+  });
+  return (
+    <ul
+      ref={listRef}
+      className="entries is-virtual"
+      aria-label="Entries"
+      style={{ height: virtualizer.getTotalSize() }}
+    >
+      {virtualizer.getVirtualItems().map((item) => (
+        <EntryRow
+          key={item.key}
+          entry={entries[item.index]!}
+          {...props}
+          rowRef={virtualizer.measureElement}
+          index={item.index}
+          style={{ transform: `translateY(${item.start - margin}px)` }}
+        />
+      ))}
+    </ul>
+  );
+}
+
+interface RowProps extends ListProps {
+  entry: ListEntry;
+  /** Set for virtual rows: position in the full list and the measuring ref. */
+  index?: number;
+  rowRef?: Ref<HTMLLIElement>;
+  style?: CSSProperties;
+}
+
+function EntryRow({ root, path, ws, entries, entry: e, index, rowRef, style }: RowProps) {
+  const child = joinPath(path, e.name);
+  const kind = kindOf(e);
+  return (
+    <li
+      ref={rowRef}
+      data-index={index}
+      aria-setsize={index === undefined ? undefined : entries.length}
+      aria-posinset={index === undefined ? undefined : index + 1}
+      style={style}
+      className={`entry${kind === 'markdown' ? ' is-markdown' : ''}`}
+    >
+      <KindIcon kind={kind} />
+      <Link
+        className="entry-name"
+        to={
+          e.type === 'dir'
+            ? browseHref(root, child, scopeWs(child, ws))
+            : viewHref(root, child, scopeWs(child, ws))
+        }
+      >
+        {e.name}
+      </Link>
+      <span className="entry-size">{formatSize(e)}</span>
+      <time className="entry-time" dateTime={e.mtime} title={e.mtime}>
+        {formatMtime(e.mtime)}
+      </time>
+    </li>
   );
 }
