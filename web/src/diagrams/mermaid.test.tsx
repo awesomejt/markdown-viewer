@@ -59,7 +59,30 @@ describe('MermaidDiagram', () => {
     expect(alert).toHaveTextContent('Mermaid diagram error');
     expect(alert).toHaveTextContent('Parse error on line 2');
     expect(alert.querySelector('pre code')?.textContent).toContain('A --> -->');
-    expect(document.body.querySelector('[id^="dmdv-mermaid"]')).toBeNull();
+    expect(document.body.querySelector('[id^="dmdvMermaid"]')).toBeNull();
+  });
+
+  it('uses ids a heading slug cannot produce, so cleanup keeps headings', async () => {
+    // Slugs are lowercase: these are what a heading such as "mdvmermaid 1" would get.
+    const headings = Array.from({ length: 100 }, (_, i) =>
+      [`mdvmermaid-${i}`, `dmdvmermaid-${i}`, `mdv-mermaid-${i}`, `dmdv-mermaid-${i}`].map((id) => {
+        const h = document.createElement('h2');
+        h.id = id;
+        document.body.appendChild(h);
+        return h;
+      }),
+    ).flat();
+    let used = '';
+    mocks.render.mockImplementation(async (id: string) => {
+      used = id;
+      throw new Error('boom');
+    });
+    render(<MermaidDiagram source="x" />);
+    await screen.findByRole('alert');
+    expect(headings.every((h) => h.isConnected)).toBe(true);
+    expect(used).not.toBe(used.toLowerCase());
+    expect(used).toMatch(/^[A-Za-z][\w-]*$/); // safe in Mermaid's unescaped `#id` CSS selectors
+    headings.forEach((h) => h.remove());
   });
 
   it('uses a fallback message for non-Error rejections', async () => {

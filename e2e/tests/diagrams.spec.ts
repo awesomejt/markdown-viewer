@@ -26,6 +26,16 @@ test('inline.md renders valid diagrams and shows errors for invalid ones', async
   await expect(page.getByText('Invalid D2:', { exact: true })).toBeVisible();
 });
 
+test('Mermaid temp-id cleanup keeps headings with look-alike slugs', async ({ page }) => {
+  await page.goto('/view/fixtures/diagrams/inline.md');
+  const mermaid = figures(page, 'mermaid');
+  await expect(mermaid.first()).toHaveAttribute('data-state', 'ready');
+  await expect(mermaid.nth(1)).toHaveAttribute('data-state', 'error');
+  for (const id of ['mdv-mermaid-1', 'dmdv-mermaid-2', 'mdvmermaid-1', 'dmdvmermaid-2']) {
+    await expect(page.locator(`h3[id="${id}"]`)).toHaveCount(1);
+  }
+});
+
 test('standalone diagram files render full page', async ({ page }) => {
   for (const [file, kind] of [
     ['flow.mmd', 'mermaid'],

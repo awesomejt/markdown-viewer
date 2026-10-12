@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-3)
+
+- Task: Live reload for image views; small enough to fix in the orchestrator without a subagent.
+- Files changed: `web/src/api/client.ts` (`fileUrl` optional `version` → `v=`), `web/src/fileview/ViewFileView.tsx` (`ImageFile` uses `<mtime>-<size>` from the listing entry), unit tests, `e2e/tests/live.spec.ts`.
+- Result: New e2e (SVG rewritten, `naturalWidth` 10 → 40) fails on 4/4 projects with the cache-buster disabled and passes with it. `make check` exit 0 (171 unit), `make e2e` 148 passed; logs `build/fix3-*.log`.
+- Blockers or follow-up: Images embedded in Markdown still use plain URLs; they refresh only when the Markdown re-renders with a new `<img>` (logged as FIX-18).
+
 ### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-2)
 
 - Task: Oversized standalone diagram "Load anyway"; `/view` fallback kinds.
