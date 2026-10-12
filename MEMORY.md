@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R1 MVP review done; FIX-4 to FIX-11 logged (2026-10-11)
-- Next recommended task: FIX-4 🔒 [S] D2 render CSRF + CSP, then FIX-5 to FIX-11, then DOC1
+- Last major milestone: FIX-4 D2 render CSRF guard merged (2026-10-11)
+- Next recommended task: FIX-5 🔒 [S] DNS rebinding Host allowlist, then FIX-6 to FIX-11, then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -55,6 +55,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
+- E2E: `workspace tree works in the mobile drawer` failed once on webkit during FIX-4 (element not found) and passed on re-run; likely the drawer auto-close race from T1. Watch for recurrence.
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
 ## Open Questions
@@ -71,6 +72,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-4)
+
+- Task: D2 render CSRF + CSP (🔒).
+- Files changed: `internal/api/render.go`, `internal/api/api.go` (`codeUnsupported`), `internal/api/render_test.go`, `web/src/api/client.test.ts`, `docs/Architecture.md` (415 row, render row, proxy note; tables re-padded for MD060).
+- Result: Stdlib `http.CrossOriginProtection` guards the route (over plain HTTP it compares `Origin` with `Host`, so a reverse proxy must keep `Host` or terminate TLS). Opus reviewer found no remaining cross-site path and approved. `make check` exit 0 and `make e2e` 124 passed (logs in `build/fix4/`).
+- Blockers or follow-up: One flaky webkit drawer e2e failure on the first run (see Known Limitations).
+
 ### 2026-10-11 - Claude Opus 5.5 (R1)
 
 - Task: MVP phase review against Success Criteria 1 to 5 and the Security Model.
@@ -84,10 +92,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `TODO.md`, `MEMORY.md` (T2 is validation only).
 - Result: `make check`, `go test -race ./...`, `make e2e` (124 passed) and `docker compose build` all exit 0. The orchestrator checked the exit-code files and log summaries in `build/t2/` directly rather than trusting the Haiku report.
 - Blockers or follow-up: None. R1 should start from "Known Limitations And Accepted Risks".
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (T1)
-
-- Task: Cross-browser e2e suite + iPad viewport.
-- Files changed: `e2e/playwright.config.ts` (projects chromium, firefox, webkit, ipad), `e2e/tests/flow.spec.ts` (new), `e2e/tests/workspace.spec.ts` (`openTree` drawer helper).
-- Result: 124 e2e tests (31 per project), no skips. iPad Pro 11 portrait is 834 px, so specs that use the sidebar must open the drawer, and must first wait for the drawer to auto-close after navigation (otherwise they race it). The orchestrator added a 200 control to the traversal test and re-ran `make e2e` (124 passed) and `make check` (exit 0).
-- Blockers or follow-up: `/view/...%2f..` returns 200 (SPA route; the API is the guard), so traversal is tested on `/api/*` only.
