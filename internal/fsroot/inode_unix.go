@@ -14,3 +14,12 @@ func Inode(fi fs.FileInfo) uint64 {
 	}
 	return 0
 }
+
+// fileIdentity returns the device and inode numbers of fi, or false when
+// unavailable.
+func fileIdentity(fi fs.FileInfo) (fileID, bool) {
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
+		return fileID{dev: uint64(st.Dev), ino: uint64(st.Ino)}, true //nolint:unconvert,gosec // width and sign differ per platform
+	}
+	return fileID{}, false
+}

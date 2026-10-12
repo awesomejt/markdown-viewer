@@ -102,7 +102,7 @@ The port is ignored and names are case-insensitive. Set `MDV_ALLOWED_HOSTS=*` to
 
 - A root that is missing, erroring, or too slow to answer at boot does not stop mdv. It starts as unavailable, logs a warning, and recovers by itself once the path answers.
 - A root path that exists but is a file fails startup. A bad name, a duplicate name, or a relative path also fails startup.
-- Known limitation: if the mount-point directory exists but the NAS is not mounted yet, mdv opens the empty directory and keeps using it after the mount appears. Restart the service once the share is mounted (`docker compose restart`). Avoid this with the boot ordering in [docs/Deployment.md](docs/Deployment.md#start-docker-after-the-mount).
+- If the mount-point directory exists but the NAS is not mounted yet, mdv opens the empty directory and switches to the share within about 2 seconds of it being mounted. No restart is needed. The boot ordering in [docs/Deployment.md](docs/Deployment.md#start-docker-after-the-mount) avoids the empty folder altogether.
 
 ## Network use
 
