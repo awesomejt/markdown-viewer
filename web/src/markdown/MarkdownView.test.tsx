@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ListEntry } from '../api/types';
 import MarkdownView, { detectDiagram } from './MarkdownView';
 import { rehypePlugins, remarkPlugins, sanitizeSchema } from './pipeline';
 import { scrollToHash } from './scroll';
@@ -70,7 +71,8 @@ describe('links and images', () => {
     expect(hrefOf('Deep')).toBe('/view/r/docs/sub/deep.md?ws=docs#section-two');
     expect(hrefOf('Dir')).toBe('/browse/r/docs/sub?ws=docs');
     const imgs = body.querySelectorAll('img');
-    expect(imgs[0].getAttribute('src')).toBe('/api/file?root=r&path=images%2Fpixel.png');
+    // Held back until the folder listing settles (see 'live images').
+    expect(imgs[0]).not.toHaveAttribute('src');
     expect(imgs[0].getAttribute('loading')).toBe('lazy');
     expect(imgs[1].getAttribute('src')).toBe('https://example.com/i.png');
   });
@@ -118,8 +120,67 @@ describe('link hardening', () => {
   });
 
   it('sends no referrer for images', () => {
-    const { body } = renderMd('![a](https://example.com/i.png)');
-    expect(body.querySelector('img')).toHaveAttribute('referrerpolicy', 'no-referrer');
+    const { body } = renderMd('![a](https://example.com/i.png)\n\n![b](b.png)');
+    for (const img of body.querySelectorAll('img')) {
+      expect(img).toHaveAttribute('referrerpolicy', 'no-referrer');
+    }
+  });
+});
+
+describe('live images', () => {
+  const json = (status: number, body: unknown) =>
+    Promise.resolve(new Response(JSON.stringify(body), { status }));
+  function serveLists(lists: Record<string, ListEntry[] | number>) {
+    const fetchMock = vi.fn((input: string | URL | Request) => {
+      const url = new URL(String(input), 'http://x');
+      const got = lists[url.searchParams.get('path') ?? ''];
+      if (url.pathname !== '/api/list' || got === undefined) return json(404, {});
+      if (typeof got === 'number') return json(got, { error: { code: 'x', message: 'x' } });
+      return json(200, {
+        root: 'r',
+        path: url.searchParams.get('path'),
+        truncated: false,
+        entries: got,
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+  }
+  const file = (name: string, size: number): ListEntry => ({
+    name,
+    type: 'file',
+    kind: 'image',
+    size,
+    mtime: '2026-10-12T10:00:00Z',
+  });
+
+  it('versions each image from its folder listing, one listing per folder', async () => {
+    const fetchMock = serveLists({
+      docs: [file('a.png', 5)],
+      images: [file('b.png', 7), file('c.png', 9)],
+    });
+    const { body } = renderMd('![a](a.png) ![b](../images/b.png) ![c](/images/c.png)');
+    const imgs = body.querySelectorAll('img');
+    await waitFor(() => expect(imgs[2]).toHaveAttribute('src'));
+    expect(imgs[0].getAttribute('src')).toBe(
+      '/api/file?root=r&path=docs%2Fa.png&v=2026-10-12T10%3A00%3A00Z-5',
+    );
+    expect(imgs[1].getAttribute('src')).toContain(
+      'path=images%2Fb.png&v=2026-10-12T10%3A00%3A00Z-7',
+    );
+    expect(imgs[2].getAttribute('src')).toContain(
+      'path=images%2Fc.png&v=2026-10-12T10%3A00%3A00Z-9',
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('falls back to the plain URL when the image is not listed or the listing fails', async () => {
+    serveLists({ docs: [], gone: 503 });
+    const { body } = renderMd('![a](a.png) ![b](gone/b.png)');
+    const imgs = body.querySelectorAll('img');
+    await waitFor(() => expect(imgs[1]).toHaveAttribute('src'));
+    expect(imgs[0].getAttribute('src')).toBe('/api/file?root=r&path=docs%2Fa.png');
+    expect(imgs[1].getAttribute('src')).toBe('/api/file?root=r&path=docs%2Fgone%2Fb.png');
   });
 });
 

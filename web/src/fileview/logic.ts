@@ -6,6 +6,11 @@ export function parentDir(path: string): string {
   return i < 0 ? '' : path.slice(0, i);
 }
 
+/** Last segment of a slash path. */
+export function baseName(path: string): string {
+  return path.split('/').pop() ?? path;
+}
+
 const MARKDOWN_EXTS = 'md markdown mdx';
 const DIAGRAM_EXTS = 'mmd mermaid d2';
 const IMAGE_EXTS = 'png jpg jpeg gif webp svg avif';

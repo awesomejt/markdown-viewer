@@ -6,15 +6,11 @@ import type { EntryKind } from '../api/types';
 import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
 import { formatSize } from '../browse/logic';
-import { fileKind, parentDir } from './logic';
+import { baseName, fileKind, parentDir } from './logic';
 import './fileview.css';
 
 const MarkdownView = lazy(() => import('../markdown/MarkdownView'));
 const DiagramPage = lazy(() => import('../diagrams/DiagramPage'));
-
-function baseName(path: string): string {
-  return path.split('/').pop() ?? path;
-}
 
 /** Fetches a text file; on 413 shows a size notice with a "Load anyway" (`force=1`) button (D-21). */
 function TextGate({

@@ -15,8 +15,11 @@ export function LiveProvider({ children }: { children: ReactNode }) {
   return <LiveContext.Provider value={controller}>{children}</LiveContext.Provider>;
 }
 
-/** Watch `root:path` (a file, or a folder for its direct children) while the component is mounted. */
-export function useLiveSubscription(root: string, path: string): void {
+/**
+ * Watch `root:path` (a file, or a folder for its direct children) while the component is mounted.
+ * `low` subscriptions yield to the others when the per-stream cap is reached.
+ */
+export function useLiveSubscription(root: string, path: string, low = false): void {
   const controller = useContext(LiveContext);
-  useEffect(() => controller?.subscribe(root, path), [controller, root, path]);
+  useEffect(() => controller?.subscribe(root, path, low), [controller, root, path, low]);
 }

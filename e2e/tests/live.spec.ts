@@ -146,3 +146,26 @@ test('an image view reloads when the file changes', async ({ page }) => {
   await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.naturalWidth)).toBe(40);
   expect(await windowMarked(page)).toBe(true);
 });
+
+test('images in a markdown view reload when they change or appear', async ({ page }) => {
+  const d = newDir();
+  const svg = (w: number) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="10"><rect width="${w}" height="10" fill="teal"/></svg>`;
+  mkdirSync(d.abs('img'));
+  write(d.abs('pic.svg'), svg(10));
+  write(d.abs('doc.md'), '# Doc\n\n![Pic](pic.svg)\n\n![Later](img/later.svg)\n');
+  await page.goto(`/view/live/${d.name}/doc.md`);
+  const width = (name: string) =>
+    page.getByRole('img', { name }).evaluate((e: HTMLImageElement) => e.naturalWidth);
+  await expect.poll(() => width('Pic')).toBe(10);
+  await expect.poll(() => width('Later')).toBe(0);
+  await markWindow(page);
+
+  // One at a time: creating img/later.svg also refreshes the folder listing, which would hide a
+  // missed content change of pic.svg.
+  write(d.abs('pic.svg'), svg(40));
+  await expect.poll(() => width('Pic')).toBe(40);
+  write(d.abs('img/later.svg'), svg(25));
+  await expect.poll(() => width('Later')).toBe(25);
+  expect(await windowMarked(page)).toBe(true);
+});

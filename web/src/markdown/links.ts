@@ -17,7 +17,7 @@ export type ResolvedLink =
   /** In-app route (`/view/...`, `/browse/...`). */
   | { type: 'internal'; href: string }
   /** Raw file served by `/api/file`. */
-  | { type: 'asset'; href: string }
+  | { type: 'asset'; href: string; path: string }
   /** Not rendered as a link. */
   | { type: 'blocked'; reason: 'scheme' | 'outside-root' | 'invalid' };
 
@@ -112,5 +112,5 @@ export function resolveLink(rawHref: string, ctx: LinkContext, isImage = false):
       return { type: 'internal', href: viewHref(ctx.root, path, ws) + frag };
     }
   }
-  return { type: 'asset', href: fileUrl(ctx.root, path) };
+  return { type: 'asset', href: fileUrl(ctx.root, path), path };
 }
