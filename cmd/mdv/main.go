@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
 	"time"
 
@@ -89,6 +90,7 @@ func healthcheck(ctx context.Context, url string) error {
 	if err != nil {
 		return err
 	}
+	req.Host = "localhost" // always passes the Host allowlist
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
@@ -125,6 +127,10 @@ func serve(ctx context.Context, getenv func(string) string, stderr io.Writer, re
 		return 1
 	}
 	defer func() { _ = reg.Close() }()
+
+	if slices.Contains(cfg.AllowedHosts, config.AllowAnyHost) {
+		logger.Warn("MDV_ALLOWED_HOSTS=* disables the Host check; DNS rebinding protection is off")
+	}
 
 	apiSrv := api.New(reg, cfg, logger)
 	defer apiSrv.Close()

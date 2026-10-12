@@ -41,6 +41,7 @@ func testConfig(roots ...config.Root) *config.Config {
 	return &config.Config{
 		Roots: roots, FSTimeout: time.Second, FSMaxInflight: 4,
 		MaxListEntries: 1000, MaxFileBytes: maxFile,
+		AllowedHosts: []string{"example.com"}, // httptest.NewRequest uses Host example.com
 	}
 }
 
@@ -665,4 +666,45 @@ func errString(err error) string {
 		return "<nil>"
 	}
 	return err.Error()
+}
+
+func TestHostGuard(t *testing.T) {
+	s, _ := fixtureServer(t)
+	s.cfg.AllowedHosts = []string{"nas.lan"}
+	guarded := s.Handler()
+	s.cfg.AllowedHosts = []string{"*"}
+	open := s.Handler()
+
+	allowed := []string{
+		"127.0.0.1:8080", "127.0.0.1", "[::1]:8080", "[::1]", "::1", "[fe80::1%eth0]:80",
+		"localhost", "LOCALHOST:80", "localhost.", "nas.lan", "NAS.lan:8080", "nas.lan.",
+	}
+	rejected := []string{"evil.example", "nas.lan.evil.example", "", "localhost.evil.example", "evil.example:80",
+		"localhost.evil.example.", "127.1", "0x7f.1", "[evil.example]:80", "localhost.."}
+	paths := []string{"/healthz", "/api/roots", "/some/spa/path", "/api/events?sub=r:a.md"}
+
+	check := func(h http.Handler, host string, want bool) {
+		t.Helper()
+		for _, p := range paths {
+			req := httptest.NewRequest(http.MethodGet, p, nil)
+			req.Host = host
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, req)
+			if got := rec.Code != http.StatusMisdirectedRequest; got != want {
+				t.Errorf("host %q path %s: status %d, allowed want %v", host, p, rec.Code, want)
+			}
+			if !want {
+				if !strings.Contains(rec.Body.String(), `"host_not_allowed"`) || strings.Contains(rec.Body.String(), "evil") {
+					t.Errorf("host %q: body %s", host, rec.Body)
+				}
+			}
+		}
+	}
+	for _, h := range allowed {
+		check(guarded, h, true)
+	}
+	for _, h := range rejected {
+		check(guarded, h, false)
+		check(open, h, true)
+	}
 }

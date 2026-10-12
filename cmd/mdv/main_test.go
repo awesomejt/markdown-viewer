@@ -168,6 +168,18 @@ func TestServeAndShutdown(t *testing.T) {
 	if resp.StatusCode != 200 && resp.StatusCode != 503 {
 		t.Errorf("spa status = %d", resp.StatusCode)
 	}
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, base+"/healthz", nil)
+	req.Host = "evil.example"
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusMisdirectedRequest {
+		t.Errorf("evil host status = %d", resp.StatusCode)
+	}
+	// An unused pooled conn stays StateNew, which Shutdown waits 5 s on.
+	http.DefaultClient.CloseIdleConnections()
 	cancel()
 	select {
 	case code := <-done:
@@ -176,6 +188,24 @@ func TestServeAndShutdown(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("no shutdown")
+	}
+}
+
+func TestServeAnyHostWarns(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = ln.Close() }()
+	var errb bytes.Buffer
+	// The busy listen address makes serve exit right after the warning.
+	code := serve(context.Background(), env(map[string]string{
+		"MDV_ROOTS":         "t=" + t.TempDir(),
+		"MDV_LISTEN":        ln.Addr().String(),
+		"MDV_ALLOWED_HOSTS": "*",
+	}), &errb, nil)
+	if code != 1 || !strings.Contains(errb.String(), "MDV_ALLOWED_HOSTS=*") {
+		t.Fatalf("code = %d, stderr %s", code, errb.String())
 	}
 }
 
@@ -233,5 +263,20 @@ func TestServeShutdownWithOpenEventStream(t *testing.T) {
 	}
 	if d := time.Since(start); d > 3*time.Second {
 		t.Fatalf("shutdown took %v", d)
+	}
+}
+
+func TestHealthcheckSendsLocalhostHost(t *testing.T) {
+	var host string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		host = r.Host
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer ts.Close()
+	if err := healthcheck(context.Background(), ts.URL+"/healthz"); err != nil {
+		t.Fatal(err)
+	}
+	if host != "localhost" {
+		t.Errorf("Host = %q", host)
 	}
 }
