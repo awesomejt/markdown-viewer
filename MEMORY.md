@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: R2.3 recent files/folders (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.4) meanwhile
+- Last major milestone: R2.4 home-screen manifest and icons (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (R2.5) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -78,6 +78,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.4)
+
+- Task: Web-app manifest and home-screen icons (FR-6.3); done in the orchestrator without a subagent.
+- Files changed: new `web/icons/icon.svg` + `mkicons.sh` (rsvg-convert → committed `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`), `web/public/manifest.webmanifest`, `favicon.svg` (M-arrow mark replaces the Vite logo), `web/index.html` (manifest, touch icon, Apple meta, two `theme-color` metas), `app/theme.ts` (`THEME_COLOR`, `applyTheme` syncs the metas), `internal/web/web.go` (`.webmanifest` → `application/manifest+json`), unit/Go tests, `e2e/tests/shell.spec.ts`, `docs/Architecture.md`, `docs/Deployment.md`.
+- Result: Go test red (text/plain) before the MIME fix. `make check` exit 0, `make e2e` 180 passed; logs `build/r24-*.log`.
+- Blockers or follow-up: Standalone mode hides Safari's back button and reload; V1 should add to Home Screen on the iPad and check icon, title, status bar and back navigation.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.3)
 
 - Task: Recent files/folders (FR-2.6); done in the orchestrator without a subagent.
@@ -91,10 +98,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/markdown/copy.ts` (`copyText`: async clipboard in secure contexts, else `execCommand` on an off-screen textarea), `CopyButton.tsx`, `frontMatter.ts` (`extractFrontMatter`, remark-frontmatter `yaml` fences), `MarkdownView.tsx` (`.code-block` wrapper; collapsed `details.front-matter` above `.markdown-body`), `app/app.css`, unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`.
 - Result: 4 component tests red without the wiring. `make check` exit 0 (198 unit), `make e2e` 168 passed; logs `build/r22-*.log`.
 - Blockers or follow-up: The plain-HTTP `execCommand` fallback is unit-tested only (e2e runs on `localhost`, a secure context); V1 should tap Copy on the iPad.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.1)
-
-- Task: Hidden-files toggle (FR-1.4); small enough to do in the orchestrator without a subagent.
-- Files changed: new `web/src/browse/showHidden.ts` (shared `useSyncExternalStore` store, `mdv-show-hidden`, follows the `storage` event, works in memory when storage throws), `browse/logic.ts` (`filterEntries` `showHidden`), `BrowseView.tsx` (checkbox), `workspace/logic.ts` + `WorkspaceTree.tsx`, unit/component tests, `e2e/tests/browse.spec.ts`, `docs/Architecture.md`.
-- Result: 5 new unit/component tests red with the filter forced on, green with it. `make check` exit 0 (184 unit), `make e2e` 160 passed; logs `build/r21-*.log`.
-- Blockers or follow-up: None. Tests that render the store must call `resetShowHiddenCache()` (module cache survives `localStorage.clear()`).

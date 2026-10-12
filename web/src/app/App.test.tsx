@@ -5,7 +5,8 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from './routes';
 import { RELOAD_FLAG, installPreloadErrorHandler } from './preloadError';
-import { THEME_STORAGE_KEY } from './theme';
+import indexHtml from '../../index.html?raw';
+import { THEME_COLOR, THEME_STORAGE_KEY } from './theme';
 
 const rootsBody = {
   roots: [
@@ -113,6 +114,36 @@ describe('theme', () => {
     dark = true;
     act(() => listener?.());
     expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('keeps every theme-color meta on the resolved theme', async () => {
+    const metas = ['light', 'dark'].map((scheme) => {
+      const m = document.createElement('meta');
+      m.name = 'theme-color';
+      m.media = `(prefers-color-scheme: ${scheme})`;
+      document.head.append(m);
+      return m;
+    });
+    try {
+      const user = userEvent.setup();
+      renderAt('/');
+      const btn = await screen.findByRole('button', { name: /Theme: Auto/ });
+      expect(metas.map((m) => m.content)).toEqual([THEME_COLOR.light, THEME_COLOR.light]);
+      await user.click(btn); // light
+      await user.click(screen.getByRole('button', { name: /Theme: Light/ })); // dark
+      expect(metas.map((m) => m.content)).toEqual([THEME_COLOR.dark, THEME_COLOR.dark]);
+    } finally {
+      metas.forEach((m) => m.remove());
+    }
+  });
+
+  // The header background match is checked in e2e (shell.spec.ts).
+  it('theme colors match index.html', () => {
+    for (const scheme of ['light', 'dark'] as const) {
+      expect(indexHtml).toContain(
+        `<meta name="theme-color" content="${THEME_COLOR[scheme]}" media="(prefers-color-scheme: ${scheme})" />`,
+      );
+    }
   });
 
   it('uses a stored override', async () => {

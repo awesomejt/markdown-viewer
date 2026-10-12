@@ -126,7 +126,7 @@ docker compose ps
 docker compose logs mdv
 ```
 
-`docker compose ps` should show the service as healthy within about 30 seconds. The logs list each root and warn about any that are unavailable. Then open `http://<vm-ip>:8080` (or `http://nas.example.lan:8080` if listed in `MDV_ALLOWED_HOSTS`) on the iPad. In Safari, Share, then Add to Home Screen, works for quick access.
+`docker compose ps` should show the service as healthy within about 30 seconds. The logs list each root and warn about any that are unavailable. Then open `http://<vm-ip>:8080` (or `http://nas.example.lan:8080` if listed in `MDV_ALLOWED_HOSTS`) on the iPad. In Safari, Share, then Add to Home Screen, adds mdv with its own icon; it opens full screen without the Safari toolbar (use the breadcrumbs or the edge-swipe gesture to go back). Add it from the address you will keep using: the home-screen app is tied to that origin, and its storage (theme, recent items) is separate from Safari's.
 
 ## Opening by hostname
 

@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.1)
+
+- Task: Hidden-files toggle (FR-1.4); small enough to do in the orchestrator without a subagent.
+- Files changed: new `web/src/browse/showHidden.ts` (shared `useSyncExternalStore` store, `mdv-show-hidden`, follows the `storage` event, works in memory when storage throws), `browse/logic.ts` (`filterEntries` `showHidden`), `BrowseView.tsx` (checkbox), `workspace/logic.ts` + `WorkspaceTree.tsx`, unit/component tests, `e2e/tests/browse.spec.ts`, `docs/Architecture.md`.
+- Result: 5 new unit/component tests red with the filter forced on, green with it. `make check` exit 0 (184 unit), `make e2e` 160 passed; logs `build/r21-*.log`.
+- Blockers or follow-up: None. Tests that render the store must call `resetShowHiddenCache()` (module cache survives `localStorage.clear()`).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-18)
 
 - Task: Live reload for images embedded in Markdown; done in the orchestrator without a subagent.

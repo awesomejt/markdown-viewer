@@ -19,6 +19,7 @@ func bundle() fstest.MapFS {
 	return fstest.MapFS{
 		"index.html":           {Data: []byte("<!doctype html><div id=root></div>")},
 		"favicon.svg":          {Data: []byte("<svg xmlns='http://www.w3.org/2000/svg'/>")},
+		"manifest.webmanifest": {Data: []byte(`{"name":"x"}`)},
 		"assets/app-abc123.js": {Data: []byte("console.log(1)")},
 		"assets/sub/x.css":     {Data: []byte("a{}")},
 	}
@@ -45,6 +46,7 @@ func TestServe(t *testing.T) {
 		{"asset", "GET", "/assets/app-abc123.js", 200, "public, max-age=31536000, immutable", "javascript", "console.log"},
 		{"nested asset", "GET", "/assets/sub/x.css", 200, "public, max-age=31536000, immutable", "text/css", "a{}"},
 		{"favicon", "GET", "/favicon.svg", 200, "no-cache", "image/svg+xml", "<svg"},
+		{"manifest", "GET", "/manifest.webmanifest", 200, "no-cache", "application/manifest+json", `"name"`},
 		{"asset miss", "GET", "/assets/missing.js", 404, "", "", ""},
 		{"assets dir", "GET", "/assets/", 404, "", "", ""},
 		{"assets dir no slash", "GET", "/assets", 404, "", "", ""},
