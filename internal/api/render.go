@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mime"
 	"net/http"
 
 	"github.com/awesomejt/markdown-viewer/internal/d2render"
@@ -23,7 +24,30 @@ type renderRequest struct {
 	Layout string `json:"layout"` // "dagre" (default when empty) or "elk"
 }
 
+// setRenderHeaders sandboxes the response so a cross-site navigation to it
+// cannot run script; it is set before any write so errors carry it too.
+func setRenderHeaders(w http.ResponseWriter) {
+	w.Header().Set("Content-Security-Policy", fileCSP)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+}
+
+// crossOriginGuard rejects cross-origin non-safe requests (CSRF) with the JSON
+// error model. Safe methods pass through so the inner handler answers 405.
+func crossOriginGuard(h http.Handler) http.Handler {
+	cop := http.NewCrossOriginProtection()
+	cop.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		setRenderHeaders(w)
+		writeError(w, http.StatusForbidden, codeForbidden, "cross-origin request rejected")
+	}))
+	return cop.Handler(h)
+}
+
 func (s *Server) renderD2(w http.ResponseWriter, r *http.Request) {
+	setRenderHeaders(w)
+	if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/json" {
+		writeError(w, http.StatusUnsupportedMediaType, codeUnsupported, "Content-Type must be application/json")
+		return
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, maxD2Body)
 	var req renderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -45,7 +69,6 @@ func (s *Server) renderD2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "image/svg+xml")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(svg)
 }

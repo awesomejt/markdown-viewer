@@ -23,6 +23,22 @@ func (f fakeD2) Render(context.Context, string, string, string) ([]byte, error) 
 
 func postD2(h http.Handler, body string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, "/api/render/d2", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
+
+// postD2With posts body with exactly the given headers (Host overrides req.Host).
+func postD2With(h http.Handler, body string, hdr map[string]string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodPost, "/api/render/d2", strings.NewReader(body))
+	for k, v := range hdr {
+		if k == "Host" {
+			req.Host = v
+			continue
+		}
+		req.Header.Set(k, v)
+	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, req)
 	return rec
@@ -163,9 +179,84 @@ func TestRenderD2CancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	req := httptest.NewRequest(http.MethodPost, "/api/render/d2", strings.NewReader(`{"source":"a"}`)).WithContext(ctx)
+	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	s.Handler().ServeHTTP(rec, req) // must not panic
 	if rec.Code != http.StatusInternalServerError {
 		t.Fatalf("%d", rec.Code)
+	}
+}
+
+func TestRenderD2CSRFGuards(t *testing.T) {
+	const textPlainBody = `{"source":"a -> b","x":"=1"}`
+	cases := []struct {
+		name   string
+		hdr    map[string]string
+		status int
+		code   string
+	}{
+		{"text/plain", map[string]string{"Content-Type": "text/plain"}, http.StatusUnsupportedMediaType, "unsupported_media_type"},
+		{"missing content-type", nil, http.StatusUnsupportedMediaType, "unsupported_media_type"},
+		{"form-urlencoded", map[string]string{"Content-Type": "application/x-www-form-urlencoded"}, http.StatusUnsupportedMediaType, "unsupported_media_type"},
+		{"json charset", map[string]string{"Content-Type": "application/json; charset=utf-8"}, http.StatusOK, ""},
+		{"sec-fetch-site cross-site", map[string]string{"Content-Type": "application/json", "Sec-Fetch-Site": "cross-site"}, http.StatusForbidden, "forbidden"},
+		{"sec-fetch-site same-origin", map[string]string{"Content-Type": "application/json", "Sec-Fetch-Site": "same-origin"}, http.StatusOK, ""},
+		{"origin equals host", map[string]string{"Content-Type": "application/json", "Origin": "http://example.com", "Host": "example.com"}, http.StatusOK, ""},
+		{"sec-fetch-site same-site", map[string]string{"Content-Type": "application/json", "Sec-Fetch-Site": "same-site"}, http.StatusForbidden, "forbidden"},
+		{"sec-fetch-site none", map[string]string{"Content-Type": "application/json", "Sec-Fetch-Site": "none"}, http.StatusOK, ""},
+		{"foreign origin", map[string]string{"Content-Type": "application/json", "Origin": "http://evil.example", "Host": "example.com"}, http.StatusForbidden, "forbidden"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s, _ := newServer(t)
+			rec := postD2With(s.Handler(), textPlainBody, tc.hdr)
+			if rec.Code != tc.status {
+				t.Fatalf("%d %s", rec.Code, rec.Body.String())
+			}
+			if tc.code != "" {
+				if code, _ := errCodeMsg(t, rec); code != tc.code {
+					t.Fatalf("code %s", code)
+				}
+			}
+		})
+	}
+}
+
+func TestRenderD2SecurityHeaders(t *testing.T) {
+	cases := []struct {
+		name   string
+		body   string
+		hdr    map[string]string
+		status int
+	}{
+		{"200", `{"source":"a -> b"}`, map[string]string{"Content-Type": "application/json"}, http.StatusOK},
+		{"415", `{"source":"a"}`, map[string]string{"Content-Type": "text/plain"}, http.StatusUnsupportedMediaType},
+		{"403", `{"source":"a"}`, map[string]string{"Content-Type": "application/json", "Sec-Fetch-Site": "cross-site"}, http.StatusForbidden},
+		{"422", `{"source":"a ->"}`, map[string]string{"Content-Type": "application/json"}, http.StatusUnprocessableEntity},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s, _ := newServer(t)
+			rec := postD2With(s.Handler(), tc.body, tc.hdr)
+			if rec.Code != tc.status {
+				t.Fatalf("%d %s", rec.Code, rec.Body.String())
+			}
+			if got := rec.Header().Get("Content-Security-Policy"); got != fileCSP {
+				t.Fatalf("CSP %q", got)
+			}
+			if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+				t.Fatal("missing nosniff")
+			}
+		})
+	}
+}
+
+func TestRenderD2SafeMethodsThroughGuard(t *testing.T) {
+	s, _ := newServer(t)
+	for _, m := range []string{http.MethodGet, http.MethodHead} {
+		rec := do(s.Handler(), m, "/api/render/d2")
+		if rec.Code != http.StatusMethodNotAllowed {
+			t.Errorf("%s: %d", m, rec.Code)
+		}
 	}
 }

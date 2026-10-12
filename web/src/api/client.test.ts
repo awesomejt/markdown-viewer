@@ -189,6 +189,7 @@ describe('renderD2', () => {
     const [url, init] = fn.mock.calls[0]!;
     expect(url).toBe('/api/render/d2');
     expect(init?.method).toBe('POST');
+    expect(new Headers(init?.headers).get('Content-Type')).toBe('application/json');
     expect(JSON.parse(init?.body as string)).toEqual({ source: 'a -> b', theme: 'dark' });
   });
 

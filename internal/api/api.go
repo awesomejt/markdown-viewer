@@ -16,16 +16,17 @@ import (
 
 // Error codes used in the JSON error model.
 const (
-	codeBadRequest = "bad_request"
-	codeForbidden  = "forbidden"
-	codeNotFound   = "not_found"
-	codeTooLarge   = "too_large"
-	codeFSTimeout  = "fs_timeout"
-	codeInternal   = "internal"
-	codeMethod     = "method_not_allowed"
-	codeRender     = "render_error"
-	codeBusy       = "busy"
-	codeRenderTO   = "render_timeout"
+	codeBadRequest  = "bad_request"
+	codeForbidden   = "forbidden"
+	codeNotFound    = "not_found"
+	codeTooLarge    = "too_large"
+	codeFSTimeout   = "fs_timeout"
+	codeInternal    = "internal"
+	codeMethod      = "method_not_allowed"
+	codeRender      = "render_error"
+	codeBusy        = "busy"
+	codeRenderTO    = "render_timeout"
+	codeUnsupported = "unsupported_media_type"
 )
 
 // Server holds the API dependencies and the route table. Later tasks mount the
@@ -57,7 +58,7 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 	s.mux.HandleFunc("/api/roots", s.get(s.roots))
 	s.mux.HandleFunc("/api/list", s.get(s.list))
 	s.mux.HandleFunc("/api/file", fileHeaders(s.get(s.file)))
-	s.mux.HandleFunc("/api/render/d2", s.post(s.renderD2))
+	s.mux.Handle("/api/render/d2", crossOriginGuard(s.post(s.renderD2)))
 	s.mux.HandleFunc("/api/events", s.events) // GET only; events answers other methods itself
 	s.mux.HandleFunc("/api/", func(w http.ResponseWriter, _ *http.Request) {
 		writeError(w, http.StatusNotFound, codeNotFound, "unknown API endpoint")
