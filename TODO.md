@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.4** [S] Web-app manifest + home-screen icons
 - [ ] **R2.5** [S] Highlighting for standalone code files
 - [ ] **R2.6** [S] Table of contents
 - [ ] **R2.7** [S] KaTeX math; GitHub alerts (also clear the low-severity `npm audit` katex advisory pulled in by mermaid 12.1: katex ≥ 0.19 or an override, verified with Mermaid math)
@@ -66,6 +65,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.4** [S] `manifest.webmanifest` (standalone, 192/512 + maskable PNGs), 180 px apple-touch-icon, Apple meta tags and an M-arrow icon rendered from `web/icons/icon.svg`; `theme-color` follows the app theme; `.webmanifest` served as `application/manifest+json` (Go test red before); `make check` green, `make e2e` 180 passed.
 - [x] 2026-10-12: **R2.3** [S] Recent files/folders (`mdv-recent`, 10 newest, keeps `ws`) recorded only once a file/folder is confirmed by its listing; shown on the home page and in the sidebar outside a workspace, with "Clear recent"; component test red without recording; `make check` green (207 unit), `make e2e` 172 passed.
 - [x] 2026-10-12: **R2.2** [S] Copy button on every non-diagram fenced block (async clipboard, `execCommand` fallback for plain-HTTP LAN origins); non-blank front matter shown raw in a collapsed panel above the body; 4 component tests red without it; `make check` green (198 unit), `make e2e` 168 passed.
 - [x] 2026-10-12: **R2.1** [S] "Show hidden files" checkbox in the browse toolbar (default off, persisted as `mdv-show-hidden`) shared with the workspace tree via one store; unit/component tests red without it; `make check` green (184 unit), `make e2e` 160 passed.
