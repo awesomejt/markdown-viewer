@@ -35,6 +35,7 @@ export class LiveController {
   private readonly random: () => number;
   private readonly debounceMs: number;
   private readonly refs = new Map<string, number>();
+  private readonly lowRefs = new Map<string, number>();
   private source: EventSourceLike | null = null;
   private url: string | null = null;
   private started = false;
@@ -64,18 +65,22 @@ export class LiveController {
     this.closeSource();
   }
 
-  /** Register interest in `root:path`; returns the unsubscribe function. */
-  subscribe(root: string, path: string): () => void {
+  /**
+   * Register interest in `root:path`; returns the unsubscribe function. `low` subscriptions only use
+   * the slots left under the server cap (see {@link capSubs}).
+   */
+  subscribe(root: string, path: string, low = false): () => void {
     const key = subKey({ root, path });
-    this.refs.set(key, (this.refs.get(key) ?? 0) + 1);
+    const refs = low ? this.lowRefs : this.refs;
+    refs.set(key, (refs.get(key) ?? 0) + 1);
     this.schedule();
     let done = false;
     return () => {
       if (done) return;
       done = true;
-      const n = (this.refs.get(key) ?? 1) - 1;
-      if (n <= 0) this.refs.delete(key);
-      else this.refs.set(key, n);
+      const n = (refs.get(key) ?? 1) - 1;
+      if (n <= 0) refs.delete(key);
+      else refs.set(key, n);
       this.schedule();
     };
   }
@@ -87,7 +92,7 @@ export class LiveController {
   }
 
   private sync(): void {
-    const url = buildEventsUrl(capSubs(this.refs.keys()));
+    const url = buildEventsUrl(capSubs(this.refs.keys(), this.lowRefs.keys()));
     if (url === this.url && (url === null || this.source !== null)) return;
     clearTimeout(this.retryTimer);
     this.closeSource();
@@ -140,7 +145,7 @@ export class LiveController {
   private readonly onVisibility = (): void => {
     if (document.visibilityState !== 'visible') return;
     this.invalidateAll();
-    if (this.source === null && this.refs.size > 0) {
+    if (this.source === null && this.refs.size + this.lowRefs.size > 0) {
       clearTimeout(this.retryTimer);
       this.sync();
     }

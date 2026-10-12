@@ -12,6 +12,7 @@ import { Link, useLocation } from 'react-router';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
 import Diagram, { type DiagramKind } from '../diagrams/Diagram';
 import CodeBlock from './CodeBlock';
+import MarkdownImage from './MarkdownImage';
 import { rehypePlugins, remarkPlugins } from './pipeline';
 import { scrollToHash } from './scroll';
 import { captureScroll, restoreScroll, type ScrollSnapshot } from '../live/scrollAnchor';
@@ -101,6 +102,9 @@ function makeComponents(ctx: LinkContext): Components {
       if (typeof src !== 'string') return null;
       const link = resolveLink(src, ctx, true);
       if (link.type === 'blocked' || link.type === 'anchor') return alt ? <span>{alt}</span> : null;
+      if (link.type === 'asset') {
+        return <MarkdownImage {...rest} root={ctx.root} path={link.path} alt={alt ?? ''} />;
+      }
       return (
         <img
           {...rest}

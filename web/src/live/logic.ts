@@ -19,9 +19,14 @@ export function subKey(s: Sub): string {
   return `${s.root}:${s.path}`;
 }
 
-/** Sorted, de-duplicated and capped at {@link MAX_SUBS} (extras dropped deterministically). */
-export function capSubs(keys: Iterable<string>): string[] {
-  return [...new Set(keys)].sort().slice(0, MAX_SUBS);
+/**
+ * Sorted, de-duplicated and capped at {@link MAX_SUBS} (extras dropped deterministically). `low` keys
+ * (for example a document's images) only fill the slots the others leave free.
+ */
+export function capSubs(keys: Iterable<string>, low: Iterable<string> = []): string[] {
+  const high = new Set(keys);
+  const rest = [...new Set(low)].filter((k) => !high.has(k)).sort();
+  return [...[...high].sort(), ...rest].slice(0, MAX_SUBS);
 }
 
 /** URL of the event stream for the given `root:path` keys, or `null` when there is nothing to watch. */

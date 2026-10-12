@@ -163,6 +163,23 @@ describe('LiveController', () => {
     vi.advanceTimersByTime(100);
     expect(FakeES.all).toHaveLength(1);
   });
+
+  it('drops low-priority subs first at the cap', () => {
+    const { c } = setup();
+    const lows = Array.from({ length: 40 }, (_, i) => c.subscribe('r', `a${i}.png`, true));
+    c.subscribe('r', 'z.md');
+    vi.advanceTimersByTime(100);
+    const subs = new URL(last().url, 'http://x').searchParams.getAll('sub');
+    expect(subs).toHaveLength(32);
+    expect(subs[0]).toBe('r:z.md');
+    expect(subs.filter((s) => s.endsWith('.png'))).toHaveLength(31);
+    for (const u of lows.slice(1)) u();
+    vi.advanceTimersByTime(100);
+    expect(new URL(last().url, 'http://x').searchParams.getAll('sub')).toEqual([
+      'r:z.md',
+      'r:a0.png',
+    ]);
+  });
 });
 
 describe('LiveProvider', () => {

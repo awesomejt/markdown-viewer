@@ -17,6 +17,8 @@ describe('subscriptions', () => {
     const capped = capSubs(many);
     expect(capped).toHaveLength(MAX_SUBS);
     expect(capped).toEqual(many.slice(0, MAX_SUBS));
+    expect(capSubs(['z'], ['a', 'z', 'b'])).toEqual(['z', 'a', 'b']);
+    expect(capSubs(['z'], many)).toEqual(['z', ...many.slice(0, MAX_SUBS - 1)]);
   });
 
   it('builds an encoded URL, or null when empty', () => {
