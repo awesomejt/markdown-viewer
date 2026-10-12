@@ -182,6 +182,10 @@ func TestEventsStream(t *testing.T) {
 		h.Get("X-Accel-Buffering") != "no" {
 		t.Fatalf("headers: %v", h)
 	}
+	// The stream starts with a comment so the browser fires "open" at once.
+	if l, ok := st.next(t); !ok || l != ": open" {
+		t.Fatalf("first line %q, want \": open\"", l)
+	}
 	// An idle stream pings.
 	for {
 		l, ok := st.next(t)
