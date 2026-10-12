@@ -31,7 +31,9 @@ async function renderNow(source: string, theme: ResolvedTheme): Promise<string> 
     suppressErrorRendering: true,
     theme: theme === 'dark' ? 'dark' : 'default',
   });
-  const id = `mdv-mermaid-${++counter}`;
+  // Heading slugs are unprefixed and always lowercase, so an uppercase id can never equal one
+  // (the cleanup below would otherwise delete the heading). Raw-HTML ids get `user-content-`.
+  const id = `mdvMermaid-${++counter}`;
   try {
     const { svg } = await mermaid.render(id, source);
     return svg;
