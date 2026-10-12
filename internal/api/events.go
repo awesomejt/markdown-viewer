@@ -88,7 +88,10 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 	h.Set("Cache-Control", "no-cache")
 	h.Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
-	if err := rc.Flush(); err != nil {
+	// A first body byte makes every browser (and buffering proxy) fire the
+	// EventSource "open" event now; the client's refetch on open covers any
+	// change made before Subscribe took its baseline.
+	if _, err := w.Write([]byte(": open\n\n")); err != nil || rc.Flush() != nil {
 		return
 	}
 
