@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import D2Diagram from './D2Diagram';
 import { renderWithClient, setTheme } from './test-utils';
@@ -67,5 +67,26 @@ describe('D2Diagram', () => {
     act(() => setTheme('dark'));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(body(1)).toEqual({ source: 'a -> b', theme: 'dark' });
+  });
+
+  it('re-renders with the chosen layout and keeps the old image meanwhile', async () => {
+    const { container } = renderWithClient(<D2Diagram source="a -> b" />);
+    await screen.findByRole('img');
+    let release!: (r: Response) => void;
+    fetchMock.mockImplementationOnce(() => new Promise<Response>((r) => (release = r)));
+    const select = screen.getByRole('combobox', { name: 'Layout' });
+    expect(select).toHaveValue('');
+    fireEvent.change(select, { target: { value: 'elk' } });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(body(1)).toEqual({ source: 'a -> b', theme: 'light', layout: 'elk' });
+    const fig = container.querySelector('figure')!;
+    expect(fig).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:d2-1');
+    expect(screen.getByRole('combobox', { name: 'Layout' })).toBe(select);
+    await act(async () =>
+      release(new Response('<svg id="elk"/>', { headers: { 'Content-Type': 'image/svg+xml' } })),
+    );
+    await waitFor(() => expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:d2-2'));
+    expect(fig).toHaveAttribute('aria-busy', 'false');
   });
 });

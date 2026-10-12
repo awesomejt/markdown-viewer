@@ -199,3 +199,21 @@ test('full-screen viewer pans, zooms and pinches', async ({ page }) => {
   await expect(open).toBeFocused();
   await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
 });
+
+test('a D2 diagram re-renders with the ELK layout', async ({ page }) => {
+  await page.goto('/view/fixtures/diagrams/arch.d2');
+  const fig = figures(page, 'd2');
+  await expect(fig).toHaveAttribute('data-state', 'ready');
+  const before = await fig.locator('img').getAttribute('src');
+  const elk = page.waitForRequest(
+    (r) => r.url().includes('/api/render/d2') && (r.postData() ?? '').includes('"layout":"elk"'),
+  );
+  await fig.getByRole('combobox', { name: 'Layout' }).selectOption('elk');
+  const res = await (await elk).response();
+  expect(res?.status()).toBe(200);
+  await expect(fig.locator('img')).not.toHaveAttribute('src', before ?? '');
+  await expect(fig).toHaveAttribute('aria-busy', 'false');
+  expect(
+    await fig.locator('img').evaluate((el: HTMLImageElement) => el.naturalWidth),
+  ).toBeGreaterThan(0);
+});

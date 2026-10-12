@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import DiagramError from './DiagramError';
 import DiagramViewer from './DiagramViewer';
 import { ALT, type DiagramKind } from './kinds';
@@ -10,6 +10,10 @@ export interface DiagramFigureProps {
   svg?: string;
   /** Error text when rendering failed. */
   error?: string;
+  /** Kind-specific controls shown before the common tools when ready. */
+  tools?: ReactNode;
+  /** True while a newer render replaces the shown SVG. */
+  busy?: boolean;
 }
 
 /**
@@ -17,7 +21,14 @@ export interface DiagramFigureProps {
  * scripts or reach app styles. Object URLs are revoked when replaced and on unmount.
  * A ready diagram has a source toggle and a full-screen pan/zoom viewer (R2.8).
  */
-export default function DiagramFigure({ kind, source, svg, error }: DiagramFigureProps) {
+export default function DiagramFigure({
+  kind,
+  source,
+  svg,
+  error,
+  tools,
+  busy = false,
+}: DiagramFigureProps) {
   const [shown, setShown] = useState<{ svg: string; url: string } | null>(null);
   const [showSource, setShowSource] = useState(false);
   const [fullScreen, setFullScreen] = useState(false);
@@ -37,10 +48,13 @@ export default function DiagramFigure({ kind, source, svg, error }: DiagramFigur
       </figure>
     );
   }
-  if (svg !== undefined && shown?.svg === svg) {
+  // A changed svg keeps showing the previous image until its new URL exists, so the tools and
+  // an open viewer survive re-renders.
+  if (svg !== undefined && shown) {
     return (
-      <figure className="diagram" data-diagram={kind} data-state="ready">
+      <figure className="diagram" data-diagram={kind} data-state="ready" aria-busy={busy}>
         <div className="diagram-tools">
+          {tools}
           <button
             type="button"
             className="diagram-tool"

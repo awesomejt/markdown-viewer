@@ -32,6 +32,38 @@ func TestRealRenderValid(t *testing.T) {
 	}
 }
 
+func TestRealRenderLayoutFromSource(t *testing.T) {
+	r := New(Options{})
+	const graph = "a -> b\na -> c\nb -> d\nc -> d\na -> d\n"
+	render := func(src, layout string) string {
+		t.Helper()
+		svg, err := r.Render(context.Background(), src, "", layout)
+		if err != nil {
+			t.Fatalf("%q: %v", layout, err)
+		}
+		return string(svg)
+	}
+	if render(graph, "dagre") == render(graph, "elk") {
+		t.Fatal("dagre and elk output identical")
+	}
+	if render(graph, "") != render(graph, "dagre") {
+		t.Fatal("empty layout without d2-config is not dagre")
+	}
+	elkSrc := "vars: {d2-config: {layout-engine: elk}}\n" + graph
+	if render(elkSrc, "") != render(elkSrc, "elk") {
+		t.Fatal("d2-config layout-engine elk ignored")
+	}
+	// An explicit request overrides the source.
+	if render(elkSrc, "dagre") == render(elkSrc, "elk") {
+		t.Fatal("requested dagre did not override d2-config")
+	}
+	// Unknown engines fall back to dagre.
+	talaSrc := "vars: {d2-config: {layout-engine: tala}}\n" + graph
+	if render(talaSrc, "") != render(talaSrc, "dagre") {
+		t.Fatal("tala did not fall back to dagre")
+	}
+}
+
 func TestRealRenderThemesDiffer(t *testing.T) {
 	r := New(Options{})
 	l, _ := r.Render(context.Background(), "a -> b", "light", "")
@@ -105,8 +137,10 @@ func TestCacheHit(t *testing.T) {
 	// Different theme/layout are distinct keys.
 	_, _ = r.Render(context.Background(), "a", "dark", "")
 	_, _ = r.Render(context.Background(), "a", "", "elk")
-	if n.Load() != 3 {
-		t.Fatalf("compile ran %d times, want 3", n.Load())
+	// Empty (source config or dagre) and explicit dagre can differ, so they are distinct too.
+	_, _ = r.Render(context.Background(), "a", "", "dagre")
+	if n.Load() != 4 {
+		t.Fatalf("compile ran %d times, want 4", n.Load())
 	}
 }
 

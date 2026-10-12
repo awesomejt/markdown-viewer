@@ -36,7 +36,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-- [ ] **R2.9** [S] D2 ELK option; theme-aware re-render
 - [ ] **R2.10** [S] Workspace tree live updates
 - [ ] **R2.11** [S] Virtualized listings
 - [ ] **R2.12** [H] Full validation run
@@ -62,6 +61,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **R2.9** [S] D2 "Layout" select (Auto/dagre/ELK) per figure; Auto sends no layout and the server now honors `vars.d2-config.layout-engine` (resolver used to ignore it; Go test red before); theme/layout/source re-renders keep the previous image (`aria-busy`), so tools and an open viewer stay mounted; `make check` green (245 unit), `make e2e` 208 passed.
 - [x] 2026-10-12: **R2.8** [S] Ready diagrams get "Source" (`aria-pressed`, `pre.diagram-source`) and "Full screen": a native modal `dialog` (portaled, same blob URL) with drag pan, wheel/pinch zoom about the pointer (0.25–8×), Zoom/Fit buttons and `+`/`-`/`0`; focus returns on close; `make check` green (242 unit), `make e2e` 204 passed.
 - [x] 2026-10-12: **R2.7** [S] KaTeX math (`$`, `$$`, ```` ```math ````) via remark-math + lazy rehype-katex after sanitize (`trust: false`), body waits for the chunk; TOC/slugs use the TeX source; in-repo `remarkAlerts` for the 5 GitHub alert types; `katex` override ≥ 0.19 clears the advisory (mermaid + markdownlint); 7 unit tests red without the plugins; `make check` green (229 unit), `make e2e` 196 passed.
 - [x] 2026-10-12: **FIX-19** [S] `recent.spec.ts` polls the newest `mdv-recent` entry after each visit before navigating on (the file is recorded only once its parent listing loads); with a 500 ms recording delay injected the old spec fails and the new one passes on all 4 projects; `make check` green, `make e2e` 192 passed three times.
