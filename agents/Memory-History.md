@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-9)
+
+- Task: Compose/defaults.
+- Files changed: `compose.yaml` (`${MDV_ROOTS:-...}`, `${MDV_POLL_INTERVAL:-2s}`, commented long-syntax NAS bind of the parent dir with `rslave` and `create_host_path: false`), `internal/config/config.go` + test (poll default 2s), `docs/Architecture.md`, `docs/Tech-Stack.md`.
+- Result: `docker compose config` verified with and without overrides and with the NAS block uncommented; `make check` exit 0; `make e2e` 124 passed on re-run (first run: drawer flake, now FIX-15). Logs in `build/fix9/`.
+- Blockers or follow-up: FIX-15 (drawer flake, second occurrence), FIX-16 (root opened before the NAS mounts stays on the empty dir).
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-8)
 
 - Task: Startup resilience for roots down at boot.
