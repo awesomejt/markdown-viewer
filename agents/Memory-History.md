@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-8)
+
+- Task: Startup resilience for roots down at boot.
+- Files changed: `internal/fsroot/lazy.go` (new `lazyRoot`), `access.go` (`OpenHandle` boot check via `run`, `StartupErr`), `registry.go` (concurrent open, `StartupErrors`), `guard.go` (`OpenRoot` maps a non-directory to `ENOTDIR`), `internal/config/config.go` (no `os.Stat`), `cmd/mdv/main.go` (warning), tests, `docs/Architecture.md`.
+- Result: The orchestrator reviewed the diff and re-ran `go test -race -count=3` (fsroot, config, cmd/mdv), `make check` and `make e2e` (124 passed); all exit 0, logs in `build/fix8/`.
+- Blockers or follow-up: None. A mount point that exists but is not mounted yet opens the empty directory and needs a restart after the NAS mounts (Known Limitations; DOC1 boot ordering).
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-7)
 
 - Task: SSE limits.

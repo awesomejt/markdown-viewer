@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-10 e2e gaps merged (2026-10-11)
-- Next recommended task: FIX-11 [S] date sort, then FIX-15, then DOC1
+- Last major milestone: FIX-11 date sort merged (2026-10-12)
+- Next recommended task: FIX-15 [S] drawer flake (FIX-17 optional), then DOC1
 - Current blocker: None
 
 ## Key Decisions
@@ -58,7 +58,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - D2: a cached render timeout persists until LRU eviction or restart (per spec).
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
-- E2E: `tree works in the mobile drawer` failed with "element not found" on the Sidebar nav (webkit in FIX-4, ipad in FIX-9) and passed on re-run; tracked as FIX-15.
+- E2E: `tree works in the mobile drawer` failed with "element not found" on the Sidebar nav (webkit in FIX-4, ipad in FIX-9) and passed on re-run; tracked as FIX-15. `[firefox] live.spec.ts:65 folder view shows created and drops deleted files` failed once in FIX-11 (`second.md` not shown within 5 s); tracked as FIX-17.
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). DOC1 must cover boot ordering. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
@@ -76,6 +76,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-11)
+
+- Task: FR-1.2 date sort.
+- Files changed: `web/src/browse/logic.ts` (`sortEntries`, `loadSort`/`saveSort`, key `mdv-sort`), `BrowseView.tsx` ("Sort by" select), `browse.css`, unit/component tests, `e2e/tests/browse.spec.ts` (live root folder with `utimesSync` mtimes, persists across reload).
+- Result: Folders first in both modes; date = newest first, name tie-break, missing mtime last. The orchestrator reviewed the diff and re-ran `make check` (154 unit) and `make e2e` twice (140 passed); all exit 0, logs `build/fix11-*.log`.
+- Blockers or follow-up: FIX-17 (firefox live-folder flake seen once by the subagent).
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-10)
 
 - Task: E2E gaps (back/forward, relative image, offline guard).
@@ -89,10 +96,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `compose.yaml` (`${MDV_ROOTS:-...}`, `${MDV_POLL_INTERVAL:-2s}`, commented long-syntax NAS bind of the parent dir with `rslave` and `create_host_path: false`), `internal/config/config.go` + test (poll default 2s), `docs/Architecture.md`, `docs/Tech-Stack.md`.
 - Result: `docker compose config` verified with and without overrides and with the NAS block uncommented; `make check` exit 0; `make e2e` 124 passed on re-run (first run: drawer flake, now FIX-15). Logs in `build/fix9/`.
 - Blockers or follow-up: FIX-15 (drawer flake, second occurrence), FIX-16 (root opened before the NAS mounts stays on the empty dir).
-
-### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-8)
-
-- Task: Startup resilience for roots down at boot.
-- Files changed: `internal/fsroot/lazy.go` (new `lazyRoot`), `access.go` (`OpenHandle` boot check via `run`, `StartupErr`), `registry.go` (concurrent open, `StartupErrors`), `guard.go` (`OpenRoot` maps a non-directory to `ENOTDIR`), `internal/config/config.go` (no `os.Stat`), `cmd/mdv/main.go` (warning), tests, `docs/Architecture.md`.
-- Result: The orchestrator reviewed the diff and re-ran `go test -race -count=3` (fsroot, config, cmd/mdv), `make check` and `make e2e` (124 passed); all exit 0, logs in `build/fix8/`.
-- Blockers or follow-up: None. A mount point that exists but is not mounted yet opens the empty directory and needs a restart after the NAS mounts (Known Limitations; DOC1 boot ordering).
