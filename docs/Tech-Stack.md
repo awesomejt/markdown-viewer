@@ -106,10 +106,10 @@ NAS (SMB/NFS share)
 ```
 
 - Multi-stage `Dockerfile`: a `node` stage runs `vite build`. A `golang` stage builds a static binary (`CGO_ENABLED=0`) with the SPA embedded. The runtime is distroless `static` running as a non-root user.
-- `compose.yaml`: one service with a published port, `:ro` bind mounts for each NAS path, environment-based config, `restart: unless-stopped`, and a healthcheck running `mdv healthcheck` against `/healthz` (distroless has no curl). Hardening: `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`. No internet access is needed at runtime.
+- `compose.yaml`: one service with a published port, a read-only bind of the parent of the NAS mount points with `propagation: rslave` (late mounts and remounts appear in the container), environment-based config, `restart: unless-stopped`, and a healthcheck running `mdv healthcheck` against `/healthz` (distroless has no curl). Hardening: `read_only: true`, `cap_drop: [ALL]`, `no-new-privileges`. No internet access is needed at runtime.
 - The container user's UID/GID must be able to read the NAS mount on the VM. Make it configurable (`user:` in Compose) to match the mount's ownership. Compose reads `MDV_UID`/`MDV_GID` (default `1000:1000`; the real NAS values are still open) and `MDV_PORT` (default `8080`). Images: `node:24.21-bookworm-slim`, `golang:1.27.2-bookworm`, `gcr.io/distroless/static-debian12:nonroot`.
 - **Live reload:** files changed on the NAS by other machines do not generate inotify events inside the container. Roots on network mounts therefore default to mtime polling (configurable interval), with fsnotify used only when a root is marked local.
-- Configuration: environment variables only, set in `compose.yaml` (a config file is deferred, D-20). Example: `MDV_LISTEN=:8080`, `MDV_ROOTS=markdown=/data/markdown`, `MDV_POLL_INTERVAL=3s`.
+- Configuration: environment variables only, set in `compose.yaml` (a config file is deferred, D-20). Example: `MDV_LISTEN=:8080`, `MDV_ROOTS=markdown=/data/markdown`, `MDV_POLL_INTERVAL=2s`.
 - `make build` / `make docker` wrap the builds. The plain binary still works for local development without Docker. Images are built for linux/amd64 (the VM); arm64 is optional.
 
 ## Desktop App Option
