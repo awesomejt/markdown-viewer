@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-21)
+
+- Task: Root swap escape (🔒); coded in the orchestrator, Opus security review in a subagent (3 rounds).
+- Files changed: `internal/fsroot/lazy.go` (`pinPath`, `openPinned`, `HostDir`), new `nofollow_linux.go`/`nofollow_other.go`, `access.go`/`watchops.go` (`hostDirFn`), `lazy_test.go` (4 tests), `go.mod` (`golang.org/x/sys` direct), `docs/Deployment.md`, `docs/Architecture.md`.
+- Result: `go run ./build/r213/_swap` prints "blocked". Review round 1 found the pin followed a pre-restart symlink and parent swaps; round 2 found `O_RDONLY` broke search-only parents (now `O_PATH`). `make check` exit 0, `make e2e` 220 passed; logs `build/fix21-*.log`.
+- Blockers or follow-up: FIX-28 (flaky `TestEventsGlobalStreamCap` under `make -j`).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.13)
 
 - Task: Phase 2 review + NFR-3 performance check. Three parallel Opus reviewers (backend, frontend, conformance + perf); orchestrator verified each medium finding in source and re-ran the root-swap repro.

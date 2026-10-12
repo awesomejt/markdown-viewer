@@ -32,13 +32,12 @@ Packaging, tests, review:
 
 R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
 
-- [ ] **V1** [Human] Deploy on VM + iPad manual checklist (deps: DOC1; do FIX-24 first, R2.13)
+- [ ] **V1** [Human] Deploy on VM + iPad manual checklist (deps: DOC1; FIX-24 done, R2.13)
 
 ## Phase 2: Refinement
 
 R2.13 review fixes (D-27). Each task adds tests that fail without the change:
 
-- [ ] **FIX-24** [S] NFR-3 doc render (deps: FIX-23): a 459 KB doc with 5 Mermaid + 5 D2 had all diagrams ready at 3.7 s in WebKit iPad emulation (1.1 s for the same diagrams alone) and 5.4 s on chromium 4× CPU; target < 2 s. Investigate main-thread blocking (`mermaid.render` without a container measures inside `document.body`): render into a detached `contain: strict` container and/or render diagrams lazily near the viewport (IntersectionObserver). Promote the `build/r213` perf harness (`perf.spec.ts`, `gen.py`) into the repo as an opt-in `make perf` target and re-measure.
 - [ ] **FIX-25** [S] Full-screen diagram viewer: `fullScreen`/`showSource` survive the error branch, so after a live-reload syntax error is fixed the dialog reopens by itself, briefly with a revoked blob URL (`web/src/diagrams/DiagramFigure.tsx:24-40`); reset them on error and clear `shown` when its URL is revoked. Initial focus likely misses Close (`DiagramViewer.tsx:37,127`: React `autoFocus` runs before `showModal()`); focus it after `showModal()`. E2E for both.
 - [ ] **FIX-26** [S] Render limits in Markdown: fenced code has no Shiki size cap (the 100,000-char cap is only in `fileview/CodeFile.tsx:14`), so a large fence freezes the main thread; apply `MAX_HIGHLIGHT_CHARS` in `CodeBlock`/`highlightToHast` and pass `tokenizeMaxLineLength` (~5,000). KaTeX has no `maxSize` (`markdown/katex.ts:10`): `\kern{-5000em}`/`\rule` can draw over the header/sidebar (UI spoofing, no script); set `maxSize` (~20) and clip inline math.
 - [ ] **FIX-27** [S] A retired root (after a remount swap) stays open until the next swap or shutdown (`internal/fsroot/lazy.go:146-149`), keeping a lazily unmounted share busy; close it after a grace period longer than `MDV_FS_TIMEOUT`.
@@ -66,6 +65,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **FIX-24** [S] NFR-3 doc render: Mermaid chunk preloads when the doc has a mermaid fence; the serial render queue runs near-viewport diagrams first (IntersectionObserver), the rest after. iPad emulation: section jump to its Mermaid diagram ready 1.6-1.8 s (target 2 s), all 10 ready ~2.6 s (informational, D-28). Off-screen container tried, no gain (Mermaid measures in `body`). Harness promoted to opt-in `make perf` (`e2e/perf/`); `make check`, `make e2e` (224), `make perf` green.
 - [x] 2026-10-12: **FIX-23** [S] Markdown no longer re-parses or remounts on re-render: `MarkdownView` memoizes `makeComponents` on `[root, docPath, ws]` and the `<Markdown>` element on `[text, plugins, components]`. New vitest checks one Mermaid render per diagram across TOC, same-props and hash re-renders (fails on old code); `make check` and `make e2e` (224) green.
 - [x] 2026-10-12: **FIX-22** [S] Bad image/tree subs no longer kill live reload: low-priority subs go as `lsub` on `/api/events`; the hub drops invalid ones (and drops them first over the watch caps) while normal `sub` errors still fail the stream; an all-dropped stream still opens. Go + vitest tests, new e2e on an fsnotify root (`livefs`); `make check` and `make e2e` (224) green.
 - [x] 2026-10-12: **FIX-21** 🔒 [S] Root swap escape fixed: `lazyRoot` pins the root path (symlinks resolved in parent folders only; the root itself must be a real directory) and after every open walks it from `/` with `openat(O_PATH|O_NOFOLLOW)` and requires the opened root's dev/ino, else the root stays unavailable (`errRootMoved`); fsnotify host paths use the pinned path. Repro `build/r213/_swap` now blocked; 4 new Go tests; Opus security review clean after two rounds; `make check` and `make e2e` (220) green.
