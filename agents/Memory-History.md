@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.6)
+
+- Task: Table of contents (FR-2.5); done in the orchestrator without a subagent.
+- Files changed: new `web/src/markdown/toc.ts` (`collectHeadings` from the rendered DOM, `mdv-toc-open`), `Toc.tsx`, `MarkdownView.tsx` (`.markdown-doc` wrapper, layout-effect heading read), `app/app.css` (sticky column at ≥ 1400 px), unit tests, `e2e/tests/markdown.spec.ts`, `docs/Architecture.md`, `README.md`.
+- Result: `make check` exit 0 (220 unit), `make e2e` 192 passed twice; logs `build/r26-*.log`.
+- Blockers or follow-up: First e2e run hit an unrelated `recent.spec.ts` race (logged as FIX-19). With the panel open above the body, a live reload that changes the heading count can shift the restored scroll.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.5)
 
 - Task: Syntax highlighting for standalone text/code files (FR-1.5); done in the orchestrator without a subagent.

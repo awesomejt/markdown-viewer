@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DiagramError from './DiagramError';
+import DiagramViewer from './DiagramViewer';
 import { ALT, type DiagramKind } from './kinds';
 
 export interface DiagramFigureProps {
@@ -14,9 +15,13 @@ export interface DiagramFigureProps {
 /**
  * Shows an SVG as `<img src=blob:>`, so its markup never enters the app DOM and cannot run
  * scripts or reach app styles. Object URLs are revoked when replaced and on unmount.
+ * A ready diagram has a source toggle and a full-screen pan/zoom viewer (R2.8).
  */
 export default function DiagramFigure({ kind, source, svg, error }: DiagramFigureProps) {
   const [shown, setShown] = useState<{ svg: string; url: string } | null>(null);
+  const [showSource, setShowSource] = useState(false);
+  const [fullScreen, setFullScreen] = useState(false);
+  const fullScreenButton = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (svg === undefined) return;
@@ -35,7 +40,41 @@ export default function DiagramFigure({ kind, source, svg, error }: DiagramFigur
   if (svg !== undefined && shown?.svg === svg) {
     return (
       <figure className="diagram" data-diagram={kind} data-state="ready">
-        <img className="diagram-img" src={shown.url} alt={ALT[kind]} />
+        <div className="diagram-tools">
+          <button
+            type="button"
+            className="diagram-tool"
+            aria-pressed={showSource}
+            onClick={() => setShowSource((v) => !v)}
+          >
+            Source
+          </button>
+          <button
+            ref={fullScreenButton}
+            type="button"
+            className="diagram-tool"
+            onClick={() => setFullScreen(true)}
+          >
+            Full screen
+          </button>
+        </div>
+        {showSource ? (
+          <pre className="diagram-source">
+            <code>{source}</code>
+          </pre>
+        ) : (
+          <img className="diagram-img" src={shown.url} alt={ALT[kind]} />
+        )}
+        {fullScreen && (
+          <DiagramViewer
+            kind={kind}
+            url={shown.url}
+            onClose={() => {
+              setFullScreen(false);
+              fullScreenButton.current?.focus();
+            }}
+          />
+        )}
       </figure>
     );
   }

@@ -98,3 +98,104 @@ test('oversized standalone diagram asks before loading', async ({ page }) => {
   await expect(figures(page, 'd2')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Load anyway' })).toHaveCount(0);
 });
+
+test('a diagram toggles to its source and back', async ({ page }) => {
+  await page.goto('/view/fixtures/diagrams/inline.md');
+  const fig = figures(page, 'mermaid').first();
+  await expect(fig).toHaveAttribute('data-state', 'ready');
+  const toggle = fig.getByRole('button', { name: 'Source' });
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+  await expect(fig.locator('img')).toHaveCount(0);
+  await expect(fig.locator('.diagram-source code')).toContainText('-->');
+  await toggle.click();
+  await expect(fig.locator('img')).toHaveAttribute('src', /^blob:/);
+  await expect(fig.locator('.diagram-source')).toHaveCount(0);
+});
+
+test('full-screen viewer pans, zooms and pinches', async ({ page }) => {
+  await page.goto('/view/fixtures/diagrams/arch.d2');
+  const fig = figures(page, 'd2');
+  await expect(fig).toHaveAttribute('data-state', 'ready');
+  const open = fig.getByRole('button', { name: 'Full screen' });
+  await open.click();
+
+  const dialog = page.getByRole('dialog', { name: 'D2 diagram, full screen' });
+  await expect(dialog).toBeVisible();
+  const img = dialog.locator('img');
+  expect(await img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+  // The viewer covers the whole viewport.
+  const box = await dialog.boundingBox();
+  const vp = page.viewportSize();
+  expect(box?.width).toBeCloseTo(vp?.width ?? 0, 0);
+  expect(box?.height).toBeCloseTo(vp?.height ?? 0, 0);
+
+  await dialog.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(dialog.getByText('125%')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Fit' }).click();
+  await expect(dialog.getByText('100%')).toBeVisible();
+
+  // Synthetic pointer and wheel events behave the same on desktop and iPad projects.
+  const viewport = dialog.locator('.diagram-viewport');
+  await viewport.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const fire = (type: string, id: number, x: number, y: number) =>
+      el.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: id,
+          pointerType: 'touch',
+          clientX: x,
+          clientY: y,
+          bubbles: true,
+          isPrimary: id === 1,
+        }),
+      );
+    // One finger pans by (40, 20).
+    fire('pointerdown', 1, cx, cy);
+    fire('pointermove', 1, cx + 40, cy + 20);
+    fire('pointerup', 1, cx + 40, cy + 20);
+  });
+  await expect(img).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 40, 20)');
+
+  await viewport.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const fire = (type: string, id: number, x: number) =>
+      el.dispatchEvent(
+        new PointerEvent(type, {
+          pointerId: id,
+          pointerType: 'touch',
+          clientX: x,
+          clientY: cy,
+          bubbles: true,
+        }),
+      );
+    // Two fingers 100 px apart spread to 200 px around the center: scale doubles.
+    fire('pointerdown', 1, cx - 50);
+    fire('pointerdown', 2, cx + 50);
+    fire('pointermove', 1, cx - 100);
+    fire('pointermove', 2, cx + 100);
+    fire('pointerup', 1, cx - 100);
+    fire('pointerup', 2, cx + 100);
+  });
+  await expect(dialog.getByText(/^(199|200|201)%$/)).toBeVisible();
+
+  const prevented = await viewport.evaluate((el) => {
+    const e = new WheelEvent('wheel', { deltaY: 100, cancelable: true, bubbles: true });
+    el.dispatchEvent(e);
+    return e.defaultPrevented;
+  });
+  expect(prevented).toBe(true);
+  await expect(dialog.getByText(/^(199|200|201)%$/)).toHaveCount(0);
+
+  // The page behind does not scroll while the viewer is open.
+  await expect(page.locator('html')).toHaveCSS('overflow', 'hidden');
+
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(open).toBeFocused();
+  await expect(page.locator('html')).not.toHaveCSS('overflow', 'hidden');
+});
