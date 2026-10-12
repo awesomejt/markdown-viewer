@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.9)
+
+- Task: D2 ELK layout option; theme-aware re-render (FR-4.5, FR-4.9); done in the orchestrator without a subagent.
+- Files changed: `internal/d2render/render.go` (resolver uses the engine name, so `d2-config.layout-engine` applies when no layout is requested; empty layout is its own cache key) + test, `internal/api/render.go` (comment), `web/src/api/client.ts` (`D2Layout`), `D2Diagram.tsx` (Layout select, `keepPreviousData`), `DiagramFigure.tsx` (`tools`, `busy`, keeps the old image until the new URL exists), `MermaidDiagram.tsx` (keeps last SVG), unit tests, `e2e/tests/diagrams.spec.ts`, `examples/d2.md`, `docs/Architecture.md`, `README.md`.
+- Result: Go test red before the resolver fix; viewer-persistence test red with the old figure condition. `make check` exit 0 (245 unit), `make e2e` 208 passed; logs `build/r29-*.log`. Example checked on a live server (Auto = ELK ≠ dagre).
+- Blockers or follow-up: Theme re-render already existed (F4); now it no longer flashes "Rendering…". The R2.8 "viewer closes on live reload" limitation is fixed.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.8)
 
 - Task: Diagram source toggle, pan/zoom, full screen, iPad pinch (FR-4.6, FR-4.7); done in the orchestrator without a subagent.
