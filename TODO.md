@@ -72,6 +72,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **CH1** [S] `MEMORY.md` streamlined (32 KB → 7 KB): 29 older run log entries moved to `agents/Memory-History.md`, open follow-ups consolidated into "Known Limitations And Accepted Risks", keep-last-three rule added to `docs/Implementation.md` step 5.
 - [x] 2026-10-11: **T1** Playwright projects chromium, firefox, webkit, ipad (`iPad Pro 11`, 834 px → drawer); `flow.spec.ts` (browse → workspace → relative link → anchor, script not executed, API traversal rejected with a 200 control); drawer-aware `openTree` in workspace spec; 124 e2e (31 × 4), no skips, 3 consecutive green runs.
 - [x] 2026-10-11: **D1** `Dockerfile` (node 24.21 → golang 1.27.2 → distroless static nonroot), `compose.yaml` (read_only, cap_drop ALL, no-new-privileges, `user: ${MDV_UID:-1000}:${MDV_GID:-1000}`, `./examples:ro`, healthcheck), `.dockerignore`, `make docker`; hadolint/yamllint clean, compose goes healthy and serves list/SPA/D2.
 - [x] 2026-10-11: **EX1** `examples/`: GFM tour + front matter, Mermaid (5 types + `.mmd`), D2 (basic, containers, sql_table, sequence + `.d2`), nested cross-linked `guide/`, PNG/SVG images, `broken*` diagrams of each kind; markdownlint clean, D2 200/422 verified on server, Mermaid parse verified.

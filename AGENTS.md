@@ -104,6 +104,7 @@ Automated agents should return to `active`, `blocked`, `error`, or `stopped` bef
   agents/                 # Optional supplemental AI context
     Chat-Template.md      # Template for local or external chat transcripts
     Decisions.md          # Optional decision log when more detail is useful
+    Memory-History.md     # Archived MEMORY.md run log entries (read only when needed)
     Research.md           # Optional research notes and references
 
   .agents/chats/          # Local transcript workspace; transcript files ignored

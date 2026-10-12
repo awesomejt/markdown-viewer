@@ -42,7 +42,7 @@ Every task follows branch → work → review → merge. Nothing is pushed to `o
    - `make e2e` when UI or API behavior changed.
 
    🔒 tasks also need a clean Sonnet review.
-5. **Record state.** The last commit on the branch updates `TODO.md` (task moved to Done with a one-line result) and `MEMORY.md` (run log, next task, any new decisions or blockers).
+5. **Record state.** The last commit on the branch updates `TODO.md` (task moved to Done with a one-line result) and `MEMORY.md` (run log, next task, any new decisions or blockers). `MEMORY.md` keeps only the last three run log entries; older ones move to `agents/Memory-History.md`, with still-open follow-ups carried into "Known Limitations And Accepted Risks".
 6. **Merge.** `git switch main && git merge --no-ff <branch>`. The `--no-ff` merge commit keeps each task's changes grouped in history.
 7. **Validate the merge.** Run `make check` on `main` again. On success, delete the branch (`git branch -d`). On failure, revert the merge commit (`git revert -m 1 <merge>`), mark the task blocked in `TODO.md`, and stop.
 8. **Reset context.** Start the next task from step 1 with a fresh subagent. See [Session Continuity](#session-continuity).
