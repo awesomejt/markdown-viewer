@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.13)
+
+- Task: Phase 2 review + NFR-3 performance check. Three parallel Opus reviewers (backend, frontend, conformance + perf); orchestrator verified each medium finding in source and re-ran the root-swap repro.
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-27), `agents/Memory-History.md` only. No source changes.
+- Result: 14/15 Phase 2 requirements met, NFR-3 partial. Perf (median of 3, WebKit iPad Pro 11 emulation): 10k listing first row 121 ms, scroll-to-end 23 ms, filter key ≤ 25 ms; 459 KB doc with 5 Mermaid + 5 D2 all ready 3.7 s (chromium 1.4 s, chromium 4× CPU 5.4 s; target 2 s). `go vet`, `go test -race`, vitest 249 all green. Logged FIX-21 to FIX-27, DOC2, CH2.
+- Blockers or follow-up: Perf rerun: `docker run --rm -u $(id -u):$(id -g) -v $PWD:/src -w /src/build/r213 --ipc=host -e HOME=/src/build/.cache/home -e CI=1 mcr.microsoft.com/playwright:v1.64.0-noble npx playwright test` (fixtures from `python3 build/r213/gen.py`, server `build/mdv` on 18081 with `MDV_ROOTS=perf=build/r213/perf`).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (R2.12)
 
 - Task: Full Phase 2 validation run (as T2); run in the orchestrator (tool runs only, no authoring).
