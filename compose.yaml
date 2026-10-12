@@ -1,0 +1,35 @@
+services:
+  mdv:
+    build:
+      context: .
+      args:
+        VERSION: ${MDV_VERSION:-dev}
+    image: mdv:${MDV_VERSION:-dev}
+    restart: unless-stopped
+    ports:
+      - "${MDV_PORT:-8080}:8080"
+    # Must match the uid=/gid= options of the NAS mount on the VM so the
+    # container user can read it. 1000:1000 is the documented default; the real
+    # NAS values are still an open question.
+    user: "${MDV_UID:-1000}:${MDV_GID:-1000}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - "no-new-privileges:true"
+    environment:
+      MDV_LISTEN: ":8080"
+      MDV_ROOTS: "examples=/data/examples"
+      MDV_POLL_INTERVAL: "3s"
+      MDV_LOG_LEVEL: "info"
+    volumes:
+      - ./examples:/data/examples:ro
+      # NAS share mounted on the VM (fstab/autofs), then add to MDV_ROOTS,
+      # e.g. MDV_ROOTS: "markdown=/data/markdown":
+      # - /mnt/nas/markdown:/data/markdown:ro
+    healthcheck:
+      test: ["CMD", "/mdv", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

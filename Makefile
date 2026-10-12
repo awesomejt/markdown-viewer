@@ -119,7 +119,7 @@ e2e: build fixtures build/.stamp-e2e-deps
 
 ## docker: build Docker image
 docker:
-	@echo "docker not configured yet (D1)"
+	docker build --build-arg VERSION=$(VERSION) -t mdv:$(VERSION) -t mdv:latest .
 
 ## clean: remove build artifacts
 clean:
