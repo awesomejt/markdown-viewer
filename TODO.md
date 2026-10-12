@@ -32,7 +32,6 @@ Packaging, tests, review:
 
 R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
 
-- [ ] **FIX-8** [S] Startup resilience: root `os.Stat`/`OpenHandle` run with no timeout and any failure exits (`config.go`, `fsroot/registry.go`, `cmd/mdv/main.go`), so a NAS that is down at boot causes a restart loop or a hang (unhealthy, not restarted). Run under `MDV_FS_TIMEOUT` and start such roots as `available:false` with the existing probe (deps: R1)
 - [ ] **FIX-9** [S] Compose/defaults: `MDV_ROOTS: ${MDV_ROOTS:-examples=/data/examples}`; long bind syntax with `propagation: rslave` for NAS mounts (late/remounted NAS stays invisible otherwise); default `MDV_POLL_INTERVAL` 2s in config and compose to meet SC3 (`hub.go` `DefaultPollInterval` already 2s) (deps: R1)
 - [ ] **FIX-10** [S] E2E gaps: back/forward (FR-6.2), relative image inside a Markdown document loads (SC1), offline guard (`page.route` fails any non-local request) (deps: R1)
 - [ ] **FIX-11** [S] FR-1.2 (M) date sort missing: name/date sort control in the folder listing, persisted like the markdown-only toggle (deps: R1)
@@ -79,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **FIX-8** [S] Roots open lazily under `MDV_FS_TIMEOUT`, concurrently at boot; a missing/erroring/hung root starts `available:false` with a startup warning and recovers via the probe without restart; a non-directory root still fails startup; config no longer stats paths; fsroot 97.9%, `make check` green, `make e2e` 124 passed.
 - [x] 2026-10-11: **FIX-7** [S] Missing-path watch keys capped separately (`MaxMissing` 64) so they cannot exhaust `MaxWatches`; `/api/events` caps 64 streams total and 16 per TCP peer IP (503 `busy`); watch 92.7%, api 95.1%, `make check` green, `make e2e` 124 passed.
 - [x] 2026-10-11: **FIX-6** [S] D2 SVG cache bounded by total bytes (64 MiB) as well as entries; SVGs over 4 MiB not cached but still returned (`Options.CacheBytes`/`MaxEntryBytes`, no new env var); 95.7% d2render, `make check` green.
 - [x] 2026-10-11: **FIX-5** 🔒 [S] Host allowlist on every route (API, SSE, SPA, `/healthz`): 421 `host_not_allowed` unless Host is an IP literal, `localhost` or in `MDV_ALLOWED_HOSTS` (`*` disables with a warning); healthcheck sends `Host: localhost`; compose passthrough; Opus review approved.
