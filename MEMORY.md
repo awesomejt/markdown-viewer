@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: D1 Docker packaging (`Dockerfile`, `compose.yaml`) (2026-10-11)
-- Next recommended task: T1 [S] Complete cross-browser e2e suite + iPad viewport
+- Last major milestone: T1 cross-browser e2e (chromium, firefox, webkit, iPad) (2026-10-11)
+- Next recommended task: T2 [H] Full validation run
 - Current blocker: None
 
 ## Key Decisions
@@ -57,6 +57,13 @@ Full log: `agents/Decisions.md`.
 ## Agent Run Log
 
 Newest entries first.
+
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (T1)
+
+- Task: Cross-browser e2e suite + iPad viewport.
+- Files changed: `e2e/playwright.config.ts` (projects chromium, firefox, webkit, ipad), `e2e/tests/flow.spec.ts` (new), `e2e/tests/workspace.spec.ts` (`openTree` drawer helper).
+- Result: 124 e2e tests (31 per project), no skips. iPad Pro 11 portrait is 834 px, so specs that use the sidebar must open the drawer, and must first wait for the drawer to auto-close after navigation (otherwise they race it). The orchestrator added a 200 control to the traversal test and re-ran `make e2e` (124 passed) and `make check` (exit 0).
+- Blockers or follow-up: `/view/...%2f..` returns 200 (SPA route; the API is the guard), so traversal is tested on `/api/*` only.
 
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 verification (D1)
 
