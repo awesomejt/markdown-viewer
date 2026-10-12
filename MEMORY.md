@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: DOC1 README + deployment guide (2026-10-12)
-- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-2) meanwhile
+- Last major milestone: FIX-2 diagram "Load anyway" + fallback kinds (2026-10-12)
+- Next recommended task: V1 [Human] deploy on the VM + iPad checklist (`docs/Deployment.md`); agents can continue with Phase 2 (FIX-3) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -59,6 +59,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Bundle: the >500 kB chunk warning (MarkdownView/index) remains. `npm audit` low-severity katex advisory via mermaid (R2.7).
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and stays there after the mount appears (restart needed; FIX-16). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
+- Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 
 ## Open Questions
@@ -75,6 +76,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-2)
+
+- Task: Oversized standalone diagram "Load anyway"; `/view` fallback kinds.
+- Files changed: `web/src/fileview/ViewFileView.tsx` (diagram case wrapped in `TextGate`), `web/src/diagrams/DiagramPage.tsx` (takes `source`, no fetch), `web/src/fileview/logic.ts` + new `logic.test.ts` (`fileKind` mirrors `ClassifyName`), `testdata/mkfixtures.sh` (`large.d2` ~6 MiB), `e2e/tests/diagrams.spec.ts`.
+- Result: The orchestrator checked the extension lists against `internal/fsroot/kind.go` (identical) and re-ran `make check` (171 unit, exit 0); `make e2e` 144 passed. Logs `build/fix2-*.log`.
+- Blockers or follow-up: A forced diagram over 5 MiB still cannot render (D2 render body cap 256 KiB, Mermaid `maxTextSize` ~50 KB), so it shows the error figure; recorded under Known Limitations (raising the caps is an owner call).
+
 ### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (DOC1)
 
 - Task: README + deployment docs.
@@ -88,10 +96,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `e2e/tests/workspace.spec.ts` (closed drawer asserted via `#sidebar`: `visibility: hidden` drops it from role queries), `internal/api/events.go` + test (stream starts with `: open`), `docs/Architecture.md`.
 - Result: FIX-17 root cause: Firefox did not fire EventSource `open` on headers alone, so refetch-on-open never ran and a file created before the poll baseline was missed (3/3 red before, 3/3 green after, 140 passed each). `make check` exit 0; logs `build/fix15-*`, `build/fix17-*`.
 - Blockers or follow-up: None.
-
-### 2026-10-12 - Claude Sonnet 5.5 + Opus 5.5 orchestrator (FIX-11)
-
-- Task: FR-1.2 date sort.
-- Files changed: `web/src/browse/logic.ts` (`sortEntries`, `loadSort`/`saveSort`, key `mdv-sort`), `BrowseView.tsx` ("Sort by" select), `browse.css`, unit/component tests, `e2e/tests/browse.spec.ts` (live root folder with `utimesSync` mtimes, persists across reload).
-- Result: Folders first in both modes; date = newest first, name tie-break, missing mtime last. The orchestrator reviewed the diff and re-ran `make check` (154 unit) and `make e2e` twice (140 passed); all exit 0, logs `build/fix11-*.log`.
-- Blockers or follow-up: FIX-17 (firefox live-folder flake seen once by the subagent).

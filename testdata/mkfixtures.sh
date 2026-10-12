@@ -14,6 +14,7 @@
 #                        so an NFC request for "caf<U+00E9>.md" must find it
 #   large.md             ~6 MiB Markdown, above the 5 MiB MDV_MAX_FILE_BYTES default
 #   large.txt            copy of large.md as a plain text file (cheap to render)
+#   large.d2             small D2 diagram padded with comments to ~6 MiB
 #
 # Usage:
 #   testdata/mkfixtures.sh            create or refresh the entries (idempotent)
@@ -59,6 +60,21 @@ make_large() {
   cp -f "$out" "$gen/large.txt"
 }
 
+make_large_d2() {
+  local out="$gen/large.d2" tmp
+  tmp="$(mktemp "$gen/.large.XXXXXX")"
+  {
+    printf 'a -> b: oversized\n'
+    local i=0
+    while [ $((i)) -lt 77000 ]; do
+      printf '# Line %06d: The quick brown fox jumps over the lazy dog. Lorem ipsum dolor sit.\n' "$i"
+      i=$((i + 1))
+    done
+  } >"$tmp"
+  chmod 644 "$tmp"
+  mv -f "$tmp" "$out"
+}
+
 create() {
   mkdir -p "$gen"
   local pair
@@ -72,6 +88,9 @@ create() {
   fi
   if [ ! -f "$gen/large.txt" ] || [ "$size" -lt "$large_min" ]; then
     make_large
+  fi
+  if [ ! -f "$gen/large.d2" ] || [ "$(wc -c <"$gen/large.d2")" -lt "$large_min" ]; then
+    make_large_d2
   fi
 }
 
@@ -112,6 +131,13 @@ verify() {
   fi
   if [ ! -f "$gen/large.txt" ] || [ -L "$gen/large.txt" ]; then
     echo "verify: large.txt is not a regular file" >&2
+    rc=1
+  fi
+  if [ ! -f "$gen/large.d2" ] || [ -L "$gen/large.d2" ]; then
+    echo "verify: large.d2 is not a regular file" >&2
+    rc=1
+  elif [ "$(wc -c <"$gen/large.d2")" -lt "$large_min" ]; then
+    echo "verify: large.d2 is smaller than $large_min bytes" >&2
     rc=1
   fi
   return "$rc"

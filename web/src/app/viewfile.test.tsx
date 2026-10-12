@@ -115,7 +115,7 @@ describe('ViewFileView', () => {
   });
 
   it('falls back to the extension when the listing has no entry', async () => {
-    renderAt('/view/r/g/big.txt');
-    expect(await screen.findByRole('link', { name: /Download big\.txt/ })).toBeInTheDocument();
+    renderAt('/view/r/g/big.bin');
+    expect(await screen.findByRole('link', { name: /Download big\.bin/ })).toBeInTheDocument();
   });
 });
