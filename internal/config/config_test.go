@@ -102,12 +102,21 @@ func TestWatchSuffix(t *testing.T) {
 	}
 }
 
-func TestInvalid(t *testing.T) {
-	d := t.TempDir()
-	file := filepath.Join(d, "f.txt")
-	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
+// A root path is only checked syntactically; whether it exists is fsroot's
+// concern, so a root that is down at boot does not fail the configuration.
+func TestMissingPathAccepted(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "nope")
+	c, err := Load(env(map[string]string{"MDV_ROOTS": "x=" + p}))
+	if err != nil {
 		t.Fatal(err)
 	}
+	if c.Roots[0].Path != p {
+		t.Errorf("got %+v", c.Roots[0])
+	}
+}
+
+func TestInvalid(t *testing.T) {
+	d := t.TempDir()
 	ok := "x=" + d
 	tests := []struct {
 		name string
@@ -122,8 +131,6 @@ func TestInvalid(t *testing.T) {
 		{"long name", map[string]string{"MDV_ROOTS": strings.Repeat("a", 33) + "=" + d}, "invalid root name"},
 		{"empty name", map[string]string{"MDV_ROOTS": "=" + d}, "invalid root name"},
 		{"relative", map[string]string{"MDV_ROOTS": "x=rel/path"}, "must be absolute"},
-		{"missing path", map[string]string{"MDV_ROOTS": "x=" + filepath.Join(d, "nope")}, "no such file"},
-		{"file root", map[string]string{"MDV_ROOTS": "x=" + file}, "not a directory"},
 		{"duplicate", map[string]string{"MDV_ROOTS": ok + ",x=" + d}, "duplicate root name"},
 		{"bad duration", map[string]string{"MDV_ROOTS": ok, "MDV_FS_TIMEOUT": "abc"}, "MDV_FS_TIMEOUT"},
 		{"zero duration", map[string]string{"MDV_ROOTS": ok, "MDV_POLL_INTERVAL": "0s"}, "MDV_POLL_INTERVAL"},

@@ -2,10 +2,13 @@ package fsroot
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/awesomejt/markdown-viewer/internal/config"
@@ -58,6 +61,7 @@ type Handle struct {
 	sem         chan struct{}
 	unavailable atomic.Bool
 	probing     atomic.Bool
+	startErr    error // why the root was unavailable at creation; nil if it was not
 }
 
 // NewHandle builds a Handle over fsys. closer may be nil.
@@ -72,19 +76,51 @@ func NewHandle(name string, watch config.WatchMode, fsys FS, timeout time.Durati
 	}
 }
 
-// OpenHandle opens the configured root and wraps it with the limits in cfg.
+// OpenHandle wraps the configured root with the limits in cfg. The root is
+// opened lazily, and one initial open plus Stat of "." is attempted within
+// cfg.FSTimeout.
+//
+// A root that is not a directory is a fatal misconfiguration and returns an
+// error. Any other failure (missing path, I/O error, permission, stale mount,
+// no answer in time) is not: the handle starts unavailable, requests fail fast
+// with [KindTimeout], and the recovery probe retries until the root answers.
+// [Handle.StartupErr] reports why such a handle started unavailable.
 func OpenHandle(root config.Root, cfg *config.Config) (*Handle, error) {
-	r, err := OpenRoot(root)
-	if err != nil {
-		return nil, err
-	}
-	h := NewHandle(root.Name, root.Watch, r, cfg.FSTimeout, cfg.FSMaxInflight, cfg.MaxListEntries)
-	h.closer = r.Close
+	return openHandle(root, cfg, OpenRoot)
+}
+
+func openHandle(root config.Root, cfg *config.Config, open func(config.Root) (*Root, error)) (*Handle, error) {
+	lr := newLazyRoot(root, open)
+	h := NewHandle(root.Name, root.Watch, lr, cfg.FSTimeout, cfg.FSMaxInflight, cfg.MaxListEntries)
+	h.closer = lr.Close
 	if abs, aerr := filepath.Abs(root.Path); aerr == nil {
 		h.hostDir = abs
 	}
+	_, err := run(context.Background(), h, "open", ".", func() (struct{}, error) {
+		fi, err := lr.Stat(".")
+		if err == nil && !fi.IsDir() {
+			return struct{}{}, errNotDir
+		}
+		return struct{}{}, err
+	}, nil)
+	if err == nil {
+		return h, nil
+	}
+	if errors.Is(err, errNotDir) || errors.Is(err, syscall.ENOTDIR) {
+		_ = h.Close()
+		return nil, fmt.Errorf("fsroot: root %q: path %q is not a directory", root.Name, root.Path)
+	}
+	h.unavailable.Store(true)
+	h.startErr = err
 	return h, nil
 }
+
+var errNotDir = errors.New("not a directory")
+
+// StartupErr returns why the root was unavailable when the handle was created,
+// or nil if it was available. It is a snapshot: the root may have recovered
+// since. It can contain host paths and is for logs only.
+func (h *Handle) StartupErr() error { return h.startErr }
 
 // Name returns the root's configured name.
 func (h *Handle) Name() string { return h.name }

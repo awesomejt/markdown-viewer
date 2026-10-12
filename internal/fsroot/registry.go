@@ -2,6 +2,7 @@ package fsroot
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/awesomejt/markdown-viewer/internal/config"
 )
@@ -17,23 +18,55 @@ type RootInfo struct {
 type Registry struct {
 	handles []*Handle
 	byName  map[string]*Handle
+	startup []RootError
 }
 
-// NewRegistry opens every configured root. On any failure the roots already
-// opened are closed.
+// NewRegistry opens every configured root, concurrently so that several dead
+// roots cost one MDV_FS_TIMEOUT rather than one each. A root that is
+// unreachable at startup does not fail it: its handle starts unavailable and
+// is listed by [Registry.StartupErrors]. A fatal error (a path that is not a
+// directory) closes the roots already opened and is returned.
 func NewRegistry(cfg *config.Config) (*Registry, error) {
+	handles := make([]*Handle, len(cfg.Roots))
+	errs := make([]error, len(cfg.Roots))
+	var wg sync.WaitGroup
+	for i, rc := range cfg.Roots {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			handles[i], errs[i] = OpenHandle(rc, cfg)
+		}()
+	}
+	wg.Wait()
 	reg := &Registry{byName: make(map[string]*Handle, len(cfg.Roots))}
-	for _, rc := range cfg.Roots {
-		h, err := OpenHandle(rc, cfg)
-		if err != nil {
-			_ = reg.Close()
-			return nil, err
+	var fatal []error
+	for i, h := range handles {
+		if errs[i] != nil {
+			fatal = append(fatal, errs[i])
+			continue
 		}
 		reg.handles = append(reg.handles, h)
-		reg.byName[rc.Name] = h
+		reg.byName[h.name] = h
+		if se := h.StartupErr(); se != nil {
+			reg.startup = append(reg.startup, RootError{Name: h.name, Err: se})
+		}
+	}
+	if len(fatal) > 0 {
+		_ = reg.Close()
+		return nil, errors.Join(fatal...)
 	}
 	return reg, nil
 }
+
+// RootError ties an error to the root it concerns.
+type RootError struct {
+	Name string
+	Err  error
+}
+
+// StartupErrors lists, in config order, the roots that were unavailable when
+// the registry was built and why. They are probed and may have recovered since.
+func (r *Registry) StartupErrors() []RootError { return r.startup }
 
 // Get returns the handle for name, or a KindNotFound *PathError.
 func (r *Registry) Get(name string) (*Handle, error) {

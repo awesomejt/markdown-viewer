@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-5)
+
+- Task: DNS rebinding Host allowlist (🔒).
+- Files changed: `internal/config/config.go` (`MDV_ALLOWED_HOSTS`), `internal/api/api.go` (`hostGuard`, 421 `host_not_allowed`), `cmd/mdv/main.go` (healthcheck `Host: localhost`, `*` warning), `compose.yaml`, tests in config/api/web/cmd, `docs/Architecture.md`.
+- Result: Opus review found no bypass (odd IPv4 forms, brackets, trailing dots, absolute-form requests checked) and approved; its follow-ups were applied. `TestServeAndShutdown` hung 5 s because `Shutdown` treats a pooled but unused (`StateNew`) conn as idle only after 5 s; the test now closes idle client conns. `make check` exit 0, `make e2e` 124 passed.
+- Blockers or follow-up: None.
+
 ### 2026-10-11 - Claude Sonnet 5.5 + Opus 5.5 review (FIX-4)
 
 - Task: D2 render CSRF + CSP (🔒).

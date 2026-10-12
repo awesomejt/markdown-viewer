@@ -127,6 +127,9 @@ func serve(ctx context.Context, getenv func(string) string, stderr io.Writer, re
 		return 1
 	}
 	defer func() { _ = reg.Close() }()
+	for _, re := range reg.StartupErrors() {
+		logger.Warn("root unavailable at startup", "root", re.Name, "err", re.Err)
+	}
 
 	if slices.Contains(cfg.AllowedHosts, config.AllowAnyHost) {
 		logger.Warn("MDV_ALLOWED_HOSTS=* disables the Host check; DNS rebinding protection is off")
