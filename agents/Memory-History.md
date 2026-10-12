@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-13)
+
+- Task: `HostPath` NFC/NFD join; small enough to fix in the orchestrator without a subagent.
+- Files changed: `internal/fsroot/watchops.go` (`HostPath` runs its own `withRetry` stat and joins the name that succeeded; `HostPathMissing` inherits it), tests in `internal/fsroot/watchops_test.go` and `internal/watch/hub_test.go`.
+- Result: New hub test (NFC sub, NFD names, file + dir keys) is red in fsnotify mode without the fix (file key silent, dir key Add fails) and green with it in both modes. `make check` exit 0, `make e2e` 148 passed; logs `build/fix13-*.log`.
+- Blockers or follow-up: The retry is whole-path only; a path whose components mix NFC and NFD on disk is still not found (unchanged, pre-existing).
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-12)
 
 - Task: `/api/file` write deadline; small enough to fix in the orchestrator without a subagent.
