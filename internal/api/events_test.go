@@ -489,3 +489,70 @@ func TestEventsStreamSlotsReleasedAfterClose(t *testing.T) {
 		t.Fatalf("streams = %d, ips = %d, want 0", n, ips)
 	}
 }
+
+func TestEventsLowSubsDropped(t *testing.T) {
+	_, ts, dir := eventServer(t)
+	if err := os.Symlink(t.TempDir(), filepath.Join(dir, "esc")); err != nil {
+		t.Fatal(err)
+	}
+	write(t, filepath.Join(dir, "doc.md"), "one")
+	u := ts.URL + "/api/events?" + url.Values{
+		"sub":  {"r:doc.md"},
+		"lsub": {"r:../x", "r:esc", "zz:a", "r:\x01.png", "nocolon", ":x"},
+	}.Encode()
+	st := openStream(t, u)
+	if st.resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d, want 200", st.resp.StatusCode)
+	}
+	write(t, filepath.Join(dir, "doc.md"), "two, longer")
+	want := watch.Event{Root: "r", Path: "doc.md", Op: watch.OpModified}
+	for ev := st.change(t); ev != want; ev = st.change(t) {
+		t.Logf("skipping %+v", ev)
+	}
+}
+
+func TestEventsOnlyInvalidLowSubsStreams(t *testing.T) {
+	_, ts, _ := eventServer(t)
+	u := ts.URL + "/api/events?" + url.Values{"lsub": {"r:../x", "nocolon"}}.Encode()
+	st := openStream(t, u)
+	if st.resp.StatusCode != http.StatusOK {
+		t.Fatalf("status %d, want 200", st.resp.StatusCode)
+	}
+	for { // the stream is alive: it pings
+		if l, ok := st.next(t); !ok {
+			t.Fatal("stream ended")
+		} else if l == ": ping" {
+			return
+		}
+	}
+}
+
+func TestEventsCombinedCapAndNormalFailure(t *testing.T) {
+	_, ts, _ := eventServer(t)
+	lows := make([]string, 30)
+	for i := range lows {
+		lows[i] = fmt.Sprintf("r:l%d", i)
+	}
+	for name, q := range map[string]url.Values{
+		"33 combined":    {"sub": {"r:a", "r:b", "r:c"}, "lsub": lows},
+		"invalid normal": {"sub": {"r:../x"}, "lsub": {"r:ok"}},
+	} {
+		resp, err := http.Get(ts.URL + "/api/events?" + q.Encode())
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = resp.Body.Close()
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("%s: status %d, want 400", name, resp.StatusCode)
+		}
+	}
+	// 2 + 30 combined is accepted.
+	resp, err := http.Get(ts.URL + "/api/events?" + url.Values{"sub": {"r:a", "r:b"}, "lsub": lows}.Encode())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("32 combined: status %d", resp.StatusCode)
+	}
+}

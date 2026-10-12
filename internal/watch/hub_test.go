@@ -181,25 +181,25 @@ func TestSubscribeErrors(t *testing.T) {
 				sub  Sub
 				kind fsroot.Kind
 			}{
-				{Sub{"nope", "ok.md"}, fsroot.KindNotFound},
-				{Sub{"r", "../x"}, fsroot.KindBadRequest},
-				{Sub{"r", "/abs"}, fsroot.KindBadRequest},
-				{Sub{"r", "esc"}, fsroot.KindForbidden},
+				{Sub{Root: "nope", Path: "ok.md"}, fsroot.KindNotFound},
+				{Sub{Root: "r", Path: "../x"}, fsroot.KindBadRequest},
+				{Sub{Root: "r", Path: "/abs"}, fsroot.KindBadRequest},
+				{Sub{Root: "r", Path: "esc"}, fsroot.KindForbidden},
 			}
 			if mode == config.WatchFSNotify { // the parent must exist to be watched
 				tests = append(tests,
 					struct {
 						sub  Sub
 						kind fsroot.Kind
-					}{Sub{"r", "nodir/missing.md"}, fsroot.KindNotFound},
+					}{Sub{Root: "r", Path: "nodir/missing.md"}, fsroot.KindNotFound},
 					struct {
 						sub  Sub
 						kind fsroot.Kind
-					}{Sub{"r", "ok.md/child"}, fsroot.KindNotFound})
+					}{Sub{Root: "r", Path: "ok.md/child"}, fsroot.KindNotFound})
 			}
 			for _, tc := range tests {
 				// A good sub alongside must not stay registered.
-				_, err := hub.Subscribe(context.Background(), []Sub{{"r", "ok.md"}, tc.sub})
+				_, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "ok.md"}, tc.sub})
 				if fsroot.KindOf(err) != tc.kind {
 					t.Errorf("%v: got %v, want kind %v", tc.sub, err, tc.kind)
 				}
@@ -282,7 +282,7 @@ func TestHubClose(t *testing.T) {
 			case <-time.After(waitFor):
 				t.Fatal("subscription not ended by hub close")
 			}
-			if _, err := hub.Subscribe(context.Background(), []Sub{{"r", "a.md"}}); !errors.Is(err, ErrClosed) {
+			if _, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "a.md"}}); !errors.Is(err, ErrClosed) {
 				t.Fatalf("err = %v, want ErrClosed", err)
 			}
 			s.Close() // safe after hub close
@@ -368,7 +368,7 @@ func TestMaxWatches(t *testing.T) {
 			// Existing keys cost nothing, duplicates count once.
 			subscribe(t, hub, "a.md", "b.md", "a.md")
 			// One new key would be the third; nothing of the request stays.
-			_, err := hub.Subscribe(context.Background(), []Sub{{"r", "a.md"}, {"r", "c.md"}})
+			_, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "a.md"}, {Root: "r", Path: "c.md"}})
 			if !errors.Is(err, ErrTooManyWatches) {
 				t.Fatalf("err = %v, want ErrTooManyWatches", err)
 			}
@@ -378,7 +378,7 @@ func TestMaxWatches(t *testing.T) {
 			// The second subscription still holds both keys, so room appears
 			// only once both are gone.
 			sa.Close()
-			if _, err := hub.Subscribe(context.Background(), []Sub{{"r", "c.md"}}); !errors.Is(err, ErrTooManyWatches) {
+			if _, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "c.md"}}); !errors.Is(err, ErrTooManyWatches) {
 				t.Fatalf("err = %v, want ErrTooManyWatches", err)
 			}
 		})
@@ -604,7 +604,7 @@ func TestMaxMissing(t *testing.T) {
 			sm := subscribe(t, hub, "m1.md", "m2.md")
 			// A third missing key fails and registers nothing, even with a
 			// valid sibling in the same request.
-			_, err := hub.Subscribe(context.Background(), []Sub{{"r", "a.md"}, {"r", "m3.md"}})
+			_, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "a.md"}, {Root: "r", Path: "m3.md"}})
 			if !errors.Is(err, ErrTooManyWatches) {
 				t.Fatalf("err = %v, want ErrTooManyWatches", err)
 			}
@@ -613,7 +613,7 @@ func TestMaxMissing(t *testing.T) {
 			}
 			// Missing keys do not use up the present cap.
 			subscribe(t, hub, "a.md", "b.md")
-			if _, err := hub.Subscribe(context.Background(), []Sub{{"r", "c.md"}}); !errors.Is(err, ErrTooManyWatches) {
+			if _, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "c.md"}}); !errors.Is(err, ErrTooManyWatches) {
 				t.Fatalf("present cap: err = %v", err)
 			}
 			// An already watched missing key costs nothing.
@@ -654,6 +654,113 @@ func TestNormalizationMismatch(t *testing.T) {
 			s = subscribe(t, hub, dirKey)
 			write(t, filepath.Join(dir, nfd, "new.md"), "x")
 			expect(t, s, ev(dirKey, OpModified))
+		})
+	}
+}
+
+func TestLowSubsDroppedWhenInvalid(t *testing.T) {
+	for _, mode := range modes {
+		t.Run(string(mode), func(t *testing.T) {
+			hub, dir := newEnv(t, mode)
+			write(t, filepath.Join(dir, "ok.md"), "x")
+			if err := os.Symlink(t.TempDir(), filepath.Join(dir, "esc")); err != nil {
+				t.Fatal(err)
+			}
+			subs := []Sub{
+				{Root: "r", Path: "ok.md"},
+				{Root: "r", Path: "../x", Low: true},
+				{Root: "r", Path: "esc", Low: true},
+				{Root: "nope", Path: "a", Low: true},
+				{Root: "r", Path: "nodir/img.png", Low: true},
+			}
+			s, err := hub.Subscribe(context.Background(), subs)
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(s.Close)
+			if mode == config.WatchPoll {
+				// Poll roots watch a missing path, so only the invalid ones were dropped.
+				if n := hub.Watching(); n != 2 {
+					t.Fatalf("watching %d, want 2", n)
+				}
+			} else if n := hub.Watching(); n != 1 {
+				t.Fatalf("watching %d, want 1", n)
+			}
+			write(t, filepath.Join(dir, "ok.md"), "changed")
+			expect(t, s, ev("ok.md", OpModified))
+
+			// Only invalid low subs: still a subscription, watching nothing.
+			s2, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "../x", Low: true}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(s2.Close)
+
+			// A normal sub that is invalid still fails everything.
+			_, err = hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "ok.md", Low: true}, {Root: "r", Path: "../x"}})
+			if fsroot.KindOf(err) != fsroot.KindBadRequest {
+				t.Fatalf("err = %v, want bad request", err)
+			}
+		})
+	}
+}
+
+func TestLowSubCanceledContextDropped(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchFSNotify)
+	write(t, filepath.Join(dir, "ok.md"), "x")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	s, err := hub.Subscribe(ctx, []Sub{{Root: "r", Path: "ok.md", Low: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Close()
+}
+
+func TestLowSubUpgradedByNormalDuplicate(t *testing.T) {
+	hub, dir := newEnv(t, config.WatchPoll)
+	hub.opts.MaxWatches = 1
+	write(t, filepath.Join(dir, "a.md"), "x")
+	write(t, filepath.Join(dir, "b.md"), "x")
+	// The same key as low then normal counts as normal and is kept.
+	s, err := hub.Subscribe(context.Background(), []Sub{
+		{Root: "r", Path: "a.md", Low: true}, {Root: "r", Path: "b.md", Low: true}, {Root: "r", Path: "a.md"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(s.Close)
+	if n := hub.Watching(); n != 1 {
+		t.Fatalf("watching %d, want 1", n)
+	}
+}
+
+func TestLowSubsDroppedOverCap(t *testing.T) {
+	for _, mode := range modes {
+		t.Run(string(mode), func(t *testing.T) {
+			hub, dir := newEnv(t, mode)
+			hub.opts.MaxWatches = 2
+			for _, n := range []string{"a.md", "b.md", "c.md"} {
+				write(t, filepath.Join(dir, n), "x")
+			}
+			// Low subs that would exceed the cap are dropped, normal ones kept.
+			s, err := hub.Subscribe(context.Background(), []Sub{
+				{Root: "r", Path: "a.md"}, {Root: "r", Path: "b.md", Low: true}, {Root: "r", Path: "c.md", Low: true},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(s.Close)
+			if n := hub.Watching(); n != 1 {
+				t.Fatalf("watching %d, want 1", n)
+			}
+			// Normal subs alone over the cap still fail.
+			_, err = hub.Subscribe(context.Background(), []Sub{
+				{Root: "r", Path: "b.md"}, {Root: "r", Path: "c.md"}, {Root: "r", Path: "a.md", Low: true},
+			})
+			if !errors.Is(err, ErrTooManyWatches) {
+				t.Fatalf("err = %v, want ErrTooManyWatches", err)
+			}
 		})
 	}
 }

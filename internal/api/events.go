@@ -35,19 +35,27 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusMethodNotAllowed, codeMethod, "method not allowed")
 		return
 	}
-	raw := r.URL.Query()["sub"]
-	if len(raw) == 0 || len(raw) > maxSubs {
-		writeError(w, http.StatusBadRequest, codeBadRequest, fmt.Sprintf("want 1 to %d sub parameters", maxSubs))
+	q := r.URL.Query()
+	raw, rawLow := q["sub"], q["lsub"]
+	if n := len(raw) + len(rawLow); n == 0 || n > maxSubs {
+		writeError(w, http.StatusBadRequest, codeBadRequest, fmt.Sprintf("want 1 to %d sub and lsub parameters in total", maxSubs))
 		return
 	}
-	subs := make([]watch.Sub, len(raw))
-	for i, v := range raw {
+	subs := make([]watch.Sub, 0, len(raw)+len(rawLow))
+	for _, v := range raw {
 		root, p, ok := strings.Cut(v, ":")
 		if !ok || root == "" {
 			writeError(w, http.StatusBadRequest, codeBadRequest, "sub must be <root>:<path>")
 			return
 		}
-		subs[i] = watch.Sub{Root: root, Path: p}
+		subs = append(subs, watch.Sub{Root: root, Path: p})
+	}
+	// lsub is best effort: malformed values are dropped here, and the hub
+	// drops the ones that fail validation, so they never fail the stream.
+	for _, v := range rawLow {
+		if root, p, ok := strings.Cut(v, ":"); ok && root != "" {
+			subs = append(subs, watch.Sub{Root: root, Path: p, Low: true})
+		}
 	}
 	ip := remoteIP(r)
 	if !s.acquireStream(ip) {

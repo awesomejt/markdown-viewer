@@ -62,7 +62,7 @@ func TestPollBlockedFSStaysBounded(t *testing.T) {
 			f.free.Store(3) // enough for the subscribe-time Stat/ReadNames
 			h := fsroot.NewHandle("r", config.WatchPoll, f, 5*time.Millisecond, inflight, 10)
 			hub := New(fsroot.NewRegistryFromHandles(h), Options{PollInterval: time.Millisecond, Coalesce: 5 * time.Millisecond})
-			s, err := hub.Subscribe(context.Background(), []Sub{{"r", "p"}})
+			s, err := hub.Subscribe(context.Background(), []Sub{{Root: "r", Path: "p"}})
 			if err != nil {
 				t.Fatal(err)
 			}
