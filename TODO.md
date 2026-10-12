@@ -26,7 +26,6 @@ All backend tasks are done.
 
 Frontend (each F-task adds its own e2e scenario):
 
-- [ ] **F4** [S] Mermaid + D2 diagram components (deps: F3, B5)
 - [ ] **F5** [S] Workspace tree + file views by kind + large-file load button (deps: F2, F3)
 - [ ] **F6** [S] Live reload client (deps: F5, B6)
 
@@ -48,7 +47,7 @@ Packaging, tests, review:
 - [ ] **R2.4** [S] Web-app manifest + home-screen icons
 - [ ] **R2.5** [S] Highlighting for standalone code files
 - [ ] **R2.6** [S] Table of contents
-- [ ] **R2.7** [S] KaTeX math; GitHub alerts
+- [ ] **R2.7** [S] KaTeX math; GitHub alerts (also clear the low-severity `npm audit` katex advisory pulled in by mermaid 12.1: katex ≥ 0.19 or an override, verified with Mermaid math)
 - [ ] **R2.8** [S] Diagram source toggle, pan/zoom, full screen
 - [ ] **R2.9** [S] D2 ELK option; theme-aware re-render
 - [ ] **R2.10** [S] Workspace tree live updates
@@ -75,6 +74,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-11: **F4** `web/src/diagrams/`: Mermaid 12.1 (lazy, strict, `htmlLabels: false`, serialized queue) and D2 (`renderD2` + TanStack query, 503/504 retried) shown as `<img src=blob:>` (D-25); error box + source, per-diagram error boundary, theme observer re-render, full-page `.mmd`/`.mermaid`/`.d2` views; 116 unit, 18 e2e.
 - [x] 2026-10-11: **F3b** Shiki 4.5 in the `pre` component post-sanitize (D-24): plain first, then hast→JSX swap; lazy core/JS engine/themes + 30 languages by literal import (aliases), unknown → plain, dual themes via `data-theme`; 98 unit, 14 e2e.
 - [x] 2026-10-11: **F3** 🔒 `web/src/markdown/`: exact remark/rehype order, pure `resolveLink` (view/browse/file/blocked, `ws` kept only inside), footnote double-prefix fixed, anchor scroll with `user-content-` fallback, lazy `MarkdownView` chunk for `.md` views; Opus review: no XSS, footnote-attr bypass fixed; 87 unit, 13 e2e.
 - [x] 2026-10-11: **F2** `web/src/browse/`: folder listing (kind icons, size, mtime, markdown highlighted, dot-files hidden, truncation notice), breadcrumbs (drop `ws` above the workspace), name filter (resets per folder), persisted markdown-only toggle, "Open as workspace" (README/index first); `?ws=` (empty) = root workspace; 5 e2e scenarios.
