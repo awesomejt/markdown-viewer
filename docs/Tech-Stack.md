@@ -23,7 +23,7 @@ This document lists the chosen languages, frameworks, and libraries, with the re
 | Code highlighting | Shiki (`shiki/core`, JS regex engine, `@shikijs/langs`/`themes`, `hast-util-to-jsx-runtime`) | 4.5 |
 | Mermaid | `mermaid` (lazy-loaded, client-side) | 12.1 |
 | Math (should-have, R2.7) | KaTeX via `remark-math` / `rehype-katex` | 0.19 |
-| Diagram pan/zoom (planned R2.8) | `svg-pan-zoom` or a small custom handler | 3.6 |
+| Diagram pan/zoom (R2.8) | Small custom handler (`web/src/diagrams/panzoom.ts`, Pointer Events), no dependency | — |
 | Server tests | `go test` (table tests, `httptest`) | stdlib |
 | Frontend tests | Vitest | 5.0 |
 | End-to-end tests | Playwright (Chromium, Firefox, **WebKit** to approximate iPad Safari) | 1.64 |
