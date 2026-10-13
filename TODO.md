@@ -38,7 +38,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 R2.13 review fixes (D-27). Each task adds tests that fail without the change:
 
-- [ ] **CH2** [S] Optional cleanup: one `createStoredStore(key, parse, serialize)` helper for the duplicated `useSyncExternalStore` + localStorage stores (`browse/showHidden.ts`, `recent/recent.ts`, TOC open state); remove unused `DIAGRAM_FILE_RE` (`diagrams/DiagramPage.tsx:3`).
 - [ ] **FIX-20** [S] Dev-tooling `npm audit`: `markdownlint-cli2` 0.23.3 pulls `smol-toml` 1.8.0 (moderate, fixed in 1.9.1: add an override) and `braces` 3.0.3 via `micromatch` (high, no fix published yet: re-check). Lint-time only, never in the bundle.
 
 ## Phase 3: Future
@@ -60,6 +59,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **CH2** [S] `createStoredStore(key, parse, serialize)` (`web/src/app/storedStore.ts`, 4 unit tests) now backs `browse/showHidden.ts` and `recent/recent.ts`; unused `DIAGRAM_FILE_RE` removed. TOC open state, theme, mdOnly and sort are plain load/save helpers, not stores, so they were left as they are. `make check` exit 0, `make e2e` 236 passed.
 - [x] 2026-10-12: **DOC2** [S] Docs drift: `docs/Tech-Stack.md` pan/zoom row now names the custom handler (no `svg-pan-zoom`); `README.md` features add hidden-files toggle, Recent list, Copy button, live folder/tree updates and Add to Home Screen, each checked against the source. markdownlint clean, `make check` exit 0.
 - [x] 2026-10-12: **FIX-28** [S] Flaky `TestEventsGlobalStreamCap`: not load, a race in `holdStream`, which read the baseline stream count after starting the handler, so a fast handler was counted in the baseline and the wait never ended. Baseline now read first; a 50 ms injected delay reproduced the failure on every caller before and passes after; 50 `-race` repeats pass; cap checks unchanged. `make check` exit 0.
 - [x] 2026-10-12: **FIX-27** [S] Retired roots (after a remount swap) close on their own timer after `max(2 × MDV_FS_TIMEOUT, 1 s)` instead of at the next swap; quick successive swaps keep each retired root for its full grace; `Close` stops pending timers. fsroot coverage 96.5%; `make check` green.

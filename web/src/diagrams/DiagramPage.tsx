@@ -1,7 +1,5 @@
 import Diagram, { type DiagramKind } from './Diagram';
 
-export const DIAGRAM_FILE_RE = /\.(mmd|mermaid|d2)$/i;
-
 export function diagramKindOf(path: string): DiagramKind {
   return /\.d2$/i.test(path) ? 'd2' : 'mermaid';
 }

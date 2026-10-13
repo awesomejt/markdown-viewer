@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-27)
+
+- Task: a retired root stayed open until the next swap, keeping a lazily unmounted share busy; Sonnet coder, orchestrator reviewed the diff, rewrote one test and ran the gate.
+- Files changed: `internal/fsroot/lazy.go` (`retired` map of per-root timers, `retireLocked`, Close stops timers), `access.go` (`retireGrace` = max(2 × FSTimeout, 1 s)), `lazy_test.go` (4 new tests), `docs/Architecture.md`.
+- Result: verified in the stdlib that `os.Root` is refcounted, so closing under a running call is safe. The coder's timer-after-Close test retired the current root and asserted nothing; it now checks the `pending` guard deterministically and fails when the guard is removed. Own-grace test raised from 400 ms to 1 s for `make -j` load. `make check` exit 0 (fsroot 96.5%); log `build/fix27-check.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-26)
 
 - Task: Markdown fences had no Shiki size cap and KaTeX no `maxSize`; Sonnet coder, orchestrator strengthened the e2e fixture and ran the gates.
