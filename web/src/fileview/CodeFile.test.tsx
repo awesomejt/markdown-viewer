@@ -1,7 +1,8 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isHighlighterStarted, resetHighlighter } from '../markdown/highlight';
-import { CodeFile, MAX_HIGHLIGHT_CHARS } from './CodeFile';
+import { MAX_HIGHLIGHT_CHARS } from '../markdown/highlight';
+import { CodeFile } from './CodeFile';
 
 const settle = () => new Promise((r) => setTimeout(r, 50));
 

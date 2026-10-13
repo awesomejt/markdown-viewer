@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   highlightToHast,
+  MAX_HIGHLIGHT_CHARS,
   isHighlighterStarted,
   languageForFile,
   languageLoaders,
@@ -125,6 +126,25 @@ describe('syntax highlighting', () => {
     expect(body.querySelectorAll('pre').length).toBe(2);
     expect(isHighlighterStarted()).toBe(false);
     vi.unstubAllGlobals();
+  });
+
+  it('keeps an over-cap fence plain without starting Shiki', async () => {
+    const { body } = renderMd('```ts\n' + 'x'.repeat(MAX_HIGHLIGHT_CHARS + 1) + '\n```');
+    await settle();
+    expect(body.querySelector('pre code.language-ts')).not.toBeNull();
+    expect(body.querySelector('.shiki')).toBeNull();
+    expect(isHighlighterStarted()).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('returns null over the cap and leaves one giant line untokenized', async () => {
+    expect(await highlightToHast('ts', 'x'.repeat(MAX_HIGHLIGHT_CHARS + 1))).toBeNull();
+    expect(isHighlighterStarted()).toBe(false);
+    const tree = await highlightToHast('ts', 'const a = 1; '.repeat(1000));
+    expect(tree).not.toBeNull();
+    const spans = JSON.stringify(tree).match(/"tagName":"span"/g) ?? [];
+    // A tokenized line has thousands of spans; an over-long line collapses to one token.
+    expect(spans.length).toBeLessThan(10);
   });
 
   it('loads only the needed languages, once each', async () => {
