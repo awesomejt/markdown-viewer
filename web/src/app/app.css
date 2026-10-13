@@ -241,6 +241,9 @@ a:focus-visible {
   max-width: 50rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
+  /* KaTeX maxSize limits only positive sizes; clip (no scroll container) keeps negative kerns and
+     rules from painting over the header and sidebar. */
+  overflow: clip;
 }
 
 .markdown-body h1,
