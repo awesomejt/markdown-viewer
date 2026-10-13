@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-28 stream-cap test flake fixed (2026-10-12); remaining R2.13 follow-ups DOC2, CH2
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take DOC2 (docs drift) meanwhile
+- Last major milestone: DOC2 docs drift fixed (2026-10-12); remaining R2.13 follow-up CH2 (optional)
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take CH2 (optional stored-store cleanup) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (DOC2)
+
+- Task: docs drift from R2.13; orchestrator edited directly (small doc change).
+- Files changed: `docs/Tech-Stack.md` (pan/zoom row), `README.md` (feature list).
+- Result: each README claim checked in source (`browse/showHidden.ts`, `recent/recent.ts` `RECENT_MAX = 10`, `markdown/CopyButton.tsx`, `public/manifest.webmanifest` `display: standalone`). Pointer handling is in `DiagramViewer.tsx`, `panzoom.ts` is the math. markdownlint clean; `make check` exit 0; log `build/doc2-check.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-28)
 
 - Task: flaky `TestEventsGlobalStreamCap` ("stream did not open"); orchestrator fixed it directly (a 3-line test change, cheaper than a coder subagent).
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/fsroot/lazy.go` (`retired` map of per-root timers, `retireLocked`, Close stops timers), `access.go` (`retireGrace` = max(2 × FSTimeout, 1 s)), `lazy_test.go` (4 new tests), `docs/Architecture.md`.
 - Result: verified in the stdlib that `os.Root` is refcounted, so closing under a running call is safe. The coder's timer-after-Close test retired the current root and asserted nothing; it now checks the `pending` guard deterministically and fails when the guard is removed. Own-grace test raised from 400 ms to 1 s for `make -j` load. `make check` exit 0 (fsroot 96.5%); log `build/fix27-check.log`.
 - Blockers or follow-up: none.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-26)
-
-- Task: Markdown fences had no Shiki size cap and KaTeX no `maxSize`; Sonnet coder, orchestrator strengthened the e2e fixture and ran the gates.
-- Files changed: `web/src/markdown/highlight.ts` (`MAX_HIGHLIGHT_CHARS`, `TOKENIZE_MAX_LINE_LENGTH`), `CodeBlock.tsx`, `fileview/CodeFile.tsx`, `markdown/katex.ts` (`maxSize: 20`), `app/app.css` (`.markdown-body { overflow: clip }`), tests (`highlight.test.tsx`, new `katex.test.ts`, `e2e/tests/markdown.spec.ts`), fixture `testdata/fixtures/docs/math-clip.md`, `docs/Architecture.md`.
-- Result: the coder's fixture put the rule ~5000em off-screen, so the e2e passed without the fix; the fixture now tiles 20em rules from -80em to +80em, and the spec fails on all four projects with the clip removed. `tsc --noEmit` missed a `katex.test.ts` type error that `tsc -b` (build) caught. `make check` exit 0 (vitest 264), `make e2e` 236 passed; logs `build/fix26-*.log`.
-- Blockers or follow-up: on the ipad project the sidebar is a closed drawer, so only the header is hit-tested, and the header did not show KaTeX even without the clip (it stacks above the body); the desktop sidebar check is the guard.
