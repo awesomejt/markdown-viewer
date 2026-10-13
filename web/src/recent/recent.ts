@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
+import { createStoredStore } from '../app/storedStore';
 
 // Recently opened files and folders (FR-2.6), newest first, stored per browser. One store is
 // shared by every list on the page and follows other tabs via the `storage` event.
@@ -52,65 +53,25 @@ export function parseRecent(raw: string | null): RecentItem[] {
     .slice(0, RECENT_MAX);
 }
 
-const listeners = new Set<() => void>();
-let current: RecentItem[] | undefined;
-
-function load(): RecentItem[] {
-  try {
-    return parseRecent(window.localStorage.getItem(RECENT_STORAGE_KEY));
-  } catch {
-    return [];
-  }
-}
-
-function snapshot(): RecentItem[] {
-  current ??= load();
-  return current;
-}
-
-function save(list: RecentItem[]): void {
-  current = list;
-  try {
-    if (list.length === 0) window.localStorage.removeItem(RECENT_STORAGE_KEY);
-    else window.localStorage.setItem(RECENT_STORAGE_KEY, JSON.stringify(list));
-  } catch {
-    // Storage unavailable (private mode): the list lives for this page only.
-  }
-  for (const l of listeners) l();
-}
+const store = createStoredStore(RECENT_STORAGE_KEY, parseRecent, (list: RecentItem[]) =>
+  list.length === 0 ? null : JSON.stringify(list),
+);
 
 export function recordRecent(item: RecentItem): void {
-  const list = snapshot();
+  const list = store.get();
   if (list.length > 0 && sameItem(list[0], item) && list[0].ws === item.ws) return;
-  save(pushRecent(list, item));
+  store.set(pushRecent(list, item));
 }
 
 export function clearRecent(): void {
-  save([]);
-}
-
-function onStorage(e: StorageEvent): void {
-  if (e.key !== RECENT_STORAGE_KEY && e.key !== null) return;
-  current = load();
-  for (const l of listeners) l();
-}
-
-function subscribe(listener: () => void): () => void {
-  listeners.add(listener);
-  if (listeners.size === 1) window.addEventListener('storage', onStorage);
-  return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) window.removeEventListener('storage', onStorage);
-  };
+  store.set([]);
 }
 
 /** Test hook: forget the cached list so the next read comes from storage. */
-export function resetRecentCache(): void {
-  current = undefined;
-}
+export const resetRecentCache = store.reset;
 
 export function useRecent(): [RecentItem[], () => void] {
-  const list = useSyncExternalStore(subscribe, snapshot);
+  const list = useSyncExternalStore(store.subscribe, store.get);
   const clear = useCallback(() => clearRecent(), []);
   return [list, clear];
 }
