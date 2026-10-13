@@ -29,7 +29,15 @@ import (
 // inode of the host path with those of the open root; when they differ (a
 // mount appeared or went away, or the directory was replaced) the root is
 // reopened. The replaced root is retired rather than closed, because calls may
-// still be using it; it is closed at the next swap or by Close.
+// still be using it; each retired root is closed by its own timer after
+// retireGrace, or by Close. Without that, a lazily unmounted share (umount -l)
+// would stay busy until the next swap.
+//
+// Closing a [Root] while another goroutine is inside one of its methods is
+// safe: os.Root counts references, so the descriptor is released when the last
+// running call returns, and later calls get an error. Files already opened
+// from it are separate descriptors and stay usable, so streams in progress
+// are unaffected.
 //
 // Path pinning (FIX-21): symlinks in the root's parent folders are resolved
 // once, at the first open attempt that finds them, and every open uses that
@@ -43,6 +51,9 @@ type lazyRoot struct {
 	cfg        config.Root
 	open       func(config.Root) (*Root, error)
 	checkEvery time.Duration
+	// retireGrace is how long a retired root stays open. It must exceed the
+	// Handle's FS timeout, after which no caller still starts a call on it.
+	retireGrace time.Duration
 
 	openMu sync.Mutex // serializes open and revalidation attempts
 
@@ -57,7 +68,7 @@ type lazyRoot struct {
 	id        fileID // identity of root's directory; valid when hasID
 	hasID     bool
 	lastCheck time.Time
-	retired   *Root
+	retired   map[*Root]*time.Timer // retired roots awaiting their grace timer
 	closed    bool
 }
 
@@ -76,8 +87,8 @@ var errRootClosed = errors.New("root closed")
 // without following a symlink, for example because it was replaced by one.
 var errRootMoved = errors.New("root path is a symlink or was replaced")
 
-func newLazyRoot(cfg config.Root, open func(config.Root) (*Root, error)) *lazyRoot {
-	return &lazyRoot{cfg: cfg, open: open, checkEvery: rootCheckInterval}
+func newLazyRoot(cfg config.Root, open func(config.Root) (*Root, error), retireGrace time.Duration) *lazyRoot {
+	return &lazyRoot{cfg: cfg, open: open, checkEvery: rootCheckInterval, retireGrace: retireGrace}
 }
 
 // get returns the open root, opening it if needed. A failure is a
@@ -157,9 +168,8 @@ func (l *lazyRoot) reopen(op string, old *Root) (*Root, error) {
 		}
 		return nil, timeoutErr(op, ".", "root closed", errRootClosed)
 	}
-	var stale *Root
 	if old != nil {
-		stale, l.retired = l.retired, old
+		l.retireLocked(old)
 	}
 	if err != nil {
 		l.root, l.hasID = nil, false
@@ -167,13 +177,26 @@ func (l *lazyRoot) reopen(op string, old *Root) (*Root, error) {
 		l.root, l.id, l.hasID, l.lastCheck = r, id, hasID, time.Now()
 	}
 	l.mu.Unlock()
-	if stale != nil {
-		_ = stale.Close()
-	}
 	if err != nil {
 		return nil, timeoutErr(op, ".", "root unavailable", err)
 	}
 	return r, nil
+}
+
+// retireLocked schedules old to be closed after retireGrace. Callers hold mu.
+func (l *lazyRoot) retireLocked(old *Root) {
+	if l.retired == nil {
+		l.retired = make(map[*Root]*time.Timer)
+	}
+	l.retired[old] = time.AfterFunc(l.retireGrace, func() {
+		l.mu.Lock()
+		_, pending := l.retired[old]
+		delete(l.retired, old)
+		l.mu.Unlock()
+		if pending { // false after Close, which already closed it
+			_ = old.Close()
+		}
+	})
 }
 
 // openPinned pins the root path on first use, opens it and checks that the
@@ -279,18 +302,23 @@ func (l *lazyRoot) Open(rel string) (*os.File, error) {
 	return r.Open(rel)
 }
 
-// Close releases the root (and any retired one) and makes later opens fail. It
-// never waits for an open attempt in flight; that attempt closes its own result
-// when it finishes, unless it hangs forever, in which case it holds one
-// goroutine (already bounded by the Handle's in-flight cap).
+// Close releases the root and every retired one (stopping their timers) and
+// makes later opens fail. It never waits for an open attempt in flight; that
+// attempt closes its own result when it finishes, unless it hangs forever, in
+// which case it holds one goroutine (already bounded by the Handle's in-flight
+// cap).
 func (l *lazyRoot) Close() error {
 	l.mu.Lock()
-	r, old := l.root, l.retired
+	roots := []*Root{l.root}
+	for r, t := range l.retired {
+		t.Stop()
+		roots = append(roots, r)
+	}
 	l.root, l.retired = nil, nil
 	l.closed = true
 	l.mu.Unlock()
 	var errs []error
-	for _, x := range []*Root{r, old} {
+	for _, x := range roots {
 		if x != nil {
 			errs = append(errs, x.Close())
 		}

@@ -89,7 +89,7 @@ func OpenHandle(root config.Root, cfg *config.Config) (*Handle, error) {
 }
 
 func openHandle(root config.Root, cfg *config.Config, open func(config.Root) (*Root, error)) (*Handle, error) {
-	lr := newLazyRoot(root, open)
+	lr := newLazyRoot(root, open, retireGrace(cfg.FSTimeout))
 	h := NewHandle(root.Name, root.Watch, lr, cfg.FSTimeout, cfg.FSMaxInflight, cfg.MaxListEntries)
 	h.closer = lr.Close
 	h.hostDirFn = lr.HostDir
@@ -255,4 +255,14 @@ func run[T any](ctx context.Context, h *Handle, op, rel string, fn func() (T, er
 	// succeeding mount can therefore flap between available and unavailable.
 	h.unavailable.Store(true)
 	return zero, timeoutErr(op, rel, "filesystem timeout", tctx.Err())
+}
+
+// minRetireGrace floors the grace period of a retired root.
+const minRetireGrace = time.Second
+
+// retireGrace is how long a retired root stays open: twice the FS timeout,
+// because the Handle abandons an operation after one timeout, so no caller is
+// still starting a call on the root by then.
+func retireGrace(fsTimeout time.Duration) time.Duration {
+	return max(2*fsTimeout, minRetireGrace)
 }

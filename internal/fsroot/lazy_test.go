@@ -13,6 +13,9 @@ import (
 	"github.com/awesomejt/markdown-viewer/internal/config"
 )
 
+// testGrace is a retire grace long enough that no timer fires during a test.
+const testGrace = time.Hour
+
 func lazyCfg(timeout time.Duration) *config.Config {
 	return &config.Config{FSTimeout: timeout, FSMaxInflight: 4, MaxListEntries: 100}
 }
@@ -91,7 +94,7 @@ func TestOpenHandleHungOpen(t *testing.T) {
 func TestLazyRootClose(t *testing.T) {
 	cfg := config.Root{Name: "r", Path: t.TempDir()}
 	t.Run("before open", func(t *testing.T) {
-		l := newLazyRoot(cfg, OpenRoot)
+		l := newLazyRoot(cfg, OpenRoot, testGrace)
 		if err := l.Close(); err != nil {
 			t.Fatal(err)
 		}
@@ -100,7 +103,7 @@ func TestLazyRootClose(t *testing.T) {
 		}
 	})
 	t.Run("after open", func(t *testing.T) {
-		l := newLazyRoot(cfg, OpenRoot)
+		l := newLazyRoot(cfg, OpenRoot, testGrace)
 		if _, err := l.Stat("."); err != nil {
 			t.Fatal(err)
 		}
@@ -120,7 +123,7 @@ func TestLazyRootClose(t *testing.T) {
 			r, err := OpenRoot(c)
 			opened = r
 			return r, err
-		})
+		}, testGrace)
 		res := make(chan error, 1)
 		go func() { _, err := l.Stat("."); res <- err }()
 		<-entered
@@ -142,7 +145,7 @@ func TestLazyRootMethods(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	defer func() { _ = l.Close() }()
 	if _, err := l.Lstat("a.md"); err != nil {
 		t.Fatal(err)
@@ -156,7 +159,7 @@ func TestLazyRootMethods(t *testing.T) {
 	}
 	_ = f.Close()
 
-	bad := newLazyRoot(config.Root{Name: "r", Path: filepath.Join(dir, "none")}, OpenRoot)
+	bad := newLazyRoot(config.Root{Name: "r", Path: filepath.Join(dir, "none")}, OpenRoot, testGrace)
 	for name, call := range map[string]func() error{
 		"stat":    func() error { _, err := bad.Stat("."); return err },
 		"lstat":   func() error { _, err := bad.Lstat("."); return err },
@@ -237,7 +240,7 @@ func TestLazyRootReopensReplacedDir(t *testing.T) {
 	if err := os.Mkdir(dir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	if got := rootNames(t, l); got != "" {
@@ -249,7 +252,7 @@ func TestLazyRootReopensReplacedDir(t *testing.T) {
 	if got := rootNames(t, l); got != "nas.md" {
 		t.Fatalf("after mount: %q", got)
 	}
-	if l.retired != first {
+	if _, ok := l.retired[first]; !ok {
 		t.Fatal("old root not retired")
 	}
 	if _, err := first.Stat("."); err != nil {
@@ -263,8 +266,123 @@ func TestLazyRootReopensReplacedDir(t *testing.T) {
 	if got := rootNames(t, l); got != "again.md" {
 		t.Fatalf("after second swap: %q", got)
 	}
+	if _, err := first.Stat("."); err != nil {
+		t.Fatalf("first retired root closed by the next swap: %v", err)
+	}
+	if len(l.retired) != 2 {
+		t.Fatalf("retired = %d, want 2", len(l.retired))
+	}
+}
+
+// waitClosed polls until r rejects calls or the deadline passes.
+func waitClosed(r *Root) bool {
+	for end := time.Now().Add(5 * time.Second); time.Now().Before(end); time.Sleep(2 * time.Millisecond) {
+		if _, err := r.Stat("."); err != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func TestLazyRootClosesRetiredAfterGrace(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, 50*time.Millisecond)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	_ = rootNames(t, l)
+	first := l.root
+	replaceDir(t, dir, "nas.md")
+	_ = rootNames(t, l)
+	if !waitClosed(first) {
+		t.Fatal("retired root not closed after the grace")
+	}
+	l.mu.Lock()
+	n := len(l.retired)
+	l.mu.Unlock()
+	if n != 0 {
+		t.Fatalf("closed root still tracked: %d", n)
+	}
+	if got := rootNames(t, l); got != "nas.md" {
+		t.Fatalf("current root affected: %q", got)
+	}
+}
+
+// TestLazyRootRetiredKeepsOwnGrace: a second swap right after the first does
+// not close the first retired root early; each gets its full grace.
+func TestLazyRootRetiredKeepsOwnGrace(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, time.Second)
+	l.checkEvery = 0
+	defer func() { _ = l.Close() }()
+	_ = rootNames(t, l)
+	first := l.root
+	replaceDir(t, dir, "a.md")
+	_ = rootNames(t, l)
+	replaceDir(t, dir, "b.md")
+	_ = rootNames(t, l)
+	if _, err := first.Stat("."); err != nil {
+		t.Fatalf("first retired root closed by the second swap: %v", err)
+	}
+	if !waitClosed(first) {
+		t.Fatal("first retired root not closed after its grace")
+	}
+}
+
+func TestLazyRootCloseStopsRetireTimers(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, 30*time.Millisecond)
+	l.checkEvery = 0
+	_ = rootNames(t, l)
+	first := l.root
+	replaceDir(t, dir, "nas.md")
+	_ = rootNames(t, l)
+	if err := l.Close(); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := first.Stat("."); err == nil {
-		t.Fatal("root retired two swaps ago was not closed")
+		t.Fatal("Close left a retired root open")
+	}
+	if len(l.retired) != 0 {
+		t.Fatal("Close kept retired roots")
+	}
+	time.Sleep(100 * time.Millisecond) // a stray timer would fire now
+	if err := l.Close(); err != nil {
+		t.Fatalf("second Close: %v", err)
+	}
+}
+
+// TestLazyRootTimerFiringAfterClose covers a timer that fires while Close
+// holds mu: once Close has taken the root out of retired, the callback must
+// not close it again (Close owns it then).
+func TestLazyRootTimerFiringAfterClose(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "mnt")
+	if err := os.Mkdir(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, time.Millisecond)
+	defer func() { _ = l.Close() }()
+	other, err := OpenRoot(config.Root{Name: "o", Path: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = other.Close() }()
+	l.mu.Lock()
+	l.retireLocked(other)
+	time.Sleep(20 * time.Millisecond) // the timer fires and waits for mu
+	delete(l.retired, other)          // what Close does under mu
+	l.mu.Unlock()
+	time.Sleep(20 * time.Millisecond)
+	if _, err := other.Stat("."); err != nil {
+		t.Fatalf("timer closed a root it no longer owned: %v", err)
 	}
 }
 
@@ -273,7 +391,7 @@ func TestLazyRootCheckInterval(t *testing.T) {
 	if err := os.Mkdir(dir, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	l.checkEvery = time.Hour
 	defer func() { _ = l.Close() }()
 	_ = rootNames(t, l)
@@ -297,7 +415,7 @@ func TestLazyRootHostPathGoneKeepsRoot(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "a.md"), []byte("x"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	_ = rootNames(t, l)
@@ -320,7 +438,7 @@ func TestLazyRootReopenFails(t *testing.T) {
 			return nil, os.ErrPermission
 		}
 		return OpenRoot(c)
-	})
+	}, testGrace)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	_ = rootNames(t, l)
@@ -377,7 +495,7 @@ func TestLazyRootRefusesSymlinkSwap(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("s"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	if got := rootNames(t, l); got != "" {
@@ -427,7 +545,7 @@ func TestLazyRootConfiguredSymlinks(t *testing.T) {
 	if err := os.Symlink(realDir, link); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: filepath.Join(link, "mnt")}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: filepath.Join(link, "mnt")}, OpenRoot, testGrace)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	if got := rootNames(t, l); got != "" {
@@ -482,7 +600,7 @@ func TestLazyRootRefusesParentSwap(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(decoy, "secret.txt"), []byte("s"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	l.checkEvery = 0
 	defer func() { _ = l.Close() }()
 	if got := rootNames(t, l); got != "" {
@@ -520,7 +638,7 @@ func TestLazyRootOpenedOtherDir(t *testing.T) {
 		opened = r
 		return r, err
 	}
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, open)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, open, testGrace)
 	defer func() { _ = l.Close() }()
 	_, err := l.ReadDir(".")
 	if !errors.Is(err, errRootMoved) {
@@ -546,7 +664,7 @@ func TestLazyRootSearchOnlyParent(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(parent, 0o750) })
-	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot)
+	l := newLazyRoot(config.Root{Name: "r", Path: dir}, OpenRoot, testGrace)
 	defer func() { _ = l.Close() }()
 	if got := rootNames(t, l); got != "" {
 		t.Fatalf("listing %q", got)

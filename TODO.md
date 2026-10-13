@@ -38,7 +38,6 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 R2.13 review fixes (D-27). Each task adds tests that fail without the change:
 
-- [ ] **FIX-27** [S] A retired root (after a remount swap) stays open until the next swap or shutdown (`internal/fsroot/lazy.go:146-149`), keeping a lazily unmounted share busy; close it after a grace period longer than `MDV_FS_TIMEOUT`.
 - [ ] **FIX-28** [S] Flaky `TestEventsGlobalStreamCap` (`internal/api/events_test.go:461`, "stream did not open" after 5 s): failed once in `make check` under `make -j` load during FIX-21, then passed 6/6 alone and on the next full run. Make the wait robust (or the timeout load-tolerant) without weakening the cap check.
 - [ ] **DOC2** [S] Docs drift: `docs/Tech-Stack.md:26` still lists `svg-pan-zoom` (R2.8 shipped `web/src/diagrams/panzoom.ts`, no dependency); `README.md` feature list misses hidden-files toggle, recent files/folders, home-screen app, copy-code button and live tree updates.
 - [ ] **CH2** [S] Optional cleanup: one `createStoredStore(key, parse, serialize)` helper for the duplicated `useSyncExternalStore` + localStorage stores (`browse/showHidden.ts`, `recent/recent.ts`, TOC open state); remove unused `DIAGRAM_FILE_RE` (`diagrams/DiagramPage.tsx:3`).
@@ -63,6 +62,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-12: **FIX-27** [S] Retired roots (after a remount swap) close on their own timer after `max(2 × MDV_FS_TIMEOUT, 1 s)` instead of at the next swap; quick successive swaps keep each retired root for its full grace; `Close` stops pending timers. fsroot coverage 96.5%; `make check` green.
 - [x] 2026-10-12: **FIX-26** [S] Render limits in Markdown: fenced code over 100,000 chars stays plain (`MAX_HIGHLIGHT_CHARS` moved to `highlight.ts`) and lines over 5,000 chars are not tokenized; KaTeX `maxSize: 20` plus `overflow: clip` on `.markdown-body` (maxSize caps only positive sizes). E2E tiles 20em rules over the page with negative kerns and fails without the clip; `make check` (vitest 264), `make e2e` (236) green.
 - [x] 2026-10-12: **FIX-25** [S] Full-screen diagram viewer: the error branch resets `fullScreen`/`showSource` and `shown` drops a revoked URL, so a fixed live-reload error no longer reopens the viewer; Close is focused after `showModal()` (no `autoFocus`). 3 unit tests (fail without the change) + 2 e2e; `make check` (vitest 261), `make e2e` (232) green.
 - [x] 2026-10-12: **FIX-24** [S] NFR-3 doc render: Mermaid chunk preloads when the doc has a mermaid fence; the serial render queue runs near-viewport diagrams first (IntersectionObserver), the rest after. iPad emulation: section jump to its Mermaid diagram ready 1.6-1.8 s (target 2 s), all 10 ready ~2.6 s (informational, D-28). Off-screen container tried, no gain (Mermaid measures in `body`). Harness promoted to opt-in `make perf` (`e2e/perf/`); `make check`, `make e2e` (224), `make perf` green.
