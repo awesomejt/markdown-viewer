@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-25)
+
+- Task: full-screen diagram viewer reopened after a fixed live-reload error, and initial focus missed Close; Sonnet coder, orchestrator reviewed the diff and ran the gates.
+- Files changed: `web/src/diagrams/DiagramFigure.tsx` (reset during render in the error branch, cleanup clears `shown`), `DiagramViewer.tsx` (Close ref focused after `showModal()`), `viewer.test.tsx` (3 tests), `e2e/tests/diagrams.spec.ts` (focus + live-reload reopen specs on the `live` root).
+- Result: the 3 unit tests fail on the old code; the e2e reopen spec should fail on it too by inspection (the viewer stays open; not run on old code). `make check` exit 0 (vitest 261), `make e2e` 232 passed; logs `build/fix25-*.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-24)
 
 - Task: NFR-3 doc render over 2 s; Sonnet coder in two rounds, orchestrator reviewed the queue code and ran the gates.
