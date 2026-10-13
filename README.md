@@ -6,12 +6,13 @@ mdv is a self-hosted, read-only Markdown viewer for a home network. One server o
 
 Features:
 
-- Browse named roots (local folders or mounted NAS shares) and open any folder as a workspace. Folders with thousands of files stay responsive: long listings render only the visible rows, and the sidebar tree shows 200 entries at a time ("Show more").
-- GitHub-flavored Markdown with syntax-highlighted code, KaTeX math (`$...$`, `$$...$$`, ```` ```math ````), GitHub alerts (`> [!NOTE]`), front matter, relative links, anchors, and a table of contents.
+- Browse named roots (local folders or mounted NAS shares) and open any folder as a workspace. Folders with thousands of files stay responsive: long listings render only the visible rows, and the sidebar tree shows 200 entries at a time ("Show more"). Dot-files and dot-folders are hidden unless you turn on "Show hidden files".
+- A Recent list of the last 10 files and folders you opened, kept in this browser.
+- GitHub-flavored Markdown with syntax-highlighted code, KaTeX math (`$...$`, `$$...$$`, ```` ```math ````), GitHub alerts (`> [!NOTE]`), front matter, relative links, anchors, and a table of contents. Code blocks have a Copy button.
 - Syntax-highlighted code and config files (Go, Python, TypeScript, YAML, and more).
 - Mermaid diagrams render in the browser. D2 diagrams render on the server. Each diagram can show its source or open full screen with pan and zoom (drag, wheel, pinch on iPad, `+`/`-`/`0`). D2 supports the dagre (default) and ELK layouts: pick one from a diagram's Layout menu, or set `vars: {d2-config: {layout-engine: elk}}` in the source.
-- Live reload when a file changes (mtime polling, or inotify for local disks).
-- Light and dark themes, usable on an iPad.
+- Live reload when a file changes (mtime polling, or inotify for local disks). Folder listings and the sidebar tree also update when files are added, deleted or renamed.
+- Light and dark themes, usable on an iPad. Add it to the iPad home screen (Share, then Add to Home Screen) to run it full screen like an app.
 - Works offline: all assets and fonts are embedded, and nothing is fetched from the internet at runtime.
 - Hardened container: read-only filesystem, all capabilities dropped, non-root user, read-only bind mounts.
 

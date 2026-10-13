@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-26)
+
+- Task: Markdown fences had no Shiki size cap and KaTeX no `maxSize`; Sonnet coder, orchestrator strengthened the e2e fixture and ran the gates.
+- Files changed: `web/src/markdown/highlight.ts` (`MAX_HIGHLIGHT_CHARS`, `TOKENIZE_MAX_LINE_LENGTH`), `CodeBlock.tsx`, `fileview/CodeFile.tsx`, `markdown/katex.ts` (`maxSize: 20`), `app/app.css` (`.markdown-body { overflow: clip }`), tests (`highlight.test.tsx`, new `katex.test.ts`, `e2e/tests/markdown.spec.ts`), fixture `testdata/fixtures/docs/math-clip.md`, `docs/Architecture.md`.
+- Result: the coder's fixture put the rule ~5000em off-screen, so the e2e passed without the fix; the fixture now tiles 20em rules from -80em to +80em, and the spec fails on all four projects with the clip removed. `tsc --noEmit` missed a `katex.test.ts` type error that `tsc -b` (build) caught. `make check` exit 0 (vitest 264), `make e2e` 236 passed; logs `build/fix26-*.log`.
+- Blockers or follow-up: on the ipad project the sidebar is a closed drawer, so only the header is hit-tested, and the header did not show KaTeX even without the clip (it stacks above the body); the desktop sidebar check is the guard.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-25)
 
 - Task: full-screen diagram viewer reopened after a fixed live-reload error, and initial focus missed Close; Sonnet coder, orchestrator reviewed the diff and ran the gates.
