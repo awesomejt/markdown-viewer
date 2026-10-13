@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-26 Shiki/KaTeX render limits in Markdown (2026-10-12); remaining R2.13 follow-ups FIX-27, FIX-28, DOC2, CH2
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-27 (close retired roots after a grace period) meanwhile
+- Last major milestone: FIX-27 retired roots close after a grace period (2026-10-12); remaining R2.13 follow-ups FIX-28, DOC2, CH2
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-28 (flaky `TestEventsGlobalStreamCap`) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-27)
+
+- Task: a retired root stayed open until the next swap, keeping a lazily unmounted share busy; Sonnet coder, orchestrator reviewed the diff, rewrote one test and ran the gate.
+- Files changed: `internal/fsroot/lazy.go` (`retired` map of per-root timers, `retireLocked`, Close stops timers), `access.go` (`retireGrace` = max(2 × FSTimeout, 1 s)), `lazy_test.go` (4 new tests), `docs/Architecture.md`.
+- Result: verified in the stdlib that `os.Root` is refcounted, so closing under a running call is safe. The coder's timer-after-Close test retired the current root and asserted nothing; it now checks the `pending` guard deterministically and fails when the guard is removed. Own-grace test raised from 400 ms to 1 s for `make -j` load. `make check` exit 0 (fsroot 96.5%); log `build/fix27-check.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-26)
 
 - Task: Markdown fences had no Shiki size cap and KaTeX no `maxSize`; Sonnet coder, orchestrator strengthened the e2e fixture and ran the gates.
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/diagrams/DiagramFigure.tsx` (reset during render in the error branch, cleanup clears `shown`), `DiagramViewer.tsx` (Close ref focused after `showModal()`), `viewer.test.tsx` (3 tests), `e2e/tests/diagrams.spec.ts` (focus + live-reload reopen specs on the `live` root).
 - Result: the 3 unit tests fail on the old code; the e2e reopen spec should fail on it too by inspection (the viewer stays open; not run on old code). `make check` exit 0 (vitest 261), `make e2e` 232 passed; logs `build/fix25-*.log`.
 - Blockers or follow-up: none.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-24)
-
-- Task: NFR-3 doc render over 2 s; Sonnet coder in two rounds, orchestrator reviewed the queue code and ran the gates.
-- Files changed: `web/src/diagrams/mermaid.ts` (`preloadMermaid`, priority job queue with `promote`/`cancel`), `MermaidDiagram.tsx` (IntersectionObserver), `DiagramFigure.tsx` (`figureRef`), `MarkdownView.tsx` (preload), test mocks, new `e2e/perf/` + `make perf`, `docs/Architecture.md`, `docs/Implementation.md`, D-28.
-- Result: after FIX-23 alone, iPad all-10-ready fell from 3.7 s to 2.6 s. An off-screen `contain: strict` Mermaid container gave no gain (Mermaid's text measuring appends to `body`) and was reverted. iPad section jump to its Mermaid diagram 1.6-1.8 s; all 10 ready ~2.6 s; chromium 4x CPU 3.0 s (stress mode). `make check` exit 0 (vitest 258), `make e2e` 224, `make perf` exit 0; logs `build/fix24-*.log`.
-- Blockers or follow-up: iPad margin is thin (1.8 s in one run); the V1 real-iPad check should time a diagram-heavy doc. An iframe renderer is the remaining option if it fails.

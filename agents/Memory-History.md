@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-24)
+
+- Task: NFR-3 doc render over 2 s; Sonnet coder in two rounds, orchestrator reviewed the queue code and ran the gates.
+- Files changed: `web/src/diagrams/mermaid.ts` (`preloadMermaid`, priority job queue with `promote`/`cancel`), `MermaidDiagram.tsx` (IntersectionObserver), `DiagramFigure.tsx` (`figureRef`), `MarkdownView.tsx` (preload), test mocks, new `e2e/perf/` + `make perf`, `docs/Architecture.md`, `docs/Implementation.md`, D-28.
+- Result: after FIX-23 alone, iPad all-10-ready fell from 3.7 s to 2.6 s. An off-screen `contain: strict` Mermaid container gave no gain (Mermaid's text measuring appends to `body`) and was reverted. iPad section jump to its Mermaid diagram 1.6-1.8 s; all 10 ready ~2.6 s; chromium 4x CPU 3.0 s (stress mode). `make check` exit 0 (vitest 258), `make e2e` 224, `make perf` exit 0; logs `build/fix24-*.log`.
+- Blockers or follow-up: iPad margin is thin (1.8 s in one run); the V1 real-iPad check should time a diagram-heavy doc. An iframe renderer is the remaining option if it fails.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-23)
 
 - Task: Markdown remounted diagrams and code blocks on every re-render; Sonnet coder, orchestrator reviewed the diff and ran the gates.
