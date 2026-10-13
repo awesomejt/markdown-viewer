@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
-import { highlightToHast, resolveLanguage } from './highlight';
+import { highlightToHast, MAX_HIGHLIGHT_CHARS, resolveLanguage } from './highlight';
 
 export interface CodeBlockProps {
   /** Fence language as written (from the `language-*` class), if any. */
@@ -14,7 +14,8 @@ export interface CodeBlockProps {
 
 /** Renders the plain block at once, then swaps in Shiki output when it is ready. */
 export default function CodeBlock({ lang, className, code, preProps, children }: CodeBlockProps) {
-  const supported = lang !== undefined && resolveLanguage(lang) !== null;
+  const supported =
+    lang !== undefined && resolveLanguage(lang) !== null && code.length <= MAX_HIGHLIGHT_CHARS;
   const key = `${className}\0${code}`;
   const [done, setDone] = useState<{ key: string; node: ReactNode } | null>(null);
 

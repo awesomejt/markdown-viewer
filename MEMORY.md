@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-25 diagram viewer reset/focus fixed (2026-10-12); remaining R2.13 follow-ups FIX-26 to FIX-28, DOC2, CH2
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-26 (Shiki/KaTeX render limits in Markdown) meanwhile
+- Last major milestone: FIX-26 Shiki/KaTeX render limits in Markdown (2026-10-12); remaining R2.13 follow-ups FIX-27, FIX-28, DOC2, CH2
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-27 (close retired roots after a grace period) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-26)
+
+- Task: Markdown fences had no Shiki size cap and KaTeX no `maxSize`; Sonnet coder, orchestrator strengthened the e2e fixture and ran the gates.
+- Files changed: `web/src/markdown/highlight.ts` (`MAX_HIGHLIGHT_CHARS`, `TOKENIZE_MAX_LINE_LENGTH`), `CodeBlock.tsx`, `fileview/CodeFile.tsx`, `markdown/katex.ts` (`maxSize: 20`), `app/app.css` (`.markdown-body { overflow: clip }`), tests (`highlight.test.tsx`, new `katex.test.ts`, `e2e/tests/markdown.spec.ts`), fixture `testdata/fixtures/docs/math-clip.md`, `docs/Architecture.md`.
+- Result: the coder's fixture put the rule ~5000em off-screen, so the e2e passed without the fix; the fixture now tiles 20em rules from -80em to +80em, and the spec fails on all four projects with the clip removed. `tsc --noEmit` missed a `katex.test.ts` type error that `tsc -b` (build) caught. `make check` exit 0 (vitest 264), `make e2e` 236 passed; logs `build/fix26-*.log`.
+- Blockers or follow-up: on the ipad project the sidebar is a closed drawer, so only the header is hit-tested, and the header did not show KaTeX even without the clip (it stacks above the body); the desktop sidebar check is the guard.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-25)
 
 - Task: full-screen diagram viewer reopened after a fixed live-reload error, and initial focus missed Close; Sonnet coder, orchestrator reviewed the diff and ran the gates.
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/diagrams/mermaid.ts` (`preloadMermaid`, priority job queue with `promote`/`cancel`), `MermaidDiagram.tsx` (IntersectionObserver), `DiagramFigure.tsx` (`figureRef`), `MarkdownView.tsx` (preload), test mocks, new `e2e/perf/` + `make perf`, `docs/Architecture.md`, `docs/Implementation.md`, D-28.
 - Result: after FIX-23 alone, iPad all-10-ready fell from 3.7 s to 2.6 s. An off-screen `contain: strict` Mermaid container gave no gain (Mermaid's text measuring appends to `body`) and was reverted. iPad section jump to its Mermaid diagram 1.6-1.8 s; all 10 ready ~2.6 s; chromium 4x CPU 3.0 s (stress mode). `make check` exit 0 (vitest 258), `make e2e` 224, `make perf` exit 0; logs `build/fix24-*.log`.
 - Blockers or follow-up: iPad margin is thin (1.8 s in one run); the V1 real-iPad check should time a diagram-heavy doc. An iframe renderer is the remaining option if it fails.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-23)
-
-- Task: Markdown remounted diagrams and code blocks on every re-render; Sonnet coder, orchestrator reviewed the diff and ran the gates.
-- Files changed: `web/src/markdown/MarkdownView.tsx` (`useMemo` for components and the `<Markdown>` element, hoisted `remarkRehypeOptions`), `web/src/markdown/MarkdownView.test.tsx` (render-stability test).
-- Result: Mermaid renders once per diagram across TOC, same-props and hash re-renders; the new test fails on the old code (4 renders for 2 diagrams). `make check` exit 0 (vitest 253), `make e2e` 224 passed; logs `build/fix23-*.log`.
-- Blockers or follow-up: FIX-24 re-measures NFR-3 now that the double render is gone.

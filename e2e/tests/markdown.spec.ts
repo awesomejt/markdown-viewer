@@ -179,3 +179,33 @@ test('math.md renders KaTeX offline and GitHub alerts', async ({ page }) => {
   );
   await expect(body.locator('blockquote')).toHaveText('[!NOTE] not an alert');
 });
+
+test('oversized KaTeX cannot paint over the header or sidebar', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/math-clip.md');
+  await expect(doc(page).locator('.katex').first()).toBeVisible();
+  await expect(doc(page).locator('.katex-error')).toHaveCount(0);
+  const header = page.locator('header.header');
+  const sidebar = page.getByRole('navigation', { name: 'Sidebar' });
+  // The sidebar is a closed drawer on narrow layouts (ipad project); check what is shown.
+  for (const area of [header, sidebar]) {
+    if (!(await area.isVisible())) continue;
+    const box = await area.boundingBox();
+    if (!box) throw new Error('area not laid out');
+    const hit = await page.evaluate(
+      ([x, y]) => {
+        const el = document.elementFromPoint(x, y);
+        return {
+          katex: el?.closest('.katex') !== null,
+          body: el?.closest('.markdown-body') !== null,
+        };
+      },
+      [box.x + box.width / 2, box.y + box.height / 2],
+    );
+    expect(hit).toEqual({ katex: false, body: false });
+  }
+  const scroll = await page.evaluate(() => ({
+    sw: document.documentElement.scrollWidth,
+    cw: document.documentElement.clientWidth,
+  }));
+  expect(scroll.sw).toBeLessThanOrEqual(scroll.cw);
+});

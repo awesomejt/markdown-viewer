@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-23)
+
+- Task: Markdown remounted diagrams and code blocks on every re-render; Sonnet coder, orchestrator reviewed the diff and ran the gates.
+- Files changed: `web/src/markdown/MarkdownView.tsx` (`useMemo` for components and the `<Markdown>` element, hoisted `remarkRehypeOptions`), `web/src/markdown/MarkdownView.test.tsx` (render-stability test).
+- Result: Mermaid renders once per diagram across TOC, same-props and hash re-renders; the new test fails on the old code (4 renders for 2 diagrams). `make check` exit 0 (vitest 253), `make e2e` 224 passed; logs `build/fix23-*.log`.
+- Blockers or follow-up: FIX-24 re-measures NFR-3 now that the double render is gone.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-22)
 
 - Task: One bad image or tree sub kills live reload; Sonnet implementer, orchestrator reviewed the diff and re-ran the gates.

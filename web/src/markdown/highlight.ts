@@ -72,6 +72,11 @@ const LIGHT = 'github-light';
 const DARK = 'github-dark';
 const CACHE_MAX = 100;
 
+/** Code above this many characters stays plain: Shiki runs on the main thread (NFR-3). */
+export const MAX_HIGHLIGHT_CHARS = 100_000;
+/** Lines longer than this are not tokenized, so one giant line stays mostly plain. */
+export const TOKENIZE_MAX_LINE_LENGTH = 5000;
+
 /** Maps a fence info string to a supported language id, or null. */
 export function resolveLanguage(lang: string | undefined): string | null {
   const key = (lang ?? '').toLowerCase();
@@ -149,7 +154,7 @@ export async function highlightToHast(
   className = `language-${rawLang}`,
 ): Promise<Root | null> {
   const id = resolveLanguage(rawLang);
-  if (!id) return null;
+  if (!id || code.length > MAX_HIGHLIGHT_CHARS) return null;
   const key = `${className}\0${code}`;
   const hit = cache.get(key);
   if (hit) return hit;
@@ -165,6 +170,7 @@ export async function highlightToHast(
       lang: id,
       themes: { light: LIGHT, dark: DARK },
       defaultColor: 'light',
+      tokenizeMaxLineLength: TOKENIZE_MAX_LINE_LENGTH,
       transformers: [
         {
           code(node) {

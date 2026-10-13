@@ -221,7 +221,7 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 
 **Math and alerts (FR-3.6, FR-3.7, R2.7):**
 
-- `remark-math` parses `$...$`, `$$...$$` and ```` ```math ```` fences. `rehype-katex` runs after sanitize and slug: the Markdown is sanitized first and KaTeX's own output is trusted, with `trust: false` (no `\href`, `\url`, `\html*`) and `strict: 'ignore'`. A parse error renders inline as `.katex-error`; the rest of the document is unaffected. Heading slugs come from the TeX source, and the TOC reads each formula's `application/x-tex` annotation.
+- `remark-math` parses `$...$`, `$$...$$` and ```` ```math ```` fences. `rehype-katex` runs after sanitize and slug: the Markdown is sanitized first and KaTeX's own output is trusted, with `trust: false` (no `\href`, `\url`, `\html*`), `strict: 'ignore'` and `maxSize: 20`; `overflow: clip` on `.markdown-body` contains negative offsets such as `\kern{-5000em}`. A parse error renders inline as `.katex-error`; the rest of the document is unaffected. Heading slugs come from the TeX source, and the TOC reads each formula's `application/x-tex` annotation.
 - KaTeX (JS, CSS and bundled fonts) is a lazy chunk (`markdown/katex.ts`, shared with Mermaid). `useMathPlugin` loads it when the text contains `$` or a `math` fence, and the body waits (`aria-busy`) until it is ready, so anchors and the TOC do not shift. If the chunk fails to load, math shows as code.
 - `katex` is pinned ≥ 0.19 with an npm `overrides` entry, so Mermaid and markdownlint use the same patched copy.
 - Like GitHub, a single `$` pair is math, so a paragraph like "$5 and $10" renders as math; escape with `\$`.
@@ -237,7 +237,7 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 **Standalone code files (R2.5):**
 
 - `text` files render through `fileview/CodeFile`, which reuses the lazy `CodeBlock`: the plain `pre.text-file` first, then Shiki colors. `languageForFile` maps the extension through the same fence aliases and ids, plus a few file-only ones (`h`, `hpp`, `jsonc`, `kts`, `pyi`, ...). Extensionless names (`Makefile`, `Dockerfile`) and unsupported extensions (`txt`, `csv`, ...) stay plain and never load Shiki.
-- Files over 100,000 characters stay plain, because `codeToHast` runs on the main thread (NFR-3 on the iPad).
+- Files and fenced blocks over 100,000 characters stay plain (`MAX_HIGHLIGHT_CHARS`), and lines over 5,000 characters are not tokenized, because `codeToHast` runs on the main thread (NFR-3 on the iPad).
 
 **Copy button and front matter panel (R2.2):**
 

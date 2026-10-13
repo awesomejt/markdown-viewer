@@ -1,10 +1,7 @@
 import { lazy, Suspense } from 'react';
-import { languageForFile } from '../markdown/highlight';
+import { languageForFile, MAX_HIGHLIGHT_CHARS } from '../markdown/highlight';
 
 const CodeBlock = lazy(() => import('../markdown/CodeBlock'));
-
-/** Files above this many characters stay plain: Shiki runs on the main thread (NFR-3). */
-export const MAX_HIGHLIGHT_CHARS = 100_000;
 
 /**
  * A standalone text/code file: plain at once, then Shiki colors when the extension maps to a
