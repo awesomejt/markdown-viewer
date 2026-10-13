@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: DOC2 docs drift fixed (2026-10-12); remaining R2.13 follow-up CH2 (optional)
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take CH2 (optional stored-store cleanup) meanwhile
+- Last major milestone: CH2 shared stored-store helper (2026-10-12); all R2.13 follow-ups done
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); no agent tasks are ready until V1 reports results
 - Current blocker: None
 
 ## Key Decisions
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (CH2)
+
+- Task: optional cleanup of duplicated `useSyncExternalStore` + localStorage stores; orchestrator edited directly.
+- Files changed: new `web/src/app/storedStore.ts` + test, `browse/showHidden.ts`, `recent/recent.ts`, `diagrams/DiagramPage.tsx` (dropped `DIAGRAM_FILE_RE`), `docs/Architecture.md`.
+- Result: public exports of both modules unchanged, so callers and tests needed no edits. The TOC open state named in the task is a load/save helper, not a store, so it was left alone. `make check` exit 0, `make e2e` 236 passed; logs `build/ch2-*.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (DOC2)
 
 - Task: docs drift from R2.13; orchestrator edited directly (small doc change).
@@ -98,11 +105,4 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Task: flaky `TestEventsGlobalStreamCap` ("stream did not open"); orchestrator fixed it directly (a 3-line test change, cheaper than a coder subagent).
 - Files changed: `internal/api/events_test.go` (`holdStream` reads the baseline count before starting the handler).
 - Result: root cause was a race, not a slow timeout: the handler takes its slot (`events.go:61`) before the test read the baseline, so `count > baseline` never held. A 50 ms delay injected after the goroutine start failed all 4 `holdStream` tests on the old code and passes on the fix; 50 `-race` repeats pass. `make check` exit 0; log `build/fix28-check.log`.
-- Blockers or follow-up: none.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-27)
-
-- Task: a retired root stayed open until the next swap, keeping a lazily unmounted share busy; Sonnet coder, orchestrator reviewed the diff, rewrote one test and ran the gate.
-- Files changed: `internal/fsroot/lazy.go` (`retired` map of per-root timers, `retireLocked`, Close stops timers), `access.go` (`retireGrace` = max(2 × FSTimeout, 1 s)), `lazy_test.go` (4 new tests), `docs/Architecture.md`.
-- Result: verified in the stdlib that `os.Root` is refcounted, so closing under a running call is safe. The coder's timer-after-Close test retired the current root and asserted nothing; it now checks the `pending` guard deterministically and fails when the guard is removed. Own-grace test raised from 400 ms to 1 s for `make -j` load. `make check` exit 0 (fsroot 96.5%); log `build/fix27-check.log`.
 - Blockers or follow-up: none.
