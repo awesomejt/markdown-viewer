@@ -405,13 +405,15 @@ func holdStream(t *testing.T, s *Server, addr, query string) (stop func()) {
 	req := httptest.NewRequest(http.MethodGet, "/api/events?"+query, nil).WithContext(ctx)
 	req.RemoteAddr = addr
 	rec := httptest.NewRecorder()
+	// Read the baseline before the handler starts: it can take its slot
+	// before this goroutine runs again, so a later read may already count it.
+	before, _ := streamCounts(s)
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		s.events(rec, req)
 	}()
 	t.Cleanup(func() { cancel(); <-done })
-	before, _ := streamCounts(s)
 	deadline := time.Now().Add(evWait)
 	for {
 		if n, _ := streamCounts(s); n > before {

@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: FIX-27 retired roots close after a grace period (2026-10-12); remaining R2.13 follow-ups FIX-28, DOC2, CH2
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take FIX-28 (flaky `TestEventsGlobalStreamCap`) meanwhile
+- Last major milestone: FIX-28 stream-cap test flake fixed (2026-10-12); remaining R2.13 follow-ups DOC2, CH2
+- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); agents can take DOC2 (docs drift) meanwhile
 - Current blocker: None
 
 ## Key Decisions
@@ -86,6 +86,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-28)
+
+- Task: flaky `TestEventsGlobalStreamCap` ("stream did not open"); orchestrator fixed it directly (a 3-line test change, cheaper than a coder subagent).
+- Files changed: `internal/api/events_test.go` (`holdStream` reads the baseline count before starting the handler).
+- Result: root cause was a race, not a slow timeout: the handler takes its slot (`events.go:61`) before the test read the baseline, so `count > baseline` never held. A 50 ms delay injected after the goroutine start failed all 4 `holdStream` tests on the old code and passes on the fix; 50 `-race` repeats pass. `make check` exit 0; log `build/fix28-check.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-27)
 
 - Task: a retired root stayed open until the next swap, keeping a lazily unmounted share busy; Sonnet coder, orchestrator reviewed the diff, rewrote one test and ran the gate.
@@ -99,10 +106,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/markdown/highlight.ts` (`MAX_HIGHLIGHT_CHARS`, `TOKENIZE_MAX_LINE_LENGTH`), `CodeBlock.tsx`, `fileview/CodeFile.tsx`, `markdown/katex.ts` (`maxSize: 20`), `app/app.css` (`.markdown-body { overflow: clip }`), tests (`highlight.test.tsx`, new `katex.test.ts`, `e2e/tests/markdown.spec.ts`), fixture `testdata/fixtures/docs/math-clip.md`, `docs/Architecture.md`.
 - Result: the coder's fixture put the rule ~5000em off-screen, so the e2e passed without the fix; the fixture now tiles 20em rules from -80em to +80em, and the spec fails on all four projects with the clip removed. `tsc --noEmit` missed a `katex.test.ts` type error that `tsc -b` (build) caught. `make check` exit 0 (vitest 264), `make e2e` 236 passed; logs `build/fix26-*.log`.
 - Blockers or follow-up: on the ipad project the sidebar is a closed drawer, so only the header is hit-tested, and the header did not show KaTeX even without the clip (it stacks above the body); the desktop sidebar check is the guard.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-25)
-
-- Task: full-screen diagram viewer reopened after a fixed live-reload error, and initial focus missed Close; Sonnet coder, orchestrator reviewed the diff and ran the gates.
-- Files changed: `web/src/diagrams/DiagramFigure.tsx` (reset during render in the error branch, cleanup clears `shown`), `DiagramViewer.tsx` (Close ref focused after `showModal()`), `viewer.test.tsx` (3 tests), `e2e/tests/diagrams.spec.ts` (focus + live-reload reopen specs on the `live` root).
-- Result: the 3 unit tests fail on the old code; the e2e reopen spec should fail on it too by inspection (the viewer stays open; not run on old code). `make check` exit 0 (vitest 261), `make e2e` 232 passed; logs `build/fix25-*.log`.
-- Blockers or follow-up: none.
