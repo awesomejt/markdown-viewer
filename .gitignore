@@ -1,5 +1,8 @@
 # Git Ignore - Files and folders to be ignored by Git
 
+## Operator preferences (the tracked example is config/preferences.example.yaml)
+/config/preferences.yaml
+
 ## Ignore compiled files
 *.o
 *.so

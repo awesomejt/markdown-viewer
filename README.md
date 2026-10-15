@@ -59,10 +59,15 @@ mdv is configured with environment variables only. Empty values count as unset, 
 | `MDV_D2_CONCURRENCY` | `2` | Concurrent D2 renders. |
 | `MDV_D2_CACHE_ENTRIES` | `256` | Size of the rendered-SVG cache. |
 | `MDV_LOG_LEVEL` | `info` | `debug`, `info`, `warn`, or `error`. |
+| `MDV_PREFS` | _(none)_ | Absolute path to the global preferences file. Compose sets `/config/preferences.yaml`. A missing file means defaults. See [Global preferences](#global-preferences). |
 
 Durations use Go syntax (`500ms`, `2s`, `1m`). The binary also has `mdv version` and `mdv healthcheck` subcommands; `mdv` alone is the same as `mdv serve`.
 
-`compose.yaml` forwards only `MDV_ROOTS`, `MDV_POLL_INTERVAL`, and `MDV_ALLOWED_HOSTS` from your environment or `.env` file. It fixes `MDV_LISTEN` and `MDV_LOG_LEVEL`. To change any other variable, add it under `environment:` in `compose.yaml`.
+`compose.yaml` forwards only `MDV_ROOTS`, `MDV_POLL_INTERVAL`, `MDV_ALLOWED_HOSTS`, and `MDV_PREFS` from your environment or `.env` file. It fixes `MDV_LISTEN` and `MDV_LOG_LEVEL`. To change any other variable, add it under `environment:` in `compose.yaml`.
+
+### Global preferences
+
+Default settings for every device (theme, fonts, sort, and so on) come from one YAML file. Copy `config/preferences.example.yaml` to `config/preferences.yaml` and uncomment the keys you want; Compose mounts `config/` read-only at `/config`. The file is re-read on every request, so edits apply without a restart, and a missing file just means defaults. Do not put it inside a served root: anyone who can write in a root would then control the preferences of every device.
 
 Compose-only variables (read by Compose, not by mdv):
 

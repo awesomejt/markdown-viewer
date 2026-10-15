@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ2 or PJ3 🔒 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ3 🔒 or PJ4a (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -90,6 +90,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ2)
+
+- Task: `MDV_PREFS` + `GET /api/prefs` + Compose bind. Sonnet coder; orchestrator reviewed the read policy; Haiku gate and merge.
+- Files changed: `internal/config` (`Prefs`, absolute path required, empty = unset), new `internal/api/prefs.go` (+ `prefs_unix.go`/`prefs_other.go`, tests), `api.go` (`parseSem` 4 slots on `Server` for PJ3, route), `compose.yaml` (`MDV_PREFS` default `/config/preferences.yaml`, `./config:/config:ro`), new tracked `config/preferences.example.yaml`, `.gitignore` (`/config/preferences.yaml`), README, `docs/Deployment.md`.
+- Result: one read outstanding (joiners wait `MDV_FS_TIMEOUT`, then the last result); `O_NONBLOCK` + regular-file check (FIFO test); fixed error strings so no host path leaks; logs de-duplicated by a hash of state + content. Compose defaults to a path in the stack folder so an operator only drops the file in; the real file is untracked and survives re-archiving on docker2.
+- Blockers or follow-up: with the Compose default, a stack without the file logs one WARN "missing" (per contract).
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ1)
 
 - Task: `internal/settings` YAML parser for project files and preferences (🔒). Sonnet coder, Opus security review (approve-with-changes, 7 findings), coder fixed, orchestrator verified and adjusted, Haiku gate and merge.
@@ -103,10 +110,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `docs/Architecture.md` (Phase 2b contract; Config/API/Routes rows; 3 tables reflowed to compact pipes), `docs/Requirements.md` (FR-7.1/7.2/7.4, FR-8.5), `docs/Implementation.md` (PJ4a/b, PJ5a/b), `agents/Decisions.md` D-33, new `agents/PJ0-Design.md` (implementer detail; Architecture wins), `.markdownlint-cli2.yaml` (ignore `working/`).
 - Result: the challenge caught real issues before code: reader errors leaking host paths into YAML messages, unbounded stat fan-out across requests, an unbounded prefs stat goroutine, one-letter roots vs drive letters, and old UIs having stored defaults (needs a one-time migration). Orchestrator overrode the designer's device-layer overlay: inside a project only that project's device choices apply.
 - Blockers or follow-up: none. Coders for PJ1-PJ7 must read `agents/PJ0-Design.md` and the Architecture contract.
-
-### 2026-10-14 - Claude Opus 5.5 orchestrator (FV2)
-
-- Task: sibling files for a file opened outside a workspace (FR-2.8). Sonnet coder; orchestrator reviewed; Haiku gate and merge.
-- Files changed: new `web/src/fileview/FolderFiles.tsx` (+ test), `app/Layout.tsx` (section above the root list on `/view` without `ws`), `WorkspaceTree.tsx` (exports `TREE_PAGE`), `app/app.css`, `e2e/tests/workspace.spec.ts`, Architecture.
-- Result: files only, same `['list', root, dir]` query as browse; "Open as workspace" keeps the current file (`?ws=<parent>`, empty = root workspace) unlike BrowseView's button, which opens the folder's index.
-- Blockers or follow-up: minor: the "Show more" limit is keyed by root, not folder, so it carries over between folders.

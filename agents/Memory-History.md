@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-14 - Claude Opus 5.5 orchestrator (FV2)
+
+- Task: sibling files for a file opened outside a workspace (FR-2.8). Sonnet coder; orchestrator reviewed; Haiku gate and merge.
+- Files changed: new `web/src/fileview/FolderFiles.tsx` (+ test), `app/Layout.tsx` (section above the root list on `/view` without `ws`), `WorkspaceTree.tsx` (exports `TREE_PAGE`), `app/app.css`, `e2e/tests/workspace.spec.ts`, Architecture.
+- Result: files only, same `['list', root, dir]` query as browse; "Open as workspace" keeps the current file (`?ws=<parent>`, empty = root workspace) unlike BrowseView's button, which opens the folder's index.
+- Blockers or follow-up: minor: the "Show more" limit is keyed by root, not folder, so it carries over between folders.
+
 ### 2026-10-14 - Claude Opus 5.5 orchestrator (FV1)
 
 - Task: workspace tree ignored the Markdown-only toggle (FR-2.1 gap). Sonnet coder; orchestrator reviewed the diff; Haiku ran the gate and merge.

@@ -48,6 +48,9 @@ type Config struct {
 	// literals and localhost (DNS rebinding guard). Normalized to lowercase
 	// without a trailing dot. The single entry "*" disables the check.
 	AllowedHosts []string
+	// Prefs is the absolute path of the global preferences file, or empty
+	// when unset. It is not checked for existence at startup.
+	Prefs string
 }
 
 // AllowAnyHost is the MDV_ALLOWED_HOSTS value that disables the Host check.
@@ -128,6 +131,14 @@ func Load(getenv func(string) string) (*Config, error) {
 	hosts, err := parseAllowedHosts(get("MDV_ALLOWED_HOSTS"))
 	add(err)
 	c.AllowedHosts = hosts
+
+	if v := get("MDV_PREFS"); v != "" {
+		if !filepath.IsAbs(v) {
+			add(fmt.Errorf("MDV_PREFS: path %q must be absolute", v))
+		} else {
+			c.Prefs = filepath.Clean(v)
+		}
+	}
 
 	roots, err := parseRoots(get("MDV_ROOTS"))
 	add(err)

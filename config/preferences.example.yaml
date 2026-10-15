@@ -1,0 +1,20 @@
+# yamllint disable rule:comments-indentation
+# Global mdv preferences. Copy to config/preferences.yaml (untracked) and
+# uncomment what you want. Re-read on every request; no restart needed.
+# Every key is optional; invalid values are ignored with a warning.
+version: 1
+settings:
+  # theme: system          # system, light, dark
+  # style: github          # style name: a-z, 0-9, "-", up to 32 characters
+  # font: serif            # font name: a-z, 0-9, "-", up to 32 characters
+  # codeFont: mono         # font name: a-z, 0-9, "-", up to 32 characters
+  # fontSize: 16           # 12 to 32
+  # lineHeight: 1.6        # 1.0 to 2.5
+  # contentWidth: normal   # narrow, normal, wide, full
+  # markdownOnly: false    # true or false
+  # showHidden: false      # true or false
+  # sort: name             # name, date
+  # readTime:
+  #   wpm: 220             # 60 to 600
+  #   includeHeadings: true
+  #   includeCode: false
