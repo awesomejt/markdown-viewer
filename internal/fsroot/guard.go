@@ -131,8 +131,8 @@ func badRequest(rel, reason string) error {
 // maxPathBytes is the longest client path Resolve accepts.
 const maxPathBytes = 4096
 
-// isControl reports C0, DEL, C1 and bidi control characters.
-func isControl(r rune) bool {
+// IsControl reports C0, DEL, C1 and bidi control characters.
+func IsControl(r rune) bool {
 	switch {
 	case r < 0x20, r >= 0x7f && r <= 0x9f:
 		return true
@@ -169,7 +169,7 @@ func Resolve(rel string) (string, error) {
 		return "", badRequest(rel, "invalid UTF-8")
 	}
 	for _, r := range rel {
-		if isControl(r) {
+		if IsControl(r) {
 			return "", badRequest(rel, "control character")
 		}
 	}

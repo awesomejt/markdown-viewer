@@ -13,6 +13,7 @@ require (
 	github.com/d2lang/util-go v0.2.0
 	github.com/fsnotify/fsnotify v1.10.1
 	go.uber.org/goleak v1.3.0
+	go.yaml.in/yaml/v3 v3.0.4
 	golang.org/x/sys v0.47.0
 	golang.org/x/text v0.41.0
 )
@@ -28,6 +29,7 @@ require (
 	github.com/d2lang/rough-go v0.2.0 // indirect
 	github.com/dlclark/regexp2/v2 v2.6.0 // indirect
 	github.com/go-text/typesetting v0.3.4 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mazznoer/csscolorparser v0.1.8 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
