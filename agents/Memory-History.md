@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-14 - Claude Opus 5.5 (DEP1)
+
+- Task: owner asked to deploy the Compose stack on the new docker2 VM (192.168.50.58), managed by systemctl, on a host shared with future apps.
+- Files changed: `deploy/systemd/docker-compose@.service`, `deploy/systemd/docker-compose@mdv.service.d/nas.conf`, `deploy/compose.override.example.yaml`, `docs/Deployment.md` (systemd section), D-29.
+- Result: Docker was not installed; installed Ubuntu `docker.io` 29.1.3, `docker-compose-v2` 2.40.3, `docker-buildx`; `jason` added to `docker`. Stack healthy; stop/start/restart/reload, LAN access, Host allowlist and a reboot verified; the `x-systemd.automount` fstab entry (5 min idle timeout) keeps the share mounted while mdv runs.
+- Blockers or follow-up: V1 iPad checklist (human). The VM's `/opt/stacks/mdv` is a git archive, not a clone (no GitHub key on the VM); upgrade by re-archiving and `systemctl reload docker-compose@mdv`.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (CH2)
 
 - Task: optional cleanup of duplicated `useSyncExternalStore` + localStorage stores; orchestrator edited directly.

@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useParams, useSearchParams } from 'react-rou
 import { browseHref } from '../api/client';
 import { useRoots } from '../api/hooks';
 import { ErrorState, Loading } from './states';
+import { FolderFiles } from '../fileview/FolderFiles';
 import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
 import { useTheme } from './theme';
@@ -31,8 +32,13 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
   const recent = location.pathname === '/' ? null : <RecentList heading="h3" />;
   if (roots.isPending) return <Loading />;
   if (roots.isError) return <ErrorState error={roots.error} onRetry={() => void roots.refetch()} />;
+  const siblings =
+    root && location.pathname.startsWith('/view/') && params['*'] ? (
+      <FolderFiles key={root} root={root} path={params['*']} />
+    ) : null;
   return (
     <>
+      {siblings}
       <ul className="link-list">
         {roots.data.roots.map((r) => (
           <li key={r.name}>

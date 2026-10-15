@@ -132,3 +132,16 @@ test('large text file asks before loading', async ({ page }) => {
   await page.getByRole('button', { name: 'Load anyway' }).click();
   await expect(page.locator('pre.text-file')).toContainText('# Large fixture');
 });
+
+test('a file opened outside a workspace lists its sibling files', async ({ page }) => {
+  await page.goto('/view/fixtures/docs/guide.md');
+  await openTree(page);
+  const folder = sidebar(page).getByRole('region', { name: 'In this folder' });
+  await expect(folder.getByRole('link', { name: 'guide.md' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(folder.getByRole('link', { name: 'sub' })).toBeHidden();
+  await folder.getByRole('link', { name: 'code.md' }).click();
+  await expect(page).toHaveURL(/\/view\/fixtures\/docs\/code\.md$/);
+});

@@ -40,9 +40,8 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). FV2 and PJ0 are ready now.
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ0 is ready now.
 
-- [ ] **FV2** [S] Sibling files in the sidebar for a file opened outside a workspace/project (FR-2.8) (deps: FV1)
 - [ ] **PJ0** [S → O] Finalize the project/prefs contract; Opus challenge; update Architecture tables
 - [ ] **PJ1** 🔒 [S] `internal/settings` strict YAML schema, limits, warnings (deps: PJ0)
 - [ ] **PJ2** [S] `MDV_PREFS` + `GET /api/prefs` + Compose config bind (deps: PJ1)
@@ -90,6 +89,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-14: **FV2** [S] "In this folder" sidebar section (`web/src/fileview/FolderFiles.tsx`) on `/view` without `ws`: the parent folder's files (shared listing query, show-hidden/md-only toggles, viewed file always kept with `aria-current`, 200-row paging, low-priority live sub) and an "Open as workspace" link that keeps the file. 5 component tests (4 red without it) + e2e. `make check`, `make e2e` green.
 - [x] 2026-10-14: **FV1** [S] Shared `useMdOnly` store (`web/src/browse/mdOnly.ts`, key `mdv-md-only` unchanged) read by BrowseView and `WorkspaceTree`; the tree hides non-Markdown/diagram files while it is on, keeps folders and never hides the viewed file's row. Unit + component tests red without the change, e2e toggle scenario; FR-2.1 reworded. `make check`, `make e2e` green.
 - [x] 2026-10-14: **FIX-20** [S] `smol-toml` override `^1.9.1` (moderate cleared). The 5 high findings (`braces` 3.0.3 via `micromatch` 4.0.8 in `markdownlint-cli2` 0.23.3, all latest) have no fixed release upstream; accepted as lint-time only, re-check on the next dependency bump. `npm run build` and markdownlint clean, `make check` green.
 - [x] 2026-10-14: Read-time defaults set by the owner (160 wpm; `includeCode` per project) and teleprompter planned as FUT9 (D-32).

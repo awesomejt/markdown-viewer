@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: FV2, then PJ0 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ0 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -71,6 +71,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and switches within ~2 s of the mount appearing (FIX-16); `:fsnotify` roots may still miss events after a remount (host-path inotify watches are not re-added). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - D2 layout (R2.9): the Layout select is per figure and not persisted; `d2-config` themes in a source are ignored (the app theme wins).
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
+- DEP1: upgrade docker2 by re-archiving the source into `/opt/stacks/mdv` (no GitHub key on the VM), then `systemctl reload docker-compose@mdv`.
 - Deployment (DEP1): docker2 uses the per-stack systemd drop-in (D-29), tested with a reboot; the `docker.service` `RequiresMountsFor=` variant in `docs/Deployment.md` is untested.
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
@@ -88,6 +89,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-14 - Claude Opus 5.5 orchestrator (FV2)
+
+- Task: sibling files for a file opened outside a workspace (FR-2.8). Sonnet coder; orchestrator reviewed; Haiku gate and merge.
+- Files changed: new `web/src/fileview/FolderFiles.tsx` (+ test), `app/Layout.tsx` (section above the root list on `/view` without `ws`), `WorkspaceTree.tsx` (exports `TREE_PAGE`), `app/app.css`, `e2e/tests/workspace.spec.ts`, Architecture.
+- Result: files only, same `['list', root, dir]` query as browse; "Open as workspace" keeps the current file (`?ws=<parent>`, empty = root workspace) unlike BrowseView's button, which opens the folder's index.
+- Blockers or follow-up: minor: the "Show more" limit is keyed by root, not folder, so it carries over between folders.
+
 ### 2026-10-14 - Claude Opus 5.5 orchestrator (FV1)
 
 - Task: workspace tree ignored the Markdown-only toggle (FR-2.1 gap). Sonnet coder; orchestrator reviewed the diff; Haiku ran the gate and merge.
@@ -101,10 +109,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/package.json` (`smol-toml` override), `web/package-lock.json`.
 - Result: Sonnet coder found `markdownlint-cli2` 0.23.3, `micromatch` 4.0.8 and `braces` 3.0.3 all latest; orchestrator re-checked the registry. `smol-toml` 1.9.1 cleared the moderate finding; 5 high remain (no upstream fix). npm's suggested fix is a downgrade, rejected.
 - Blockers or follow-up: re-check `braces` on the next dependency bump.
-
-### 2026-10-14 - Claude Opus 5.5 (DEP1)
-
-- Task: owner asked to deploy the Compose stack on the new docker2 VM (192.168.50.58), managed by systemctl, on a host shared with future apps.
-- Files changed: `deploy/systemd/docker-compose@.service`, `deploy/systemd/docker-compose@mdv.service.d/nas.conf`, `deploy/compose.override.example.yaml`, `docs/Deployment.md` (systemd section), D-29.
-- Result: Docker was not installed; installed Ubuntu `docker.io` 29.1.3, `docker-compose-v2` 2.40.3, `docker-buildx`; `jason` added to `docker`. Stack healthy; stop/start/restart/reload, LAN access, Host allowlist and a reboot verified; the `x-systemd.automount` fstab entry (5 min idle timeout) keeps the share mounted while mdv runs.
-- Blockers or follow-up: V1 iPad checklist (human). The VM's `/opt/stacks/mdv` is a git archive, not a clone (no GitHub key on the VM); upgrade by re-archiving and `systemctl reload docker-compose@mdv`.
