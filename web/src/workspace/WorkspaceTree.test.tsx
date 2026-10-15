@@ -4,13 +4,20 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { resetMdOnlyCache } from '../browse/mdOnly';
 import { resetShowHiddenCache } from '../browse/showHidden';
 import { LiveProvider } from '../live/LiveProvider';
 
 const mtime = '2026-01-02T03:04:05Z';
 const ent = (name: string, type: string, kind = 'other') => ({ name, type, kind, size: 1, mtime });
 const bodies: Record<string, object[]> = {
-  '': [ent('docs', 'dir'), ent('.git', 'dir'), ent('top.md', 'file', 'markdown')],
+  '': [
+    ent('docs', 'dir'),
+    ent('.git', 'dir'),
+    ent('top.md', 'file', 'markdown'),
+    ent('notes.txt', 'file', 'text'),
+    ent('pic.png', 'file', 'image'),
+  ],
   docs: [ent('sub', 'dir'), ent('a.md', 'file', 'markdown')],
   'docs/sub': [ent('deep.md', 'file', 'markdown')],
   many: Array.from({ length: 450 }, (_, i) =>
@@ -21,6 +28,7 @@ const bodies: Record<string, object[]> = {
 beforeEach(() => {
   window.localStorage.clear();
   resetShowHiddenCache();
+  resetMdOnlyCache();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
@@ -78,6 +86,29 @@ describe('WorkspaceTree', () => {
     expect(within(tree()).queryByRole('link', { name: '.git' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('checkbox', { name: 'Show hidden files' }));
     expect(within(tree()).getByRole('link', { name: '.git' })).toBeInTheDocument();
+  });
+
+  it('follows the browse view markdown-only toggle', async () => {
+    renderAt('/browse/r?ws=');
+    await within(tree()).findByRole('link', { name: 'top.md' });
+    expect(within(tree()).getByRole('link', { name: 'notes.txt' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Markdown/diagrams only' }));
+    expect(within(tree()).queryByRole('link', { name: 'notes.txt' })).not.toBeInTheDocument();
+    expect(within(tree()).queryByRole('link', { name: 'pic.png' })).not.toBeInTheDocument();
+    expect(within(tree()).getByRole('link', { name: 'docs' })).toBeInTheDocument();
+    expect(within(tree()).getByRole('link', { name: 'top.md' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Markdown/diagrams only' }));
+    expect(within(tree()).getByRole('link', { name: 'notes.txt' })).toBeInTheDocument();
+  });
+
+  it('keeps the viewed non-Markdown file when markdown-only is on', async () => {
+    window.localStorage.setItem('mdv-md-only', '1');
+    renderAt('/view/r/notes.txt?ws=');
+    await within(tree()).findByRole('link', { name: 'top.md' });
+    expect(
+      within(tree()).getByRole('link', { name: 'notes.txt', current: 'page' }),
+    ).toBeInTheDocument();
+    expect(within(tree()).queryByRole('link', { name: 'pic.png' })).not.toBeInTheDocument();
   });
 
   it('keeps the roots list without ws', async () => {

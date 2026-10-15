@@ -5,6 +5,7 @@ import { useList } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
 import { KindIcon } from '../browse/KindIcon';
 import { isWithin, joinPath, kindOf } from '../browse/logic';
+import { useMdOnly } from '../browse/mdOnly';
 import { useShowHidden } from '../browse/showHidden';
 import { useLiveSubscription } from '../live/LiveProvider';
 import { expandedFor, treeEntries } from './logic';
@@ -54,13 +55,19 @@ interface Ctx extends TreeProps {
 function TreeChildren({ dir, ...ctx }: Ctx & { dir: string }) {
   const list = useList(ctx.root, dir);
   const [showHidden] = useShowHidden();
+  const [mdOnly] = useMdOnly();
   // Child adds/removes/renames refresh this listing (FR-5.2). Low priority: a deep tree must not push
   // the viewed document or browsed folder out of the per-stream sub cap.
   useLiveSubscription(ctx.root, dir, true);
   const [limit, setLimit] = useState(TREE_PAGE);
   if (list.isPending) return <Loading />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => void list.refetch()} />;
-  const entries = treeEntries(list.data.entries, showHidden);
+  // The viewed file's row stays even when the filters would hide it.
+  const viewed =
+    !ctx.isFolder && ctx.path !== dir && isWithin(ctx.path, dir)
+      ? ctx.path.slice(dir === '' ? 0 : dir.length + 1)
+      : undefined;
+  const entries = treeEntries(list.data.entries, showHidden, mdOnly, viewed);
   if (entries.length === 0) return <p className="muted tree-empty">Empty folder</p>;
   // Never hide the current item or the folder leading to it.
   const current = entries.findIndex((e) => isWithin(ctx.path, joinPath(dir, e.name)));

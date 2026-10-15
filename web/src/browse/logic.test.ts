@@ -7,9 +7,7 @@ import {
   formatSize,
   isWithin,
   scopeWs,
-  loadMdOnly,
   loadSort,
-  saveMdOnly,
   saveSort,
   sortEntries,
   workspaceTarget,
@@ -108,17 +106,6 @@ describe('isWithin', () => {
     expect(isWithin('ab', 'a')).toBe(false);
     expect(isWithin('', 'a')).toBe(false);
     expect(isWithin('x/y', '')).toBe(true);
-  });
-});
-
-describe('md-only persistence', () => {
-  it('round-trips and defaults to off', () => {
-    window.localStorage.clear();
-    expect(loadMdOnly()).toBe(false);
-    saveMdOnly(true);
-    expect(loadMdOnly()).toBe(true);
-    saveMdOnly(false);
-    expect(loadMdOnly()).toBe(false);
   });
 });
 

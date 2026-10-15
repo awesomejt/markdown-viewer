@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (CH2)
+
+- Task: optional cleanup of duplicated `useSyncExternalStore` + localStorage stores; orchestrator edited directly.
+- Files changed: new `web/src/app/storedStore.ts` + test, `browse/showHidden.ts`, `recent/recent.ts`, `diagrams/DiagramPage.tsx` (dropped `DIAGRAM_FILE_RE`), `docs/Architecture.md`.
+- Result: public exports of both modules unchanged, so callers and tests needed no edits. The TOC open state named in the task is a load/save helper, not a store, so it was left alone. `make check` exit 0, `make e2e` 236 passed; logs `build/ch2-*.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (DOC2)
 
 - Task: docs drift from R2.13; orchestrator edited directly (small doc change).

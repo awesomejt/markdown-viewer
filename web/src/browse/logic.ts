@@ -133,22 +133,6 @@ export function kindOf(entry: Pick<ListEntry, 'type' | 'kind'>): EntryKind | 'di
   return entry.type === 'dir' ? 'dir' : entry.kind;
 }
 
-export function loadMdOnly(): boolean {
-  try {
-    return window.localStorage.getItem(MD_ONLY_STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-export function saveMdOnly(on: boolean): void {
-  try {
-    window.localStorage.setItem(MD_ONLY_STORAGE_KEY, on ? '1' : '0');
-  } catch {
-    // Storage unavailable (private mode): the choice just isn't persisted.
-  }
-}
-
 export function loadSort(): SortKey {
   try {
     return window.localStorage.getItem(SORT_STORAGE_KEY) === 'date' ? 'date' : 'name';

@@ -9,6 +9,7 @@ import { useLiveSubscription } from '../live/LiveProvider';
 import { useRecordRecent } from '../recent/RecentList';
 import { Breadcrumbs } from './Breadcrumbs';
 import { KindIcon } from './KindIcon';
+import { useMdOnly } from './mdOnly';
 import { useShowHidden } from './showHidden';
 import {
   filterEntries,
@@ -16,9 +17,7 @@ import {
   formatSize,
   joinPath,
   kindOf,
-  loadMdOnly,
   loadSort,
-  saveMdOnly,
   saveSort,
   scopeWs,
   sortEntries,
@@ -44,7 +43,7 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
   // Roots are always listed already; only folders inside them are worth remembering.
   useRecordRecent(list.data && path !== '' ? { root, path, type: 'dir', ws } : undefined);
   const [query, setQuery] = useState('');
-  const [mdOnly, setMdOnly] = useState(loadMdOnly);
+  const [mdOnly, setMdOnly] = useMdOnly();
   const [showHidden, setShowHidden] = useShowHidden();
   const [sort, setSort] = useState<SortKey>(loadSort);
 
@@ -79,10 +78,7 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
               <input
                 type="checkbox"
                 checked={mdOnly}
-                onChange={(e) => {
-                  setMdOnly(e.target.checked);
-                  saveMdOnly(e.target.checked);
-                }}
+                onChange={(e) => setMdOnly(e.target.checked)}
               />
               Markdown/diagrams only
             </label>

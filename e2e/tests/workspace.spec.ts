@@ -38,6 +38,27 @@ test('workspace tree navigates and keeps ws', async ({ page }) => {
   );
 });
 
+test('workspace tree follows the Markdown-only toggle', async ({ page }) => {
+  await page.goto('/browse/fixtures/text?ws=text');
+  await openTree(page);
+  const row = sidebar(page).getByRole('link', { name: 'notes.txt' });
+  await expect(row).toBeVisible();
+
+  // In drawer mode (iPad) the open drawer covers the toolbar, so close it before toggling.
+  const setMdOnly = async (on: boolean) => {
+    if (await page.getByRole('button', { name: 'Close menu' }).isVisible()) {
+      await page.keyboard.press('Escape');
+      await expect(sidebar(page)).toBeHidden();
+    }
+    await page.getByRole('checkbox', { name: 'Markdown/diagrams only' }).setChecked(on);
+    await openTree(page);
+  };
+  await setMdOnly(true);
+  await expect(row).toBeHidden();
+  await setMdOnly(false);
+  await expect(row).toBeVisible();
+});
+
 test('a link outside the workspace drops ws', async ({ page }) => {
   await page.goto('/view/fixtures/docs/guide.md?ws=docs');
   await page.getByRole('link', { name: 'Parent README' }).click();

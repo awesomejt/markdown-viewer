@@ -68,7 +68,7 @@ Priority: **M** = MVP must-have, **S** = should-have (post-MVP refinement), **C*
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-2.1 | "Open folder" turns any browsed folder into a workspace: a collapsible sidebar tree of the folder, filtered to Markdown/diagram files by default. | M |
+| FR-2.1 | "Open folder" turns any browsed folder into a workspace: a collapsible sidebar tree of the folder; the tree follows the browse "Markdown and diagrams only" toggle (shared per device, default off). | M |
 | FR-2.2 | Opening a folder shows its `README.md` / `index.md` when present, otherwise a file listing. | M |
 | FR-2.3 | Relative links between Markdown files navigate inside the viewer. Relative image paths resolve against the file's folder. | M |
 | FR-2.4 | Links to headings (`file.md#section`) scroll to the anchor. | M |

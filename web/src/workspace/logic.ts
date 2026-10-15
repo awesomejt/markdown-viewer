@@ -22,9 +22,19 @@ export function expandedFor(path: string, ws: string, isFolder: boolean): Set<st
   return set;
 }
 
-/** Visible tree children: dot-files hidden unless `showHidden`, folders first, then by name. */
-export function treeEntries(entries: ListEntry[], showHidden = false): ListEntry[] {
-  const visible = filterEntries(entries, { query: '', mdOnly: false, showHidden });
+/**
+ * Visible tree children: dot-files hidden unless `showHidden`, non-Markdown/diagram files hidden when
+ * `mdOnly` (folders stay), folders first, then by name. The entry named `keep` (the viewed file) is
+ * never filtered out.
+ */
+export function treeEntries(
+  entries: ListEntry[],
+  showHidden = false,
+  mdOnly = false,
+  keep?: string,
+): ListEntry[] {
+  const shown = new Set(filterEntries(entries, { query: '', mdOnly, showHidden }));
+  const visible = entries.filter((e) => shown.has(e) || e.name === keep);
   const rank = (e: ListEntry) => (e.type === 'dir' ? 0 : 1);
   return [...visible].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
 }

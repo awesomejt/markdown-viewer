@@ -39,4 +39,23 @@ describe('treeEntries', () => {
     const out = treeEntries([e('b.md', 'file'), e('.git', 'dir'), e('a', 'dir')], true);
     expect(out.map((x) => x.name)).toEqual(['.git', 'a', 'b.md']);
   });
+  it('hides non-Markdown files but keeps folders when mdOnly is on', () => {
+    const files = [
+      { ...e('a.md', 'file'), kind: 'markdown' as const },
+      { ...e('d.mmd', 'file'), kind: 'diagram' as const },
+      e('n.txt', 'file'),
+      e('sub', 'dir'),
+    ];
+    expect(treeEntries(files, false, true).map((x) => x.name)).toEqual(['sub', 'a.md', 'd.mmd']);
+    expect(treeEntries(files, false, false).map((x) => x.name)).toEqual([
+      'sub',
+      'a.md',
+      'd.mmd',
+      'n.txt',
+    ]);
+  });
+  it('never filters out the kept (viewed) entry', () => {
+    const files = [{ ...e('a.md', 'file'), kind: 'markdown' as const }, e('n.txt', 'file')];
+    expect(treeEntries(files, false, true, 'n.txt').map((x) => x.name)).toEqual(['a.md', 'n.txt']);
+  });
 });
