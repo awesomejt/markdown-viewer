@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-14 - Claude Opus 5.5 orchestrator (FV1)
+
+- Task: workspace tree ignored the Markdown-only toggle (FR-2.1 gap). Sonnet coder; orchestrator reviewed the diff; Haiku ran the gate and merge.
+- Files changed: new `web/src/browse/mdOnly.ts` (+ test), `BrowseView.tsx`, `browse/logic.ts` (load/save helpers removed), `workspace/logic.ts` (`treeEntries(entries, showHidden, mdOnly, keep)`), `WorkspaceTree.tsx`, tests, `e2e/tests/workspace.spec.ts`, FR-2.1, Architecture.
+- Result: the toggle is a shared store like show-hidden; the viewed file's row is kept even when filtered (also overrides hidden). Coder confirmed 3 tests red with the filter hard-wired off. The first gate failed only on the iPad project: the open drawer covers the browse toolbar, so the e2e now closes it (Escape) before toggling and reopens the tree. E2E tests that touch the toolbar in drawer mode must do the same.
+- Blockers or follow-up: none.
+
 ### 2026-10-14 - Claude Opus 5.5 orchestrator (FIX-20)
 
 - Task: dev-tooling `npm audit`; first task of the owner-requested multi-agent loop (Opus orchestrates/reviews, Sonnet codes, Haiku runs the gate and Git).

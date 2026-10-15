@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ1 🔒 (then PJ2/PJ3) (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ2 or PJ3 🔒 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -75,6 +75,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Deployment (DEP1): docker2 uses the per-stack systemd drop-in (D-29), tested with a reboot; the `docker.service` `RequiresMountsFor=` variant in `docs/Deployment.md` is untested.
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
+- Settings parser (PJ1): the non-specific YAML tag `!` (for example `fontSize: ! 18`) passes the pre-check because go-yaml discards it, so the value is typed as if untagged (no security impact; pinned by a test). Integers are decimal only (no hex/octal/underscores).
 
 ## Open Questions
 
@@ -89,6 +90,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ1)
+
+- Task: `internal/settings` YAML parser for project files and preferences (🔒). Sonnet coder, Opus security review (approve-with-changes, 7 findings), coder fixed, orchestrator verified and adjusted, Haiku gate and merge.
+- Files changed: `go.mod`/`go.sum` (`go.yaml.in/yaml/v3` v3.0.4, offline), new `internal/settings/` (parse, warn, types, sem + tests and fuzzers), `internal/api/api.go` (`errorDetail.Line`, `omitempty`), `internal/fsroot/guard.go` (`isControl` exported as `IsControl`, behaviour unchanged).
+- Result: review found no panic/500/unbounded-resource path (densest 32 KiB input ~7.4 MiB, ~10 ms). Fixed from the review: depth/node limits now pinned by boundary tests (mutations go red), YAML 1.2 decimal-only numbers (go-yaml v3 read `024` as octal 20), precheck reports the offending line, line count matches the library's breaks (U+2028/2029/0085) and warning lines are clamped, Unicode format chars sanitized in a settings-local predicate (orchestrator kept ZWJ/ZWNJ for emoji and Persian/Indic names). Coverage 99.6%.
+- Blockers or follow-up: PJ2/PJ3 wire `settings.Sem` (4 slots) and the 32 KiB fstat check; PJ3 does the lexical reference rules (`Ref.Text` is raw). The bare `!` tag is accepted (see Known Limitations).
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ0)
 
 - Task: finalize the project/preferences contract. Sonnet designer draft, Opus debater challenge, owner answered 4 product questions (AskUserQuestion), designer applied all, orchestrator reviewed.
@@ -102,10 +110,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/fileview/FolderFiles.tsx` (+ test), `app/Layout.tsx` (section above the root list on `/view` without `ws`), `WorkspaceTree.tsx` (exports `TREE_PAGE`), `app/app.css`, `e2e/tests/workspace.spec.ts`, Architecture.
 - Result: files only, same `['list', root, dir]` query as browse; "Open as workspace" keeps the current file (`?ws=<parent>`, empty = root workspace) unlike BrowseView's button, which opens the folder's index.
 - Blockers or follow-up: minor: the "Show more" limit is keyed by root, not folder, so it carries over between folders.
-
-### 2026-10-14 - Claude Opus 5.5 orchestrator (FV1)
-
-- Task: workspace tree ignored the Markdown-only toggle (FR-2.1 gap). Sonnet coder; orchestrator reviewed the diff; Haiku ran the gate and merge.
-- Files changed: new `web/src/browse/mdOnly.ts` (+ test), `BrowseView.tsx`, `browse/logic.ts` (load/save helpers removed), `workspace/logic.ts` (`treeEntries(entries, showHidden, mdOnly, keep)`), `WorkspaceTree.tsx`, tests, `e2e/tests/workspace.spec.ts`, FR-2.1, Architecture.
-- Result: the toggle is a shared store like show-hidden; the viewed file's row is kept even when filtered (also overrides hidden). Coder confirmed 3 tests red with the filter hard-wired off. The first gate failed only on the iPad project: the open drawer covers the browse toolbar, so the e2e now closes it (Escape) before toggling and reopens the tree. E2E tests that touch the toolbar in drawer mode must do the same.
-- Blockers or follow-up: none.
