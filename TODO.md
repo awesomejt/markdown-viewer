@@ -42,7 +42,6 @@ All Phase 2 tasks are done.
 
 Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ3 and PJ4a are ready now.
 
-- [ ] **PJ3** 🔒 [S] `GET /api/project`, shared stat limiter + singleflight, warnings, `project` kind incl. client plumbing (deps: PJ1)
 - [ ] **PJ4a** [S] Client settings core: `resolveSettings`, device stores + migration, theme select, CSS vars, prefs banner, first-paint hold (deps: PJ2)
 - [ ] **PJ4b** [S] Device text scale: A−/%/A+ and Ctrl/Cmd `+`/`−`/`0` (deps: PJ4a)
 - [ ] **PJ5a** [S] `?project=` routing (stay in project within the root, explicit exits), ProjectProvider, enter/switch, error states (deps: PJ3, PJ4a, FV1)
@@ -86,6 +85,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-15: **PJ3** 🔒 [S] `GET /api/project` (lexical reference rules, total Kind→warning map, de-dup, `open` kinds, 100-warning cap) with a per-Handle stat limiter (`Handle.LimitedStat`, slot held until the fs call returns), singleflight on (root, path, sha256) with poll-interval TTL (256 keys, detached from caller cancel) and a `2 x MDV_FS_TIMEOUT` stat phase; `project` kind in `ClassifyName` + client plumbing (icon, text view, md-only keeps projects). Opus review approve-with-changes (1 medium: lost `warnings_truncated`; 3 tests that could not fail), all fixed with mutation evidence. `make check` (api 95.9%, fsroot 96.3%), `make e2e` 244 passed.
 Move completed tasks here with a brief result note.
 
 - [x] 2026-10-15: **PJ2** [S] `MDV_PREFS` (absolute path, empty = unset) and `GET /api/prefs` (always 200, full state table, re-read per request, `O_NONBLOCK` regular-file open, one read outstanding with last-result fallback after `MDV_FS_TIMEOUT`, hash-deduplicated logs, shared 4-slot parse semaphore); Compose binds `./config:/config:ro` with `MDV_PREFS` defaulting to `/config/preferences.yaml` (tracked example, real file git-ignored). FIFO, hung-read and no-host-path tests; api 95.5%, config 100%.

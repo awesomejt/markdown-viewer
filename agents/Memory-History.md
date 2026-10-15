@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ0)
+
+- Task: finalize the project/preferences contract. Sonnet designer draft, Opus debater challenge, owner answered 4 product questions (AskUserQuestion), designer applied all, orchestrator reviewed.
+- Files changed: `docs/Architecture.md` (Phase 2b contract; Config/API/Routes rows; 3 tables reflowed to compact pipes), `docs/Requirements.md` (FR-7.1/7.2/7.4, FR-8.5), `docs/Implementation.md` (PJ4a/b, PJ5a/b), `agents/Decisions.md` D-33, new `agents/PJ0-Design.md` (implementer detail; Architecture wins), `.markdownlint-cli2.yaml` (ignore `working/`).
+- Result: the challenge caught real issues before code: reader errors leaking host paths into YAML messages, unbounded stat fan-out across requests, an unbounded prefs stat goroutine, one-letter roots vs drive letters, and old UIs having stored defaults (needs a one-time migration). Orchestrator overrode the designer's device-layer overlay: inside a project only that project's device choices apply.
+- Blockers or follow-up: none. Coders for PJ1-PJ7 must read `agents/PJ0-Design.md` and the Architecture contract.
+
 ### 2026-10-14 - Claude Opus 5.5 orchestrator (FV2)
 
 - Task: sibling files for a file opened outside a workspace (FR-2.8). Sonnet coder; orchestrator reviewed; Haiku gate and merge.
