@@ -118,6 +118,7 @@ function ViewByKind({
     case 'image':
       return <ImageFile root={root} path={path} version={version} />;
     case 'text':
+    case 'project': // plain YAML text until the project view lands (PJ5)
       return (
         <TextGate root={root} path={path} size={size}>
           {(text) => (

@@ -179,6 +179,7 @@
 }
 
 .kind-dir,
+.kind-project,
 .kind-markdown {
   color: var(--accent);
 }

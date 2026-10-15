@@ -35,10 +35,13 @@ for (const [kind, exts] of [
 /**
  * Fallback kind when the parent listing has no entry for the file (listing failed or truncated).
  * Mirrors `ClassifyName` in internal/fsroot/kind.go; the server's `/api/list` classification
- * stays authoritative. A leading dot does not start an extension (`.hidden` is `other`).
+ * stays authoritative. A base ending in `.mdv.yaml`/`.mdv.yml` is a `project` (the exact dotfile
+ * names qualify). A leading dot does not start an extension (`.hidden` is `other`).
  */
 export function fileKind(path: string): EntryKind {
   const base = path.slice(path.lastIndexOf('/') + 1);
+  const lower = base.toLowerCase();
+  if (lower.endsWith('.mdv.yaml') || lower.endsWith('.mdv.yml')) return 'project';
   const i = base.lastIndexOf('.');
   if (i <= 0) return 'other';
   return EXT_KINDS.get(base.slice(i + 1).toLowerCase()) ?? 'other';

@@ -18,7 +18,10 @@ export interface FilterOptions {
   showHidden?: boolean;
 }
 
-/** Hides dot-files unless `showHidden`, applies the case-insensitive name filter and the markdown/diagrams toggle. */
+/** Kinds the Markdown-only toggle keeps (folders always stay). */
+const MD_ONLY_KINDS: ReadonlySet<EntryKind> = new Set(['markdown', 'diagram', 'project']);
+
+/** Hides dot-files unless `showHidden`, applies the case-insensitive name filter and the markdown/diagrams/projects toggle. */
 export function filterEntries(
   entries: ListEntry[],
   { query, mdOnly, showHidden = false }: FilterOptions,
@@ -26,7 +29,7 @@ export function filterEntries(
   const q = query.trim().toLowerCase();
   return entries.filter((e) => {
     if (!showHidden && isHidden(e.name)) return false;
-    if (mdOnly && e.type !== 'dir' && e.kind !== 'markdown' && e.kind !== 'diagram') return false;
+    if (mdOnly && e.type !== 'dir' && !MD_ONLY_KINDS.has(e.kind)) return false;
     return q === '' || e.name.toLowerCase().includes(q);
   });
 }
