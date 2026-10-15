@@ -36,9 +36,7 @@ R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it cha
 
 ## Phase 2: Refinement
 
-R2.13 review fixes (D-27). Each task adds tests that fail without the change:
-
-- [ ] **FIX-20** [S] Dev-tooling `npm audit`: `markdownlint-cli2` 0.23.3 pulls `smol-toml` 1.8.0 (moderate, fixed in 1.9.1: add an override) and `braces` 3.0.3 via `micromatch` (high, no fix published yet: re-check). Lint-time only, never in the bundle.
+All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
@@ -93,6 +91,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-14: **FIX-20** [S] `smol-toml` override `^1.9.1` (moderate cleared). The 5 high findings (`braces` 3.0.3 via `micromatch` 4.0.8 in `markdownlint-cli2` 0.23.3, all latest) have no fixed release upstream; accepted as lint-time only, re-check on the next dependency bump. `npm run build` and markdownlint clean, `make check` green.
 - [x] 2026-10-14: Read-time defaults set by the owner (160 wpm; `includeCode` per project) and teleprompter planned as FUT9 (D-32).
 - [x] 2026-10-14: Planned Phase 2c (reading experience): FR-9 (styles, bundled OFL fonts, font categories, focus mode, read time) in `docs/Requirements.md`, draft in `docs/Architecture.md`, tasks RX0-RX2, RT1-RT2, FM1-FM2, DS1-DS2 (D-31).
 - [x] 2026-10-14: Planned Phase 2b (projects, preferences, display settings): FR-2.8, FR-7, FR-8 in `docs/Requirements.md`, draft contract in `docs/Architecture.md`, tasks FV1-FV2, PJ0-PJ9, FUT7-FUT8; FUT2 superseded (D-30).

@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (DOC2)
+
+- Task: docs drift from R2.13; orchestrator edited directly (small doc change).
+- Files changed: `docs/Tech-Stack.md` (pan/zoom row), `README.md` (feature list).
+- Result: each README claim checked in source (`browse/showHidden.ts`, `recent/recent.ts` `RECENT_MAX = 10`, `markdown/CopyButton.tsx`, `public/manifest.webmanifest` `display: standalone`). Pointer handling is in `DiagramViewer.tsx`, `panzoom.ts` is the math. markdownlint clean; `make check` exit 0; log `build/doc2-check.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-28)
 
 - Task: flaky `TestEventsGlobalStreamCap` ("stream did not open"); orchestrator fixed it directly (a 3-line test change, cheaper than a coder subagent).
