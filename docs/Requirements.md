@@ -159,9 +159,9 @@ Inspired by how Typora, Obsidian and VS Code Markdown preview extensions present
 | FR-9.3 | Font categories `sans`, `serif`, `mono` and `system` resolve to a bundled family first and then to good local fonts for each OS (for example Charter or Georgia for serif on Apple devices). A specific bundled family can also be named. | S |
 | FR-9.4 | Focus mode shows only the current file's content: no sidebar, toolbar, breadcrumbs or TOC. Toggle it with a toolbar button, a keyboard shortcut or `?focus=1` (bookmarkable, also from the home screen); exit with Esc or a small control that appears on tap or mouse movement. Live reload and the scroll position keep working. Text size shortcuts (FR-8.4) still work. | S |
 | FR-9.5 | Focus mode extras for recording: keep the screen awake (Screen Wake Lock, where supported), optional full screen (Fullscreen API, where supported), and no animations or pop-ups (for example no copy buttons) while it is on. | S |
-| FR-9.6 | Read-time estimate for Markdown files, computed in the browser when a file opens or reloads: word count and minutes, shown near the top of the document. It excludes front matter, code blocks, diagrams, math, HTML comments and image text, and excludes headings by default. | S |
+| FR-9.6 | Read-time estimate for Markdown files, computed in the browser when a file opens or reloads: word count and minutes, shown near the top of the document. It always excludes front matter, diagrams, math, HTML comments and image text. Headings and code blocks are excluded by default and can be included (FR-9.8). | S |
 | FR-9.7 | Per-section read times next to each heading in the table of contents. | S |
-| FR-9.8 | Read-time settings (in preferences, a project, or on the device): `wpm` (default 200), and the `includeHeadings` (default false) and `includeCode` (default false) options. A speaking rate (for example 150 wpm for voice-over) can be set the same way. | S |
+| FR-9.8 | Read-time settings, set in global preferences and overridable per project (not per device): `readTime.wpm` (default 160, the owner's measured script-reading speed), `readTime.includeHeadings` (default false) and `readTime.includeCode` (default false, for projects whose scripts are read aloud from code blocks). | S |
 
 ## Non-Functional Requirements
 
@@ -197,7 +197,7 @@ The owner wants to consider Markdown additions that help when a document is a vo
 | VO-2 | Delivery directions | Inline cues such as `[pause 2s]`, `(softly)`, or `[beat]`, shown in a distinct style, with a toggle to hide them while reading. |
 | VO-3 | Pronunciation guides | Annotate hard words with a phonetic spelling (ruby-style text above the word, or a tooltip). |
 | VO-4 | Timing estimates | Word count and estimated read time per section and per document at a configurable words-per-minute rate. Optional target-duration warnings. Document and per-section read time are now FR-9.6 and FR-9.7; VO-4 adds target-duration warnings on top. |
-| VO-5 | Teleprompter / read mode | Large text, auto-scroll at a set WPM, hidden directions, optional mirroring. Useful on an iPad. Builds on focus mode (FR-9.4). |
+| VO-5 | Teleprompter mode | Builds on focus mode (FR-9.4). Auto-scrolls the document at the read-time rate (FR-9.8 `wpm`, so the same inclusion rules apply) by default. The speed can be adjusted while it runs. Spacebar starts and pauses. The mouse wheel (and touch drag on iPad) moves forward or backward, with auto-scroll continuing from the new position. Later options: hidden directions, mirroring. Planned as FUT9. |
 | VO-6 | Audio/visual cue columns | Two-column A/V script layout (visual or B-roll cues beside narration). |
 | VO-7 | Line/take numbering | Stable line numbers for referencing takes during recording sessions. |
 | VO-8 | SSML export | Export to SSML for text-to-speech previews. |
