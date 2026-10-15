@@ -43,6 +43,7 @@ See [agents/Decisions.md](../agents/Decisions.md) for rationale.
 5. Live reload when the viewed file or folder changes on disk.
 6. Responsive, touch-friendly UI usable on an iPad.
 7. Project files (`*.mdv.yaml`) that gather folders and files for a course or project and carry display settings, layered over global preferences and per-device adjustments.
+8. A polished reading experience: reading styles and bundled open-source fonts, a focus mode for reading voice-over scripts, and read-time estimates.
 
 ## Functional Requirements
 
@@ -141,11 +142,26 @@ A project file is a YAML file named `*.mdv.yaml` inside a root. The owner writes
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-8.1 | Settings: `theme` (`system`/`light`/`dark`), `font` (system sans, serif, monospace; bundled fonts only, NFR-5), `fontSize` (px), `lineHeight`, `contentWidth` (`narrow`/`normal`/`wide`/`full`), `markdownOnly`, `showHidden`, `sort` (`name`/`date`). | S |
+| FR-8.1 | Settings: `theme` (`system`/`light`/`dark`), `style` (reading style, FR-9.1), `font` and `codeFont` (font category or bundled family, FR-9.3), `fontSize` (px), `lineHeight`, `contentWidth` (`narrow`/`normal`/`wide`/`full`), `markdownOnly`, `showHidden`, `sort` (`name`/`date`), `readTime` (FR-9.8). | S |
 | FR-8.2 | Global preferences: an optional server-side `preferences.yaml` with the same `settings` keys, applying to every device. A missing file means built-in defaults; an invalid file logs a warning, falls back to defaults and shows a notice. | S |
 | FR-8.3 | Precedence, lowest to highest: built-in defaults, global preferences, the active project, this device's adjustments. Leaving a project restores the lower layers. | S |
 | FR-8.4 | Device text size: A−/A+/reset controls and Ctrl/Cmd `+`, `−`, `0`. The adjustment is a per-device scale relative to the resolved `fontSize` (for example 110%), stored in the browser. It never changes the project or preferences file. | S |
 | FR-8.5 | Device choices for theme and the listing toggles (`markdownOnly`, `showHidden`, `sort`) override the resolved settings on that device, with a way to return to the project/preferences default. | S |
+
+### FR-9 Reading Experience
+
+Inspired by how Typora, Obsidian and VS Code Markdown preview extensions present Markdown. mdv's styles are its own CSS, not copies of those themes (D-31).
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-9.1 | Reading styles: a small set of presets (for example the current GitHub-like style, a clean sans style, a serif "book" style and a large airy style), each with light and dark variants. A style sets the fonts, sizes, spacing, heading treatment, and code and table looks. | S |
+| FR-9.2 | Bundled open-source fonts (SIL OFL 1.1) served by mdv itself, with no internet access: woff2 files, Latin and Latin Extended subsets, about 3 MB in total at most. A device fetches a font only when the active style or setting uses it, and its browser caches it for later visits. | S |
+| FR-9.3 | Font categories `sans`, `serif`, `mono` and `system` resolve to a bundled family first and then to good local fonts for each OS (for example Charter or Georgia for serif on Apple devices). A specific bundled family can also be named. | S |
+| FR-9.4 | Focus mode shows only the current file's content: no sidebar, toolbar, breadcrumbs or TOC. Toggle it with a toolbar button, a keyboard shortcut or `?focus=1` (bookmarkable, also from the home screen); exit with Esc or a small control that appears on tap or mouse movement. Live reload and the scroll position keep working. Text size shortcuts (FR-8.4) still work. | S |
+| FR-9.5 | Focus mode extras for recording: keep the screen awake (Screen Wake Lock, where supported), optional full screen (Fullscreen API, where supported), and no animations or pop-ups (for example no copy buttons) while it is on. | S |
+| FR-9.6 | Read-time estimate for Markdown files, computed in the browser when a file opens or reloads: word count and minutes, shown near the top of the document. It excludes front matter, code blocks, diagrams, math, HTML comments and image text, and excludes headings by default. | S |
+| FR-9.7 | Per-section read times next to each heading in the table of contents. | S |
+| FR-9.8 | Read-time settings (in preferences, a project, or on the device): `wpm` (default 200), and the `includeHeadings` (default false) and `includeCode` (default false) options. A speaking rate (for example 150 wpm for voice-over) can be set the same way. | S |
 
 ## Non-Functional Requirements
 
@@ -160,7 +176,7 @@ A project file is a YAML file named `*.mdv.yaml` inside a root. The owner writes
 | NFR-7 | Portability | The server builds and runs on Linux (x86-64, ARM64). Windows and macOS are supported on a best-effort basis. |
 | NFR-8 | Observability | Structured logs (request, error, slow-mount timeouts) to stdout. A health endpoint is available for service monitors. |
 | NFR-9 | Maintainability | Typed frontend (TypeScript). Server, rendering, and UI concerns are separated. Automated tests cover path safety, rendering, and key UI flows. |
-| NFR-10 | Licensing | All dependencies under permissive or weak-copyleft licenses (MIT, BSD, Apache-2.0, MPL-2.0). |
+| NFR-10 | Licensing | All dependencies under permissive or weak-copyleft licenses (MIT, BSD, Apache-2.0, MPL-2.0). Bundled fonts under SIL OFL 1.1, with their license files shipped alongside them. |
 
 ## Out Of Scope (Initial Release)
 
@@ -180,8 +196,8 @@ The owner wants to consider Markdown additions that help when a document is a vo
 | VO-1 | Speaker/role labels | Mark lines by speaker (for example `NARRATOR:` or a directive). Each speaker gets its own colour, with a filter to show one speaker's lines. |
 | VO-2 | Delivery directions | Inline cues such as `[pause 2s]`, `(softly)`, or `[beat]`, shown in a distinct style, with a toggle to hide them while reading. |
 | VO-3 | Pronunciation guides | Annotate hard words with a phonetic spelling (ruby-style text above the word, or a tooltip). |
-| VO-4 | Timing estimates | Word count and estimated read time per section and per document at a configurable words-per-minute rate. Optional target-duration warnings. |
-| VO-5 | Teleprompter / read mode | Large text, auto-scroll at a set WPM, hidden directions, optional mirroring. Useful on an iPad. |
+| VO-4 | Timing estimates | Word count and estimated read time per section and per document at a configurable words-per-minute rate. Optional target-duration warnings. Document and per-section read time are now FR-9.6 and FR-9.7; VO-4 adds target-duration warnings on top. |
+| VO-5 | Teleprompter / read mode | Large text, auto-scroll at a set WPM, hidden directions, optional mirroring. Useful on an iPad. Builds on focus mode (FR-9.4). |
 | VO-6 | Audio/visual cue columns | Two-column A/V script layout (visual or B-roll cues beside narration). |
 | VO-7 | Line/take numbering | Stable line numbers for referencing takes during recording sessions. |
 | VO-8 | SSML export | Export to SSML for text-to-speech previews. |
@@ -198,6 +214,6 @@ Conventions to research before designing a syntax: Fountain (screenplay format),
 
 ## Open Questions
 
-- Fonts (FR-8.1): system font stacks only, or also bundle one reading font (adds about 100-300 KB)?
+- Which fonts and reading styles to ship (FR-9.1 to FR-9.3): RX0 proposes a shortlist for the owner to pick from.
 - Desktop app: once the web app works, is a wrapper still wanted, or is a browser tab / home-screen web app enough?
 - Voice-over extensions: which of the candidates below are worth building, and is there an existing script convention to follow?

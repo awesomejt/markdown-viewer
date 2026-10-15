@@ -170,6 +170,22 @@ Owner request after the docker2 deployment (D-30). Requirements FR-2.8, FR-7, FR
 | PJ8 | H | validator | PJ7 | Full validation run (as R2.12) plus deploy to docker2. |
 | PJ9 | O | reviewer | PJ8 | Phase 2b review, including hostile project files and iPad keyboard/size behavior. |
 
+## Phase 2c: Reading Experience (S priorities)
+
+Owner request (D-31). Requirements FR-9; draft in [Architecture](./Architecture.md#reading-experience-planned-phase-2c). RT1 and FM1 can start before Phase 2b ends; the settings wiring of each lands with PJ4.
+
+| ID | Tier | Role | Deps | Task (requirement) |
+| --- | --- | --- | --- | --- |
+| RX0 | S | researcher | none | Survey Typora themes, Obsidian and VS Code Markdown preview extensions (built-in preview, Markdown Preview Enhanced, GitHub-styled preview, read-time extensions). Propose 3-4 mdv styles and an OFL font shortlist (sans, serif, mono, plus a high-legibility font such as Atkinson Hyperlegible for script reading) with woff2 sizes. Owner picks. |
+| RT1 | S | coder | none | Read-time estimate: mdast word count with `Intl.Segmenter`, exclusions, header line (words + minutes); defaults wpm 200, headings and code excluded (FR-9.6). |
+| RT2 | S | coder | RT1, PJ4 | Per-section times in the TOC; `readTime` settings layer (FR-9.7, FR-9.8). |
+| FM1 | S | coder | none | Focus mode: `data-focus`, toolbar toggle, shortcut, `?focus=1`, Esc/exit control, block tools hidden, live reload and scroll kept (FR-9.4). |
+| FM2 | S | coder | FM1 | Screen Wake Lock and optional full screen, with feature detection; checked on iPad (FR-9.5). |
+| DS1 | S | coder | RX0, PJ4 | Bundled fonts (`@font-face`, subsets, OFL files, cache headers) and font categories for `font`/`codeFont` (FR-9.2, FR-9.3, NFR-10). |
+| DS2 | S | coder | DS1 | Reading styles as token CSS (`data-style`), light/dark variants; current look kept as `github` (FR-9.1). |
+| RX1 | H | validator | DS2, RT2, FM2 | Full validation run plus deploy to docker2. |
+| RX2 | O | reviewer | RX1 | Phase 2c review, including iPad focus mode during a long read, font payload size and offline behavior. |
+
 ## Phase 3: Future (C priorities)
 
 | ID | Tier | Role | Task (requirement) |
