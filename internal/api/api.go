@@ -156,6 +156,7 @@ type errorBody struct {
 type errorDetail struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Line    int    `json:"line,omitempty"`
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
