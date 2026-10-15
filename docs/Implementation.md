@@ -177,8 +177,8 @@ Owner request (D-31). Requirements FR-9; draft in [Architecture](./Architecture.
 | ID | Tier | Role | Deps | Task (requirement) |
 | --- | --- | --- | --- | --- |
 | RX0 | S | researcher | none | Survey Typora themes, Obsidian and VS Code Markdown preview extensions (built-in preview, Markdown Preview Enhanced, GitHub-styled preview, read-time extensions). Propose 3-4 mdv styles and an OFL font shortlist (sans, serif, mono, plus a high-legibility font such as Atkinson Hyperlegible for script reading) with woff2 sizes. Owner picks. |
-| RT1 | S | coder | none | Read-time estimate: mdast word count with `Intl.Segmenter`, exclusions, header line (words + minutes); defaults wpm 200, headings and code excluded (FR-9.6). |
-| RT2 | S | coder | RT1, PJ4 | Per-section times in the TOC; `readTime` settings layer (FR-9.7, FR-9.8). |
+| RT1 | S | coder | none | Read-time estimate: mdast word count with `Intl.Segmenter`, exclusions, header line (words + minutes); defaults wpm 160, headings and code excluded (FR-9.6). |
+| RT2 | S | coder | RT1, PJ4 | Per-section times in the TOC; `readTime` settings (`wpm`, `includeHeadings`, `includeCode`) from preferences and project layers (FR-9.7, FR-9.8). |
 | FM1 | S | coder | none | Focus mode: `data-focus`, toolbar toggle, shortcut, `?focus=1`, Esc/exit control, block tools hidden, live reload and scroll kept (FR-9.4). |
 | FM2 | S | coder | FM1 | Screen Wake Lock and optional full screen, with feature detection; checked on iPad (FR-9.5). |
 | DS1 | S | coder | RX0, PJ4 | Bundled fonts (`@font-face`, subsets, OFL files, cache headers) and font categories for `font`/`codeFont` (FR-9.2, FR-9.3, NFR-10). |
@@ -198,6 +198,7 @@ Owner request (D-31). Requirements FR-9; draft in [Architecture](./Architecture.
 | FUT6 | S | researcher | Desktop wrapper research (Wails v3 status vs. Electron vs. none), then an Opus debate and an owner decision (D-9) |
 | FUT7 | S | coder | Cross-root project references `<root>:<path>` (FR-7.8). `?project=` already carries the root; the project sidebar and `scopeWs`-style scoping must span roots. |
 | FUT8 | S | designer | Project save: write device adjustments back to a project file (FR-7.9). The first write path; needs a design and Opus debate (roots are mounted read-only today). |
+| FUT9 | S | coder | Teleprompter mode (VO-5), deps FM2 and RT2: auto-scroll at the read-time `wpm` along counted word positions, live speed adjustment, Space play/pause, wheel/touch to move forward or back. Checked on iPad. |
 
 ## Deployment
 

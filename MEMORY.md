@@ -24,7 +24,7 @@ Full log: `agents/Decisions.md`.
 - Per-task Git workflow, YAML lint configs, coverage gates, `build/` artifacts (D-13 to D-15).
 - Model tiers (D-18): Haiku = Git + tool runs only; Sonnet = authoring/research/planning; Opus = big reviews, debates, escalations. Always verify subagent claims independently: Haiku overstated results in P0.1 and P0.2.
 - Phase 2b (D-30): `*.mdv.yaml` project files + global `preferences.yaml` + per-device relative text scale; cross-root refs later (FUT7), project save later (FUT8).
-- Phase 2c (D-31): reading styles + bundled OFL fonts served by mdv (no internet, NFR-5), focus mode for VO reading, read-time estimates.
+- Phase 2c (D-31): reading styles + bundled OFL fonts served by mdv (no internet, NFR-5), focus mode for VO reading, read-time estimates (160 wpm default, `includeCode` per project, D-32); teleprompter later (FUT9).
 - Future (post-MVP): voice-over script Markdown extensions (see `docs/Requirements.md`, VO-1..VO-8).
 
 ## Milestones
