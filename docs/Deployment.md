@@ -129,6 +129,34 @@ docker compose logs mdv
 
 `docker compose ps` should show the service as healthy within about 30 seconds. The logs list each root and warn about any that are unavailable. Then open `http://<vm-ip>:8080` (or `http://nas.example.lan:8080` if listed in `MDV_ALLOWED_HOSTS`) on the iPad. In Safari, Share, then Add to Home Screen, adds mdv with its own icon; it opens full screen without the Safari toolbar (use the breadcrumbs or the edge-swipe gesture to go back). Add it from the address you will keep using: the home-screen app is tied to that origin, and its storage (theme, recent items) is separate from Safari's.
 
+## Run under systemd (shared Docker host)
+
+On a VM that runs several Compose apps, manage each stack with the generic template unit in `deploy/systemd/` instead of making `docker.service` wait for the NAS. Each stack lives in `/opt/stacks/<name>/` and runs as `docker-compose@<name>.service`:
+
+- `start` runs `docker compose up -d --wait` (waits for the healthcheck).
+- `stop` runs `docker compose down`, so no container is left for Docker to auto-start at the next boot before the NAS is mounted.
+- `reload` runs `docker compose up -d --build --wait`, which rebuilds the image and recreates the container if anything changed.
+
+The mdv drop-in (`deploy/systemd/docker-compose@mdv.service.d/nas.conf`) orders the stack after `mnt-content.mount`. It uses `Wants=`, not `RequiresMountsFor=`, so a NAS outage or an automount idle unmount never stops the stack (mdv reopens the root itself). Change the unit name if your mount point is not `/mnt/content` (`systemd-escape -p --suffix=mount /mnt/nas`).
+
+Install on the VM (the `deploy/` paths are from this checkout):
+
+```bash
+sudo install -d -o "$USER" -g "$USER" /opt/stacks/mdv
+git archive HEAD | tar -x -C /opt/stacks/mdv          # or git clone into it
+cp deploy/compose.override.example.yaml /opt/stacks/mdv/compose.override.yaml
+install -m 600 /dev/null /opt/stacks/mdv/.env && "$EDITOR" /opt/stacks/mdv/.env   # see Configure
+sudo install -m 644 deploy/systemd/docker-compose@.service /etc/systemd/system/
+sudo install -D -m 644 deploy/systemd/docker-compose@mdv.service.d/nas.conf \
+  /etc/systemd/system/docker-compose@mdv.service.d/nas.conf
+sudo systemctl daemon-reload
+sudo systemctl enable --now docker-compose@mdv
+```
+
+Then `systemctl status|stop|start|restart|reload docker-compose@mdv`. Compose merges `compose.override.yaml` automatically, so the NAS bind stays out of the tracked `compose.yaml`. To upgrade, refresh the files in `/opt/stacks/mdv` (keep `.env` and `compose.override.yaml`), set `MDV_VERSION` to the new tag or commit, and run `sudo systemctl reload docker-compose@mdv`.
+
+An `x-systemd.automount` mount also works with this setup (tested on the VM): the drop-in triggers the real mount before Compose starts, and mdv keeps the root open, so the idle timeout does not unmount it.
+
 ## Opening by hostname
 
 Every route checks the `Host` header (DNS rebinding guard). IP literals and `localhost` always pass and the port is ignored. Any other name must be listed in `MDV_ALLOWED_HOSTS` (comma-separated, case-insensitive, no scheme, no port); otherwise mdv answers `421 host_not_allowed`. `MDV_ALLOWED_HOSTS=*` disables the check and logs a warning; use it only behind a proxy you control.

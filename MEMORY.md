@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: CH2 shared stored-store helper (2026-10-12); all R2.13 follow-ups done
-- Next recommended task: V1 [Human] (deploy on the VM + iPad checklist, `docs/Deployment.md`); no agent tasks are ready until V1 reports results
+- Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
+- Next recommended task: V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`); no agent tasks are ready until V1 reports results
 - Current blocker: None
 
 ## Key Decisions
@@ -34,6 +34,7 @@ Full log: `agents/Decisions.md`.
 
 - Resume prompt after `/clear` or a stop: "Read AGENTS.md, MEMORY.md and TODO.md, then continue with the next task using the Git workflow in docs/Implementation.md."
 - Owner's shell aliases `make` to `make -j32`: Makefile targets must declare real dependencies (never rely on prerequisite order).
+- Deploy target: docker2 `jason@192.168.50.58` (SSH key auth), stack `/opt/stacks/mdv`, unit `docker-compose@mdv`, NAS CIFS `/mnt/content` (uid/gid 1000) as root `content`, port 8080. Other apps share this VM: keep stack config inside `/opt/stacks/<name>`.
 - Port 8080 on the dev host is used by another container: smoke-test Compose with `MDV_PORT=18080` (or another free port).
 - Host has go 1.27.1, node 24, docker, yamllint. golangci-lint/hadolint/shellcheck and Playwright (`mcr.microsoft.com/playwright:v1.64.0-noble`) run via Docker images; markdownlint-cli2 via npm. No host browsers: the image tag must match `@playwright/test` in `e2e/package.json`.
 
@@ -68,14 +69,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Startup (FIX-8): a root that is missing, erroring or hung at boot starts `available:false` and is reopened by the probe; a root path that is a file still fails startup. If the mount point exists but the NAS is not mounted yet, the open binds the empty directory and switches within ~2 s of the mount appearing (FIX-16); `:fsnotify` roots may still miss events after a remount (host-path inotify watches are not re-added). Boot ordering is documented in `docs/Deployment.md`. Compose binds the parent of the NAS mount points with `rslave` (FIX-9).
 - D2 layout (R2.9): the Layout select is per figure and not persisted; `d2-config` themes in a source are ignored (the app theme wins).
 - Oversized diagrams (FIX-2): "Load anyway" fetches the source, but D2 render bodies are capped at 256 KiB and Mermaid at ~50 KB, so a diagram that large shows the error figure.
-- `docs/Deployment.md` fstab options and the systemd `RequiresMountsFor=` drop-in are untested on the real VM; V1 must validate them (DOC1).
+- Deployment (DEP1): docker2 uses the per-stack systemd drop-in (D-29), tested with a reboot; the `docker.service` `RequiresMountsFor=` variant in `docs/Deployment.md` is untested.
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
 
 ## Open Questions
 
 - Which voice-over extensions to build, and which existing convention to follow (Fountain, SSML, directives).
-- Initial NAS roots and the UID/GID owning the VM mount.
 - Whether a desktop wrapper is still wanted after the web app works.
 
 ## Blockers
@@ -85,6 +85,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 ## Agent Run Log
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
+
+### 2026-10-14 - Claude Opus 5.5 (DEP1)
+
+- Task: owner asked to deploy the Compose stack on the new docker2 VM (192.168.50.58), managed by systemctl, on a host shared with future apps.
+- Files changed: `deploy/systemd/docker-compose@.service`, `deploy/systemd/docker-compose@mdv.service.d/nas.conf`, `deploy/compose.override.example.yaml`, `docs/Deployment.md` (systemd section), D-29.
+- Result: Docker was not installed; installed Ubuntu `docker.io` 29.1.3, `docker-compose-v2` 2.40.3, `docker-buildx`; `jason` added to `docker`. Stack healthy; stop/start/restart/reload, LAN access, Host allowlist and a reboot verified; the `x-systemd.automount` fstab entry (5 min idle timeout) keeps the share mounted while mdv runs.
+- Blockers or follow-up: V1 iPad checklist (human). The VM's `/opt/stacks/mdv` is a git archive, not a clone (no GitHub key on the VM); upgrade by re-archiving and `systemctl reload docker-compose@mdv`.
 
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (CH2)
 
@@ -98,11 +105,4 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Task: docs drift from R2.13; orchestrator edited directly (small doc change).
 - Files changed: `docs/Tech-Stack.md` (pan/zoom row), `README.md` (feature list).
 - Result: each README claim checked in source (`browse/showHidden.ts`, `recent/recent.ts` `RECENT_MAX = 10`, `markdown/CopyButton.tsx`, `public/manifest.webmanifest` `display: standalone`). Pointer handling is in `DiagramViewer.tsx`, `panzoom.ts` is the math. markdownlint clean; `make check` exit 0; log `build/doc2-check.log`.
-- Blockers or follow-up: none.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-28)
-
-- Task: flaky `TestEventsGlobalStreamCap` ("stream did not open"); orchestrator fixed it directly (a 3-line test change, cheaper than a coder subagent).
-- Files changed: `internal/api/events_test.go` (`holdStream` reads the baseline count before starting the handler).
-- Result: root cause was a race, not a slow timeout: the handler takes its slot (`events.go:61`) before the test read the baseline, so `count > baseline` never held. A 50 ms delay injected after the goroutine start failed all 4 `holdStream` tests on the old code and passes on the fix; 50 `-race` repeats pass. `make check` exit 0; log `build/fix28-check.log`.
 - Blockers or follow-up: none.

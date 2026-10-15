@@ -8,7 +8,7 @@ Task details, dependencies, and acceptance criteria are in `docs/Implementation.
 
 Items that require a human decision, credential, source file, or manual validation before work can continue.
 
-- [ ] Provide the initial NAS roots (VM mount paths) and the UID/GID that can read them (needed by D1/V1).
+- [ ] **V1** iPad manual checklist on the deployed docker2 instance (`http://192.168.50.58:8080`).
 
 ## In Progress
 
@@ -32,7 +32,7 @@ Packaging, tests, review:
 
 R1 review fixes (D-26). Each task adds Go/unit/e2e tests for the behavior it changes:
 
-- [ ] **V1** [Human] Deploy on VM + iPad manual checklist (deps: DOC1; FIX-24 done, R2.13)
+- [ ] **V1** [Human] iPad manual checklist on docker2 (deps: DOC1, DEP1; FIX-24 done, R2.13). Deploy part done in DEP1.
 
 ## Phase 2: Refinement
 
@@ -59,6 +59,8 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-14: **DEP1** [S] Deployed on docker2 (192.168.50.58, Ubuntu 26.04): Docker 29.1.3 + Compose 2.40 (Ubuntu packages), `jason` in `docker`; stack in `/opt/stacks/mdv` (git archive of 7e7bf4c, `.env` + `compose.override.yaml` binding `/mnt` `rslave` ro, root `content=/data/mnt/content`, UID/GID 1000) run by the generic `docker-compose@.service` template with an mdv drop-in after `mnt-content.mount` (D-29). stop/start/restart/reload, LAN access, Host allowlist (421) and a reboot (stack healthy 6 s after the mount) verified. Units in `deploy/systemd/`, docs in `docs/Deployment.md`.
+- [x] 2026-10-14: NAS root answered: `//192.168.50.4/Content` CIFS at `/mnt/content` on docker2, uid/gid 1000.
 - [x] 2026-10-12: **CH2** [S] `createStoredStore(key, parse, serialize)` (`web/src/app/storedStore.ts`, 4 unit tests) now backs `browse/showHidden.ts` and `recent/recent.ts`; unused `DIAGRAM_FILE_RE` removed. TOC open state, theme, mdOnly and sort are plain load/save helpers, not stores, so they were left as they are. `make check` exit 0, `make e2e` 236 passed.
 - [x] 2026-10-12: **DOC2** [S] Docs drift: `docs/Tech-Stack.md` pan/zoom row now names the custom handler (no `svg-pan-zoom`); `README.md` features add hidden-files toggle, Recent list, Copy button, live folder/tree updates and Add to Home Screen, each checked against the source. markdownlint clean, `make check` exit 0.
 - [x] 2026-10-12: **FIX-28** [S] Flaky `TestEventsGlobalStreamCap`: not load, a race in `holdStream`, which read the baseline stream count after starting the handler, so a fast handler was counted in the baseline and the wait never ended. Baseline now read first; a 50 ms injected delay reproduced the failure on every caller before and passes after; 50 `-race` repeats pass; cap checks unchanged. `make check` exit 0.
