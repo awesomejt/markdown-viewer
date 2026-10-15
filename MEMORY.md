@@ -64,7 +64,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Long folders (R2.11): browser find-in-page only sees the rendered rows of a virtualized listing (use the name filter); tree folders page 200 at a time instead of virtualizing. Keyboard focus is lost when the focused row scrolls out of the overscan (R2.13). Emulated timings pass NFR-3 (R2.13); real iPad still unmeasured (V1).
 - Unmounted NAS (R2.13, D-27): the root reopens on the empty mount point, so it lists empty (200) instead of `available:false`, and poll watchers report `deleted` for open files.
 - NFR-3 (D-28): judged by the viewport metric (1.6-1.8 s on iPad emulation); all 10 diagrams of a large doc take ~2.6 s because Mermaid measures text in the full `body`. Re-measure with `make perf`.
-- Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit` items in the markdownlint-cli2 chain are FIX-20.
+- Bundle: the >500 kB chunk warning (MarkdownView/index) remains. KaTeX fonts add ~1.2 MB (woff2/woff/ttf) to the embedded bundle; browsers fetch only woff2. Dev-only `npm audit`: 5 high findings for `braces` 3.0.3 (via `micromatch` in `markdownlint-cli2`) have no fixed release; lint-time only, never bundled; re-check on dependency bumps (FIX-20).
 - Code view (R2.5): extensionless names (`Makefile`, `Dockerfile`) stay plain, as the server classifies them `other`.
 - Math (R2.7): as on GitHub, a `$...$` pair is math even in prose ("$5 and $10"); escape with `\$`. Any `$` (also in code) loads the KaTeX chunk and briefly delays the body.
 - Remote `http(s)` images in Markdown load automatically (third parties see IP and open time; `no-referrer` only). Accepted for the LAN MVP (D-26).
@@ -88,6 +88,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-14 - Claude Opus 5.5 orchestrator (FIX-20)
+
+- Task: dev-tooling `npm audit`; first task of the owner-requested multi-agent loop (Opus orchestrates/reviews, Sonnet codes, Haiku runs the gate and Git).
+- Files changed: `web/package.json` (`smol-toml` override), `web/package-lock.json`.
+- Result: Sonnet coder found `markdownlint-cli2` 0.23.3, `micromatch` 4.0.8 and `braces` 3.0.3 all latest; orchestrator re-checked the registry. `smol-toml` 1.9.1 cleared the moderate finding; 5 high remain (no upstream fix). npm's suggested fix is a downgrade, rejected.
+- Blockers or follow-up: re-check `braces` on the next dependency bump.
+
 ### 2026-10-14 - Claude Opus 5.5 (DEP1)
 
 - Task: owner asked to deploy the Compose stack on the new docker2 VM (192.168.50.58), managed by systemctl, on a host shared with future apps.
@@ -100,11 +107,4 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Task: optional cleanup of duplicated `useSyncExternalStore` + localStorage stores; orchestrator edited directly.
 - Files changed: new `web/src/app/storedStore.ts` + test, `browse/showHidden.ts`, `recent/recent.ts`, `diagrams/DiagramPage.tsx` (dropped `DIAGRAM_FILE_RE`), `docs/Architecture.md`.
 - Result: public exports of both modules unchanged, so callers and tests needed no edits. The TOC open state named in the task is a load/save helper, not a store, so it was left alone. `make check` exit 0, `make e2e` 236 passed; logs `build/ch2-*.log`.
-- Blockers or follow-up: none.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (DOC2)
-
-- Task: docs drift from R2.13; orchestrator edited directly (small doc change).
-- Files changed: `docs/Tech-Stack.md` (pan/zoom row), `README.md` (feature list).
-- Result: each README claim checked in source (`browse/showHidden.ts`, `recent/recent.ts` `RECENT_MAX = 10`, `markdown/CopyButton.tsx`, `public/manifest.webmanifest` `display: standalone`). Pointer handling is in `DiagramViewer.tsx`, `panzoom.ts` is the math. markdownlint clean; `make check` exit 0; log `build/doc2-check.log`.
 - Blockers or follow-up: none.
