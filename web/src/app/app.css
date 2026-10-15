@@ -697,3 +697,31 @@ html:has(.diagram-viewer[open]) {
   white-space: nowrap;
   font-size: 0.85em;
 }
+
+/* Sibling files of a file opened outside a workspace (FR-2.8). */
+.folder-files {
+  margin-bottom: 16px;
+}
+
+.folder-files h3,
+.folder-files-dir {
+  margin: 0;
+  padding: 0 8px;
+}
+
+.folder-files > a {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch);
+  padding: 0 8px;
+}
+
+.folder-files .link-list a {
+  gap: 6px;
+}
+
+.folder-files [aria-current='page'] {
+  background: var(--border);
+  font-weight: 600;
+  border-radius: 4px;
+}

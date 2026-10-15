@@ -11,5 +11,5 @@
 status: working
 phase: mvp
 reason: ~
-worker: claude-opus-orchestrator (FV1)
+worker: claude-opus-orchestrator (FV2)
 updated: 2026-10-14

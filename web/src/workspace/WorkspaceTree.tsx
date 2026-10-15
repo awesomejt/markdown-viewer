@@ -45,7 +45,7 @@ export function WorkspaceTree({ root, ws, path, isFolder }: TreeProps) {
 }
 
 /** A folder shows this many children at first, then this many more per "Show more" (NFR-3). */
-const TREE_PAGE = 200;
+export const TREE_PAGE = 200;
 
 interface Ctx extends TreeProps {
   isOpen: (p: string) => boolean;
