@@ -286,6 +286,49 @@ All `/api` responses except raw file bodies, SVG, and SSE are JSON. `path` is al
 - The sidebar is persistent at 900 px and wider and a drawer below that. `vite:preloadError` reloads once, guarded by the `mdv-preload-reloaded` sessionStorage flag.
 - Dev: `npm --prefix web run dev` proxies `/api` and `/healthz` to `http://localhost:8080` (run `mdv` there).
 
+## Projects And Settings (Planned, Phase 2b)
+
+Draft contract for FR-7 and FR-8 (D-30). PJ0 finalizes it with an Opus challenge and then moves the final rows into the Configuration, API and Routes tables above. Until then, this section is the plan, not the built behavior.
+
+**Project file** (`*.mdv.yaml`, inside a root, read-only to mdv):
+
+```yaml
+version: 1
+name: Docker course
+open: outlines/README.md
+include:
+  - notes/                 # folder: shown as an expandable tree
+  - outlines/
+  - scripts/intro.md       # file
+settings:
+  theme: dark
+  font: serif
+  fontSize: 18
+  lineHeight: 1.6
+  contentWidth: wide
+  markdownOnly: true
+```
+
+**Global preferences:** optional `MDV_PREFS` (path to a YAML file with a top-level `settings:` block), bind-mounted read-only (on docker2, `/opt/stacks/mdv/config/preferences.yaml`). Unset means none.
+
+**Server:**
+
+- New `internal/settings` package: parses project and preferences YAML into typed structs. Limits: file ≤ 64 KiB, ≤ 200 `include` entries, YAML aliases rejected (no expansion bombs), schema `version: 1` only. Unknown keys and invalid values become warnings, not failures. YAML syntax errors return `422 project_invalid` with the line.
+- `GET /api/prefs` returns `{"settings":{...},"warnings":[...]}` (empty settings when `MDV_PREFS` is unset). The file is re-read per request (it is small), so edits apply without a restart.
+- `GET /api/project?root=&path=` returns `{"root","path","name","open","entries":[{"root","path","type","kind","available"}],"settings":{...},"warnings":[{"code","message","ref"}]}`. Each reference is resolved through the existing `fsroot` guard. Warning codes: `missing`, `not_a_dir`, `not_a_file`, `outside_root`, `cross_root_unsupported` (until FR-7.8), `unknown_key`, `invalid_value`.
+- `GET /api/list` classifies `*.mdv.yaml` as kind `project` (before the generic `text` YAML rule).
+
+**Client:**
+
+- Route parameter `?project=<root>:<path>` on browse/view, kept while navigating to project entries and dropped outside them (like `ws`/`scopeWs`). It carries the root from the start, so cross-root projects (FR-7.8) need no URL change. Opening `/view/<root>/<x>.mdv.yaml` enters project mode; a "Source" toggle shows the YAML.
+- The project file is a normal live-reload sub. A change refetches `/api/project` and reapplies settings.
+- Settings resolve in one pure function, `resolveSettings(defaults, prefs, project, device)`. The result becomes CSS custom properties on `<html>` (`--mdv-font`, `--mdv-font-size`, `--mdv-line-height`, `--mdv-content-width`) plus `data-theme`.
+- Device layer (localStorage): `mdv-text-scale` (relative scale, 50-200% in 10% steps) and explicit device choices for theme and the listing toggles (FR-8.5). The theme menu gets a "Default" entry that clears the device choice. Existing `mdv-theme`, `mdv-md-only`, `mdv-show-hidden` and `mdv-sort` values carry over as device choices.
+- Keyboard: Ctrl/Cmd with `=`/`+`, `-` and `0` adjust `mdv-text-scale` (`preventDefault` replaces browser zoom where the browser allows it). A−/A+ buttons in the toolbar are the iPad path.
+- Fonts come from system font stacks (NFR-5: no web fonts from the internet). Whether to bundle one reading font is an open question.
+
+PJ0 must settle: the YAML library (alias rejection, strict decoding), whether device toggle choices are global or per project, and how a project entry folder interacts with the workspace tree code.
+
 ## Security Model
 
 - Trusted LAN, no authentication (owner decision). Read-only. Host paths are never shown to clients, only `root` names and relative paths.

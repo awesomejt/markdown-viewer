@@ -151,16 +151,37 @@ Each F-task from F1 on also adds its own Playwright e2e scenario (on the T0 scaf
 | R2.12 | H | validator | Full validation run (as T2) |
 | R2.13 | O | reviewer | Phase review; performance check on iPad against NFR-3 |
 
+## Phase 2b: Projects And Display Settings (S priorities)
+
+Owner request after the docker2 deployment (D-30). Requirements FR-2.8, FR-7, FR-8; draft contract in [Architecture](./Architecture.md#projects-and-settings-planned-phase-2b). Each task adds Go/unit/e2e tests for the behavior it adds.
+
+| ID | Tier | Role | Deps | Task (requirement) |
+| --- | --- | --- | --- | --- |
+| FV1 | S | coder | none | Workspace tree honours the "Markdown and diagrams only" toggle (FR-2.1 says filtered by default; `treeEntries` passes `mdOnly: false` today). |
+| FV2 | S | coder | FV1 | Sibling files: a file opened outside a workspace or project shows its folder's supported files in the sidebar (FR-2.8). |
+| PJ0 | S → O | designer, debater | none | Finalize the project/prefs contract: YAML library and limits, schema v1, API, warning codes, `?project=` scoping, device-layer rules (FR-8.5), fonts. Opus challenge, then update Architecture tables and record the decision. |
+| PJ1 🔒 | S | coder | PJ0 | `internal/settings`: typed schema, strict YAML parsing with limits and alias rejection, warnings for unknown keys and bad values; table tests incl. hostile YAML (FR-7.1, FR-7.7, FR-8.1). |
+| PJ2 | S | coder | PJ1 | `MDV_PREFS` + `GET /api/prefs`; Compose bind of `./config` (read-only) and `.env` passthrough (FR-8.2). |
+| PJ3 🔒 | S | coder | PJ1 | `GET /api/project` with reference resolution through `fsroot`, warning codes, `project` kind in listings (FR-7.1, FR-7.3, FR-7.5, FR-7.7). |
+| PJ4 | S | coder | PJ2 | Client display settings: `resolveSettings` layers, CSS variables, font/size/line height/width, A−/A+ and Ctrl/Cmd `+`/`−`/`0`, device text scale, theme "Default" entry, migration of existing device keys (FR-8.1, FR-8.3 to FR-8.5). |
+| PJ5 | S | coder | PJ3, PJ4, FV1 | Project mode: `?project=` route scoping, project sidebar (included folders as trees, files), `open` file, warnings panel, live reload of the project file, project settings layer (FR-7.2 to FR-7.4). |
+| PJ6 | S | coder | PJ5 | "Projects only" filter, project icon, "Recent projects" in the sidebar (FR-7.5, FR-7.6). |
+| PJ7 | S | documentor | PJ6 | README and Deployment (preferences file, project format), example project in `examples/` with one deliberate unresolved reference. |
+| PJ8 | H | validator | PJ7 | Full validation run (as R2.12) plus deploy to docker2. |
+| PJ9 | O | reviewer | PJ8 | Phase 2b review, including hostile project files and iPad keyboard/size behavior. |
+
 ## Phase 3: Future (C priorities)
 
 | ID | Tier | Role | Task (requirement) |
 | --- | --- | --- | --- |
 | FUT1 | S | designer | Design full-text search (index vs. on-demand grep over NAS, memory limits), then an Opus debate, then Sonnet implementation (FR-1.8) |
-| FUT2 | S | coder | Server-side pinned favourites (FR-2.7). Note: introduces the first write path, a small JSON state file in a volume, not in roots. |
+| FUT2 | S | coder | Superseded by project files (Phase 2b, D-30). Was: server-side pinned favourites (FR-2.7), the first write path. |
 | FUT3 | S | coder | Print view / HTML export; diagram SVG/PNG download (FR-3.9, FR-4.10) |
 | FUT4 | S | researcher | Voice-over conventions research (Fountain, SSML, CriticMarkup, `remark-directive`). Propose syntax for VO-1 to VO-8. Opus debate, then the owner chooses |
 | FUT5 | S | coder | Implement the chosen VO extensions as remark/rehype plugins (per FUT4 decisions) |
 | FUT6 | S | researcher | Desktop wrapper research (Wails v3 status vs. Electron vs. none), then an Opus debate and an owner decision (D-9) |
+| FUT7 | S | coder | Cross-root project references `<root>:<path>` (FR-7.8). `?project=` already carries the root; the project sidebar and `scopeWs`-style scoping must span roots. |
+| FUT8 | S | designer | Project save: write device adjustments back to a project file (FR-7.9). The first write path; needs a design and Opus debate (roots are mounted read-only today). |
 
 ## Deployment
 

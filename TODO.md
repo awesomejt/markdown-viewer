@@ -40,14 +40,33 @@ R2.13 review fixes (D-27). Each task adds tests that fail without the change:
 
 - [ ] **FIX-20** [S] Dev-tooling `npm audit`: `markdownlint-cli2` 0.23.3 pulls `smol-toml` 1.8.0 (moderate, fixed in 1.9.1: add an override) and `braces` 3.0.3 via `micromatch` (high, no fix published yet: re-check). Lint-time only, never in the bundle.
 
+## Phase 2b: Projects And Display Settings
+
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). FV1 and PJ0 are ready now.
+
+- [ ] **FV1** [S] Workspace tree honours the "Markdown and diagrams only" toggle (FR-2.1 gap: `treeEntries` passes `mdOnly: false`)
+- [ ] **FV2** [S] Sibling files in the sidebar for a file opened outside a workspace/project (FR-2.8) (deps: FV1)
+- [ ] **PJ0** [S → O] Finalize the project/prefs contract; Opus challenge; update Architecture tables
+- [ ] **PJ1** 🔒 [S] `internal/settings` strict YAML schema, limits, warnings (deps: PJ0)
+- [ ] **PJ2** [S] `MDV_PREFS` + `GET /api/prefs` + Compose config bind (deps: PJ1)
+- [ ] **PJ3** 🔒 [S] `GET /api/project`, reference resolution + warnings, `project` kind (deps: PJ1)
+- [ ] **PJ4** [S] Client display settings: layers, font/size/width, A−/A+, Ctrl/Cmd `+`/`−`/`0`, device scale (deps: PJ2)
+- [ ] **PJ5** [S] Project mode: `?project=`, project sidebar, `open`, warnings panel, live reload (deps: PJ3, PJ4, FV1)
+- [ ] **PJ6** [S] "Projects only" filter, project icon, Recent projects (deps: PJ5)
+- [ ] **PJ7** [S] Docs + example project with an unresolved reference (deps: PJ6)
+- [ ] **PJ8** [H] Full validation + deploy to docker2 (deps: PJ7)
+- [ ] **PJ9** [O] Phase 2b review (deps: PJ8)
+
 ## Phase 3: Future
 
 - [ ] **FUT1** [S] Design full-text search
-- [ ] **FUT2** [S] Server-side pinned favourites
+- [ ] ~~**FUT2** [S] Server-side pinned favourites~~ superseded by project files (Phase 2b, D-30)
 - [ ] **FUT3** [S] Print/HTML export; diagram download
 - [ ] **FUT4** [S] Voice-over conventions research + syntax proposal
 - [ ] **FUT5** [S] Implement chosen voice-over extensions
 - [ ] **FUT6** [S] Desktop wrapper decision
+- [ ] **FUT7** [S] Cross-root project references `<root>:<path>` (FR-7.8)
+- [ ] **FUT8** [S] Project save: write device adjustments back to a project file (FR-7.9, first write path)
 
 ## Blocked
 
@@ -59,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-14: Planned Phase 2b (projects, preferences, display settings): FR-2.8, FR-7, FR-8 in `docs/Requirements.md`, draft contract in `docs/Architecture.md`, tasks FV1-FV2, PJ0-PJ9, FUT7-FUT8; FUT2 superseded (D-30).
 - [x] 2026-10-14: **DEP1** [S] Deployed on docker2 (192.168.50.58, Ubuntu 26.04): Docker 29.1.3 + Compose 2.40 (Ubuntu packages), `jason` in `docker`; stack in `/opt/stacks/mdv` (git archive of 7e7bf4c, `.env` + `compose.override.yaml` binding `/mnt` `rslave` ro, root `content=/data/mnt/content`, UID/GID 1000) run by the generic `docker-compose@.service` template with an mdv drop-in after `mnt-content.mount` (D-29). stop/start/restart/reload, LAN access, Host allowlist (421) and a reboot (stack healthy 6 s after the mount) verified. Units in `deploy/systemd/`, docs in `docs/Deployment.md`.
 - [x] 2026-10-14: NAS root answered: `//192.168.50.4/Content` CIFS at `/mnt/content` on docker2, uid/gid 1000.
 - [x] 2026-10-12: **CH2** [S] `createStoredStore(key, parse, serialize)` (`web/src/app/storedStore.ts`, 4 unit tests) now backs `browse/showHidden.ts` and `recent/recent.ts`; unused `DIAGRAM_FILE_RE` removed. TOC open state, theme, mdOnly and sort are plain load/save helpers, not stores, so they were left as they are. `make check` exit 0, `make e2e` 236 passed.

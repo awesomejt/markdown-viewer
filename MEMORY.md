@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`); no agent tasks are ready until V1 reports results
+- Next recommended task: FV1, then PJ0 (Phase 2b, D-30). V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -23,6 +23,7 @@ Full log: `agents/Decisions.md`.
 - Deployment: Docker Compose on a VM; NAS mounted on the VM and bind-mounted `:ro` into the container (D-11).
 - Per-task Git workflow, YAML lint configs, coverage gates, `build/` artifacts (D-13 to D-15).
 - Model tiers (D-18): Haiku = Git + tool runs only; Sonnet = authoring/research/planning; Opus = big reviews, debates, escalations. Always verify subagent claims independently: Haiku overstated results in P0.1 and P0.2.
+- Phase 2b (D-30): `*.mdv.yaml` project files + global `preferences.yaml` + per-device relative text scale; cross-root refs later (FUT7), project save later (FUT8).
 - Future (post-MVP): voice-over script Markdown extensions (see `docs/Requirements.md`, VO-1..VO-8).
 
 ## Milestones
