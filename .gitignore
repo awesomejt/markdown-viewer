@@ -28,7 +28,10 @@
 .vscode/
 .idea/
 .agent/
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/agents/
+!.claude/hooks/
 .codex/
 .cursor/
 .continue/

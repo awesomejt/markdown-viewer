@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git switch main)",
+      "Bash(git switch -c *)",
+      "Bash(git merge --no-ff *)",
+      "Bash(git branch -d *)",
+      "Bash(git branch --no-merged *)",
+      "Bash(git branch --show-current)",
+      "Bash(git revert -m 1 *)",
+      "Bash(git fetch *)",
+      "Bash(git pull --ff-only *)",
+      "Bash(git rev-parse *)",
+      "Bash(git stash list)"
+    ],
+    "deny": [
+      "Bash(git push)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git branch -D *)",
+      "Bash(git rebase *)",
+      "Bash(git commit --amend *)",
+      "Bash(git clean *)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore *)",
+      "Bash(* --no-verify *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/require-merged.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -15,7 +15,7 @@ The main session acts as **orchestrator** (Opus). It picks the next unblocked ta
 
 | Tier | Model | Use for | Typical agent roles |
 | --- | --- | --- | --- |
-| **H** | Haiku | Simple, mechanical operations: Git management (pre-flight checks, branching, staging, commits, merges, branch cleanup) and running tools (build, lint, tests, coverage, Docker builds) and reporting their exact output. **No authoring of code, tests, configs, or docs.** | `git-committer`, `committer`, `tester`, `validator` |
+| **H** | Haiku | Simple, mechanical operations: Git management (pre-flight checks, branching, staging, commits, merges, branch cleanup) and running tools (build, lint, tests, coverage, Docker builds) and reporting their exact output. **No authoring of code, tests, configs, or docs.** | `git-merger` (project agent), `git-committer`, `committer`, `tester`, `validator` |
 | **S** | Sonnet | All authoring: coding (including security-sensitive code), tests, configs, Dockerfiles, docs, research, planning/design, per-task code review, and fixes from review findings. | `coder`, `implementer`, `code-reviewer`, `researcher`, `planner`, `designer`, `documentor` |
 | **O** | Opus | Big reviews (🔒 security reviews, phase reviews), debates and challenges of designs and plans, and escalations (diagnosing failures a Sonnet attempt could not fix). The main session (orchestrator) also runs at Opus and independently verifies every handoff before merge. | orchestrator, `reviewer`, `debater` |
 
@@ -26,6 +26,8 @@ Rules of thumb:
 - **Review proportionately.** Tasks marked 🔒 get an Opus `reviewer` pass before merge. Other code tasks get a Sonnet `code-reviewer` pass when the diff is non-trivial. Every phase ends with an Opus review against requirements and the security model.
 - **Challenge designs before building.** Design and plan outputs (API contract, search design, voice-over syntax, desktop decision) get an Opus `debater` pass before implementation starts.
 - **Commit in small, grouped changesets.** A Haiku `committer` (or the authoring agent) commits each logical group (for example "config parsing + its tests", then "docs for config") as its own Conventional Commit with AI attribution. Avoid one large commit touching many unrelated files.
+- **Land with `git-merger`.** After the review gate passes, the project agent `.claude/agents/git-merger.md` (Haiku) runs the gate, creates the commits the orchestrator lists (message files it does not change), merges `--no-ff` into `main`, re-runs `make check` there and deletes the branch. `.claude/settings.json` allows exactly those git commands (one plain command each, no `bash -c` or chains) and denies push, reset, rebase, amend, `branch -D`, `clean`, `restore` and `--no-verify`.
+- **No new branch over unfinished work.** The PreToolUse hook `.claude/hooks/require-merged.sh` blocks `git switch -c`, `git checkout -b` and `git branch <name>` unless the current branch is `main`, the tree is clean and `git branch --no-merged main` is empty.
 - **Batch tiny tasks.** Small adjacent tasks with no dependency between them may share one subagent call to save a cold start. They still get separate commits.
 - **Keep the orchestrator lean.** Subagents return short summaries (what changed, validation result, open issues), not file dumps. The orchestrator does not re-read files a subagent already validated.
 
