@@ -40,9 +40,8 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ1 is ready now (PJ2/PJ3 after it).
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ2 and PJ3 are ready now.
 
-- [ ] **PJ1** 🔒 [S] `internal/settings`: `go.yaml.in/yaml/v3` Node-walk parser, limits, warnings, ParseError + error `line`, fuzz tests (deps: PJ0)
 - [ ] **PJ2** [S] `MDV_PREFS` + `GET /api/prefs` + Compose config bind (deps: PJ1)
 - [ ] **PJ3** 🔒 [S] `GET /api/project`, shared stat limiter + singleflight, warnings, `project` kind incl. client plumbing (deps: PJ1)
 - [ ] **PJ4a** [S] Client settings core: `resolveSettings`, device stores + migration, theme select, CSS vars, prefs banner, first-paint hold (deps: PJ2)
@@ -90,6 +89,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-15: **PJ1** 🔒 [S] `internal/settings`: `go.yaml.in/yaml/v3` v3.0.4 Node-walk parsers `ParseProject`/`ParsePrefs` (bytes only, all panics recovered, pre-check for aliases/anchors/tags/merge keys/depth 8/2000 nodes/one document, 32 KiB cap, YAML 1.2 decimal numbers), sanitized `ParseError` with clamped line, warnings capped at 100, `Sem` (4 slots, not wired yet), `errorDetail.line`. Opus review approve-with-changes, all fixed; boundary mutations go red; fuzzers clean; coverage 99.6%.
 - [x] 2026-10-15: **PJ0** [S → O] Project/preferences contract: Sonnet draft, Opus challenge (27 findings, approve-with-changes, all applied), owner answers (per-project device choices, stay in project within the root, keep last good on a broken live edit, `.mdv.yaml` + `.mdv.yml`). Contract in `docs/Architecture.md` (Phase 2b contract), detail in `agents/PJ0-Design.md`, D-33; PJ4/PJ5 split into a/b. Orchestrator changed one call: inside a project only that project's device choices apply.
 - [x] 2026-10-14: **FV2** [S] "In this folder" sidebar section (`web/src/fileview/FolderFiles.tsx`) on `/view` without `ws`: the parent folder's files (shared listing query, show-hidden/md-only toggles, viewed file always kept with `aria-current`, 200-row paging, low-priority live sub) and an "Open as workspace" link that keeps the file. 5 component tests (4 red without it) + e2e. `make check`, `make e2e` green.
 - [x] 2026-10-14: **FV1** [S] Shared `useMdOnly` store (`web/src/browse/mdOnly.ts`, key `mdv-md-only` unchanged) read by BrowseView and `WorkspaceTree`; the tree hides non-Markdown/diagram files while it is on, keeps folders and never hides the viewed file's row. Unit + component tests red without the change, e2e toggle scenario; FR-2.1 reworded. `make check`, `make e2e` green.
