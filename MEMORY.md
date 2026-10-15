@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: FV1, then PJ0 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: FV2, then PJ0 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -88,6 +88,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-14 - Claude Opus 5.5 orchestrator (FV1)
+
+- Task: workspace tree ignored the Markdown-only toggle (FR-2.1 gap). Sonnet coder; orchestrator reviewed the diff; Haiku ran the gate and merge.
+- Files changed: new `web/src/browse/mdOnly.ts` (+ test), `BrowseView.tsx`, `browse/logic.ts` (load/save helpers removed), `workspace/logic.ts` (`treeEntries(entries, showHidden, mdOnly, keep)`), `WorkspaceTree.tsx`, tests, `e2e/tests/workspace.spec.ts`, FR-2.1, Architecture.
+- Result: the toggle is a shared store like show-hidden; the viewed file's row is kept even when filtered (also overrides hidden). Coder confirmed 3 tests red with the filter hard-wired off. The first gate failed only on the iPad project: the open drawer covers the browse toolbar, so the e2e now closes it (Escape) before toggling and reopens the tree. E2E tests that touch the toolbar in drawer mode must do the same.
+- Blockers or follow-up: none.
+
 ### 2026-10-14 - Claude Opus 5.5 orchestrator (FIX-20)
 
 - Task: dev-tooling `npm audit`; first task of the owner-requested multi-agent loop (Opus orchestrates/reviews, Sonnet codes, Haiku runs the gate and Git).
@@ -101,10 +108,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `deploy/systemd/docker-compose@.service`, `deploy/systemd/docker-compose@mdv.service.d/nas.conf`, `deploy/compose.override.example.yaml`, `docs/Deployment.md` (systemd section), D-29.
 - Result: Docker was not installed; installed Ubuntu `docker.io` 29.1.3, `docker-compose-v2` 2.40.3, `docker-buildx`; `jason` added to `docker`. Stack healthy; stop/start/restart/reload, LAN access, Host allowlist and a reboot verified; the `x-systemd.automount` fstab entry (5 min idle timeout) keeps the share mounted while mdv runs.
 - Blockers or follow-up: V1 iPad checklist (human). The VM's `/opt/stacks/mdv` is a git archive, not a clone (no GitHub key on the VM); upgrade by re-archiving and `systemctl reload docker-compose@mdv`.
-
-### 2026-10-12 - Claude Opus 5.5 orchestrator (CH2)
-
-- Task: optional cleanup of duplicated `useSyncExternalStore` + localStorage stores; orchestrator edited directly.
-- Files changed: new `web/src/app/storedStore.ts` + test, `browse/showHidden.ts`, `recent/recent.ts`, `diagrams/DiagramPage.tsx` (dropped `DIAGRAM_FILE_RE`), `docs/Architecture.md`.
-- Result: public exports of both modules unchanged, so callers and tests needed no edits. The TOC open state named in the task is a load/save helper, not a store, so it was left alone. `make check` exit 0, `make e2e` 236 passed; logs `build/ch2-*.log`.
-- Blockers or follow-up: none.

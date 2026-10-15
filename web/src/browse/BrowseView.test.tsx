@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { resetMdOnlyCache } from './mdOnly';
 import { resetShowHiddenCache } from './showHidden';
 
 const mtime = '2026-01-02T03:04:05Z';
@@ -34,6 +35,7 @@ const bodies: Record<string, unknown> = {
 beforeEach(() => {
   window.localStorage.clear();
   resetShowHiddenCache();
+  resetMdOnlyCache();
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
