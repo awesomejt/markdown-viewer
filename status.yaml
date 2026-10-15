@@ -8,8 +8,8 @@
 #   error   - repo or automation state is unsafe; human recovery needed
 #   stopped - loop permanently halted or project complete
 
-status: working
+status: active
 phase: mvp
 reason: ~
-worker: claude-opus-orchestrator (PJ0)
-updated: 2026-10-14
+worker: ~
+updated: 2026-10-15
