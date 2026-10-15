@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ0 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ1 🔒 (then PJ2/PJ3) (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -89,6 +89,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ0)
+
+- Task: finalize the project/preferences contract. Sonnet designer draft, Opus debater challenge, owner answered 4 product questions (AskUserQuestion), designer applied all, orchestrator reviewed.
+- Files changed: `docs/Architecture.md` (Phase 2b contract; Config/API/Routes rows; 3 tables reflowed to compact pipes), `docs/Requirements.md` (FR-7.1/7.2/7.4, FR-8.5), `docs/Implementation.md` (PJ4a/b, PJ5a/b), `agents/Decisions.md` D-33, new `agents/PJ0-Design.md` (implementer detail; Architecture wins), `.markdownlint-cli2.yaml` (ignore `working/`).
+- Result: the challenge caught real issues before code: reader errors leaking host paths into YAML messages, unbounded stat fan-out across requests, an unbounded prefs stat goroutine, one-letter roots vs drive letters, and old UIs having stored defaults (needs a one-time migration). Orchestrator overrode the designer's device-layer overlay: inside a project only that project's device choices apply.
+- Blockers or follow-up: none. Coders for PJ1-PJ7 must read `agents/PJ0-Design.md` and the Architecture contract.
+
 ### 2026-10-14 - Claude Opus 5.5 orchestrator (FV2)
 
 - Task: sibling files for a file opened outside a workspace (FR-2.8). Sonnet coder; orchestrator reviewed; Haiku gate and merge.
@@ -102,10 +109,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/browse/mdOnly.ts` (+ test), `BrowseView.tsx`, `browse/logic.ts` (load/save helpers removed), `workspace/logic.ts` (`treeEntries(entries, showHidden, mdOnly, keep)`), `WorkspaceTree.tsx`, tests, `e2e/tests/workspace.spec.ts`, FR-2.1, Architecture.
 - Result: the toggle is a shared store like show-hidden; the viewed file's row is kept even when filtered (also overrides hidden). Coder confirmed 3 tests red with the filter hard-wired off. The first gate failed only on the iPad project: the open drawer covers the browse toolbar, so the e2e now closes it (Escape) before toggling and reopens the tree. E2E tests that touch the toolbar in drawer mode must do the same.
 - Blockers or follow-up: none.
-
-### 2026-10-14 - Claude Opus 5.5 orchestrator (FIX-20)
-
-- Task: dev-tooling `npm audit`; first task of the owner-requested multi-agent loop (Opus orchestrates/reviews, Sonnet codes, Haiku runs the gate and Git).
-- Files changed: `web/package.json` (`smol-toml` override), `web/package-lock.json`.
-- Result: Sonnet coder found `markdownlint-cli2` 0.23.3, `micromatch` 4.0.8 and `braces` 3.0.3 all latest; orchestrator re-checked the registry. `smol-toml` 1.9.1 cleared the moderate finding; 5 high remain (no upstream fix). npm's suggested fix is a downgrade, rejected.
-- Blockers or follow-up: re-check `braces` on the next dependency bump.

@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-14 - Claude Opus 5.5 orchestrator (FIX-20)
+
+- Task: dev-tooling `npm audit`; first task of the owner-requested multi-agent loop (Opus orchestrates/reviews, Sonnet codes, Haiku runs the gate and Git).
+- Files changed: `web/package.json` (`smol-toml` override), `web/package-lock.json`.
+- Result: Sonnet coder found `markdownlint-cli2` 0.23.3, `micromatch` 4.0.8 and `braces` 3.0.3 all latest; orchestrator re-checked the registry. `smol-toml` 1.9.1 cleared the moderate finding; 5 high remain (no upstream fix). npm's suggested fix is a downgrade, rejected.
+- Blockers or follow-up: re-check `braces` on the next dependency bump.
+
 ### 2026-10-14 - Claude Opus 5.5 (DEP1)
 
 - Task: owner asked to deploy the Compose stack on the new docker2 VM (192.168.50.58), managed by systemctl, on a host shared with future apps.

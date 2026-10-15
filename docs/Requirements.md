@@ -128,10 +128,10 @@ A project file is a YAML file named `*.mdv.yaml` inside a root. The owner writes
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-7.1 | A project file (schema `version: 1`) has an optional `name`, an optional `open` file shown first, an `include` list of folders and files, and an optional `settings` block (FR-8.1). Paths are relative to the project file's folder. | S |
-| FR-7.2 | Opening a project file from a listing opens project mode: the sidebar lists the included folders (expandable trees) and files, and the view shows `open` (else the first included Markdown file, else the project's entries). The project stays active while navigating to its entries and its `settings` apply while it is active. | S |
+| FR-7.1 | A project file (`*.mdv.yaml` or `*.mdv.yml`, schema `version: 1`) has an optional `name`, an optional `open` file shown first, an `include` list of folders and files, and an optional `settings` block (FR-8.1). Paths are relative to the project file's folder. | S |
+| FR-7.2 | Opening a project file from a listing opens project mode: the sidebar lists the included folders (expandable trees) and files, and the view shows `open` (else the first included Markdown file, else the project's entries). The project stays active for all navigation within the same root until an explicit exit (Home, root list, another root, another project, "Open as workspace", "Close project"); files outside its entries show a "not part of the project" note. Its `settings` apply while it is active. | S |
 | FR-7.3 | References that cannot be resolved (missing paths, a file where a folder was expected, paths that leave the root, unknown keys, invalid setting values, cross-root references before FR-7.8) are listed as warnings in the project panel. Valid entries still work. YAML syntax or schema-version errors show an error with the line and the project is not applied. | S |
-| FR-7.4 | Changes to the open project file apply live (live reload). | S |
+| FR-7.4 | Changes to the open project file apply live (live reload). If a live edit leaves the file broken, the last good version stays in use and an error line with the YAML line is shown until it is valid again. | S |
 | FR-7.5 | Project files are listed with their own kind and icon. A "Projects only" filter limits a listing to project files. | S |
 | FR-7.6 | A "Recent projects" list in the sidebar (per browser, like FR-2.6) reopens recent projects. | S |
 | FR-7.7 | Project paths get the same root and path guards as every other request (no `..`, no symlink escapes, no host paths in responses). Project files have size and complexity limits. | S |
@@ -146,7 +146,7 @@ A project file is a YAML file named `*.mdv.yaml` inside a root. The owner writes
 | FR-8.2 | Global preferences: an optional server-side `preferences.yaml` with the same `settings` keys, applying to every device. A missing file means built-in defaults; an invalid file logs a warning, falls back to defaults and shows a notice. | S |
 | FR-8.3 | Precedence, lowest to highest: built-in defaults, global preferences, the active project, this device's adjustments. Leaving a project restores the lower layers. | S |
 | FR-8.4 | Device text size: A−/A+/reset controls and Ctrl/Cmd `+`, `−`, `0`. The adjustment is a per-device scale relative to the resolved `fontSize` (for example 110%), stored in the browser. It never changes the project or preferences file. | S |
-| FR-8.5 | Device choices for theme and the listing toggles (`markdownOnly`, `showHidden`, `sort`) override the resolved settings on that device, with a way to return to the project/preferences default. | S |
+| FR-8.5 | Device choices for theme and the listing toggles (`markdownOnly`, `showHidden`, `sort`) override the resolved settings on that device. Inside a project they are remembered per project on that device; outside a project they are global. One "Reset" control returns to the project/preferences default. | S |
 
 ### FR-9 Reading Experience
 

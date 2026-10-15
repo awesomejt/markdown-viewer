@@ -40,15 +40,16 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ0 is ready now.
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ1 is ready now (PJ2/PJ3 after it).
 
-- [ ] **PJ0** [S → O] Finalize the project/prefs contract; Opus challenge; update Architecture tables
-- [ ] **PJ1** 🔒 [S] `internal/settings` strict YAML schema, limits, warnings (deps: PJ0)
+- [ ] **PJ1** 🔒 [S] `internal/settings`: `go.yaml.in/yaml/v3` Node-walk parser, limits, warnings, ParseError + error `line`, fuzz tests (deps: PJ0)
 - [ ] **PJ2** [S] `MDV_PREFS` + `GET /api/prefs` + Compose config bind (deps: PJ1)
-- [ ] **PJ3** 🔒 [S] `GET /api/project`, reference resolution + warnings, `project` kind (deps: PJ1)
-- [ ] **PJ4** [S] Client display settings: layers, font/size/width, A−/A+, Ctrl/Cmd `+`/`−`/`0`, device scale (deps: PJ2)
-- [ ] **PJ5** [S] Project mode: `?project=`, project sidebar, `open`, warnings panel, live reload (deps: PJ3, PJ4, FV1)
-- [ ] **PJ6** [S] "Projects only" filter, project icon, Recent projects (deps: PJ5)
+- [ ] **PJ3** 🔒 [S] `GET /api/project`, shared stat limiter + singleflight, warnings, `project` kind incl. client plumbing (deps: PJ1)
+- [ ] **PJ4a** [S] Client settings core: `resolveSettings`, device stores + migration, theme select, CSS vars, prefs banner, first-paint hold (deps: PJ2)
+- [ ] **PJ4b** [S] Device text scale: A−/%/A+ and Ctrl/Cmd `+`/`−`/`0` (deps: PJ4a)
+- [ ] **PJ5a** [S] `?project=` routing (stay in project within the root, explicit exits), ProjectProvider, enter/switch, error states (deps: PJ3, PJ4a, FV1)
+- [ ] **PJ5b** [S] Project sidebar, warnings panel, live reload keeping last good, per-project device choices (deps: PJ5a, PJ4b)
+- [ ] **PJ6** [S] "Projects only" filter, project icon, Recent projects (deps: PJ5b)
 - [ ] **PJ7** [S] Docs + example project with an unresolved reference (deps: PJ6)
 - [ ] **PJ8** [H] Full validation + deploy to docker2 (deps: PJ7)
 - [ ] **PJ9** [O] Phase 2b review (deps: PJ8)
@@ -59,10 +60,10 @@ Owner request (D-31): reading styles, bundled OFL fonts, focus mode for voice-ov
 
 - [ ] **RX0** [S] Survey Typora/Obsidian/VS Code preview styles; propose 3-4 styles + OFL font shortlist with sizes (owner picks)
 - [ ] **RT1** [S] Read-time estimate: words + minutes at 160 wpm default; front matter/diagrams/math always excluded, headings and code excluded by default (FR-9.6)
-- [ ] **RT2** [S] Per-section read times in the TOC; `readTime` settings (`wpm`, `includeHeadings`, `includeCode`) in preferences + project (deps: RT1, PJ4)
+- [ ] **RT2** [S] Per-section read times in the TOC; `readTime` settings (`wpm`, `includeHeadings`, `includeCode`) in preferences + project (deps: RT1, PJ4a)
 - [ ] **FM1** [S] Focus mode: content only, toggle + shortcut + `?focus=1`, Esc/exit (FR-9.4)
 - [ ] **FM2** [S] Focus mode wake lock + optional full screen (deps: FM1)
-- [ ] **DS1** [S] Bundled fonts + font categories (deps: RX0, PJ4)
+- [ ] **DS1** [S] Bundled fonts + font categories (deps: RX0, PJ4a)
 - [ ] **DS2** [S] Reading styles, light/dark (deps: DS1)
 - [ ] **RX1** [H] Full validation + deploy to docker2 (deps: DS2, RT2, FM2)
 - [ ] **RX2** [O] Phase 2c review (deps: RX1)
@@ -89,6 +90,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-15: **PJ0** [S → O] Project/preferences contract: Sonnet draft, Opus challenge (27 findings, approve-with-changes, all applied), owner answers (per-project device choices, stay in project within the root, keep last good on a broken live edit, `.mdv.yaml` + `.mdv.yml`). Contract in `docs/Architecture.md` (Phase 2b contract), detail in `agents/PJ0-Design.md`, D-33; PJ4/PJ5 split into a/b. Orchestrator changed one call: inside a project only that project's device choices apply.
 - [x] 2026-10-14: **FV2** [S] "In this folder" sidebar section (`web/src/fileview/FolderFiles.tsx`) on `/view` without `ws`: the parent folder's files (shared listing query, show-hidden/md-only toggles, viewed file always kept with `aria-current`, 200-row paging, low-priority live sub) and an "Open as workspace" link that keeps the file. 5 component tests (4 red without it) + e2e. `make check`, `make e2e` green.
 - [x] 2026-10-14: **FV1** [S] Shared `useMdOnly` store (`web/src/browse/mdOnly.ts`, key `mdv-md-only` unchanged) read by BrowseView and `WorkspaceTree`; the tree hides non-Markdown/diagram files while it is on, keeps folders and never hides the viewed file's row. Unit + component tests red without the change, e2e toggle scenario; FR-2.1 reworded. `make check`, `make e2e` green.
 - [x] 2026-10-14: **FIX-20** [S] `smol-toml` override `^1.9.1` (moderate cleared). The 5 high findings (`braces` 3.0.3 via `micromatch` 4.0.8 in `markdownlint-cli2` 0.23.3, all latest) have no fixed release upstream; accepted as lint-time only, re-check on the next dependency bump. `npm run build` and markdownlint clean, `make check` green.
