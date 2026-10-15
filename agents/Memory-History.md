@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-28)
+
+- Task: flaky `TestEventsGlobalStreamCap` ("stream did not open"); orchestrator fixed it directly (a 3-line test change, cheaper than a coder subagent).
+- Files changed: `internal/api/events_test.go` (`holdStream` reads the baseline count before starting the handler).
+- Result: root cause was a race, not a slow timeout: the handler takes its slot (`events.go:61`) before the test read the baseline, so `count > baseline` never held. A 50 ms delay injected after the goroutine start failed all 4 `holdStream` tests on the old code and passes on the fix; 50 `-race` repeats pass. `make check` exit 0; log `build/fix28-check.log`.
+- Blockers or follow-up: none.
+
 ### 2026-10-12 - Claude Opus 5.5 orchestrator (FIX-27)
 
 - Task: a retired root stayed open until the next swap, keeping a lazily unmounted share busy; Sonnet coder, orchestrator reviewed the diff, rewrote one test and ran the gate.

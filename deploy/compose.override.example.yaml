@@ -1,0 +1,14 @@
+# Example compose.override.yaml for a VM with the NAS at /mnt/content.
+# Copy next to compose.yaml on the VM; the deployed copy is not in Git.
+services:
+  mdv:
+    volumes:
+      # Parent of the NAS mount point, so a late or remounted share propagates
+      # (rslave) without recreating the container. /mnt/content -> /data/mnt/content.
+      - type: bind
+        source: /mnt
+        target: /data/mnt
+        read_only: true
+        bind:
+          propagation: rslave
+          create_host_path: false
