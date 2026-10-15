@@ -24,8 +24,11 @@ services:
       MDV_LOG_LEVEL: "info"
       # Extra Host names to accept (IP literals and localhost always pass).
       MDV_ALLOWED_HOSTS: ${MDV_ALLOWED_HOSTS:-}
+      # Global preferences file (optional; a missing file means defaults).
+      MDV_PREFS: ${MDV_PREFS:-/config/preferences.yaml}
     volumes:
       - ./examples:/data/examples:ro
+      - ./config:/config:ro
       # NAS share mounted on the VM (fstab/autofs). Bind the PARENT of the mount
       # point: rslave only propagates mounts made beneath the source. With the
       # share at /mnt/nas/markdown, set MDV_ROOTS=markdown=/data/nas/markdown; a
