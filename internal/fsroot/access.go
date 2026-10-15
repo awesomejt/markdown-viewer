@@ -58,6 +58,7 @@ type Handle struct {
 	maxEntries int
 
 	sem         chan struct{}
+	statSem     chan struct{} // shared limiter for [Handle.LimitedStat]
 	unavailable atomic.Bool
 	probing     atomic.Bool
 	startErr    error // why the root was unavailable at creation; nil if it was not
@@ -71,8 +72,62 @@ func NewHandle(name string, watch config.WatchMode, fsys FS, timeout time.Durati
 	return &Handle{
 		name: name, watch: watch, fs: fsys,
 		timeout: timeout, maxEntries: maxEntries,
-		sem: make(chan struct{}, maxInflight),
+		sem:     make(chan struct{}, maxInflight),
+		statSem: make(chan struct{}, statLimitFor(maxInflight)),
 	}
+}
+
+// statLimitFor is the size of the per-Handle limiter used by
+// [Handle.LimitedStat]: min(2, maxInflight-1), at least 1, so bulk stats
+// always leave at least one in-flight slot to other requests when the cap
+// allows it.
+func statLimitFor(maxInflight int) int { return max(1, min(2, maxInflight-1)) }
+
+// StatLimit reports the size of the handle's stat limiter.
+func (h *Handle) StatLimit() int { return cap(h.statSem) }
+
+// LimitedStat is [Handle.Stat] behind the handle's shared stat limiter. The
+// limiter is per Handle, not per request, so many concurrent bulk callers
+// (project reference checks) together never hold more than [Handle.StatLimit]
+// slots. Like the handle's own slots, a limiter slot is released only when
+// the fs call actually returns, never when the caller gives up, so stats
+// hung on a dead mount cannot pile up beyond the limit. Waiting for a slot
+// shares the handle's one-timeout budget and fails fast on an unavailable
+// root; it does not mark the root unavailable.
+func (h *Handle) LimitedStat(ctx context.Context, rel string) (fs.FileInfo, error) {
+	return withRetry(rel, func(name string) (fs.FileInfo, error) {
+		if err := ctx.Err(); err != nil {
+			return nil, timeoutErr("stat", rel, "request canceled", err)
+		}
+		if h.unavailable.Load() {
+			h.probe()
+			return nil, timeoutErr("stat", rel, "root unavailable", nil)
+		}
+		wctx, cancel := context.WithTimeout(ctx, h.timeout)
+		defer cancel()
+		select {
+		case h.statSem <- struct{}{}:
+		case <-wctx.Done():
+			if cerr := ctx.Err(); cerr != nil {
+				return nil, timeoutErr("stat", rel, "request canceled", cerr)
+			}
+			return nil, timeoutErr("stat", rel, "too many stat operations in flight", nil)
+		}
+		// claim: 0 = pending, 1 = the fs call owns the slot, 2 = the caller
+		// returned first and released it (the fs call then never starts).
+		var claim atomic.Int32
+		fi, err := run(ctx, h, "stat", rel, func() (fs.FileInfo, error) {
+			if !claim.CompareAndSwap(0, 1) {
+				return nil, timeoutErr("stat", rel, "abandoned before start", nil)
+			}
+			defer func() { <-h.statSem }()
+			return h.fs.Stat(name)
+		}, nil)
+		if claim.CompareAndSwap(0, 2) {
+			<-h.statSem
+		}
+		return fi, err
+	})
 }
 
 // OpenHandle wraps the configured root with the limits in cfg. The root is

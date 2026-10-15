@@ -15,6 +15,7 @@ const (
 	FileKindDiagram  FileKind = "diagram"
 	FileKindImage    FileKind = "image"
 	FileKindText     FileKind = "text"
+	FileKindProject  FileKind = "project"
 	FileKindOther    FileKind = "other"
 )
 
@@ -53,8 +54,14 @@ func KindForExt(ext string) FileKind {
 
 // ClassifyName classifies a file name (or slash path) by its extension.
 // A leading dot does not start an extension: ".hidden" is [FileKindOther].
+// A base ending in ".mdv.yaml" or ".mdv.yml" (case-insensitive, so the exact
+// dotfile names qualify) is a [FileKindProject], checked before the extension
+// map so the plain ".yaml" text rule does not win. [KindForExt] is unchanged.
 func ClassifyName(name string) FileKind {
 	base := path.Base(name)
+	if lb := strings.ToLower(base); strings.HasSuffix(lb, ".mdv.yaml") || strings.HasSuffix(lb, ".mdv.yml") {
+		return FileKindProject
+	}
 	i := strings.LastIndexByte(base, '.')
 	if i <= 0 {
 		return FileKindOther
