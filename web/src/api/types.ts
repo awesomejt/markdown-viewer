@@ -1,5 +1,5 @@
 export type EntryType = 'dir' | 'file';
-export type EntryKind = 'markdown' | 'diagram' | 'image' | 'text' | 'other';
+export type EntryKind = 'markdown' | 'diagram' | 'image' | 'text' | 'project' | 'other';
 
 export interface Root {
   name: string;

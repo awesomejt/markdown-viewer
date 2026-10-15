@@ -49,6 +49,7 @@ type Server struct {
 	// project files later).
 	parseSem   *settings.Sem
 	prefsStore *prefsStore // nil when MDV_PREFS is unset
+	flight     *statFlight // shared stat-phase results for /api/project
 
 	pingInterval time.Duration // SSE keep-alive; tests shorten it
 	writeTimeout time.Duration // per-write SSE and /api/file chunk deadline; tests shorten it
@@ -69,6 +70,7 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 	s := &Server{reg: reg, cfg: cfg, logger: logger, mux: http.NewServeMux(), pingInterval: pingInterval, writeTimeout: writeTimeout,
 		maxStreams: maxStreams, maxStreamsPerIP: maxStreamsPerIP, streamsByIP: make(map[string]int)}
 	s.parseSem = settings.NewSem(settings.MaxConcurrentParses)
+	s.flight = newStatFlight(cfg.PollInterval)
 	if cfg.Prefs != "" {
 		s.prefsStore = newPrefsStore(cfg.Prefs, cfg.FSTimeout, s.parseSem, logger)
 	}
@@ -80,6 +82,7 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 	s.mux.HandleFunc("/api/roots", s.get(s.roots))
 	s.mux.HandleFunc("/api/list", s.get(s.list))
 	s.mux.HandleFunc("/api/prefs", s.get(s.prefs))
+	s.mux.HandleFunc("/api/project", s.get(s.project))
 	s.mux.HandleFunc("/api/file", fileHeaders(s.get(s.file)))
 	s.mux.Handle("/api/render/d2", crossOriginGuard(s.post(s.renderD2)))
 	s.mux.HandleFunc("/api/events", s.events) // GET only; events answers other methods itself

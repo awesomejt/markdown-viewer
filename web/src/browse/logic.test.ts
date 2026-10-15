@@ -48,11 +48,13 @@ describe('filterEntries', () => {
       'Guide.md',
     ]);
   });
-  it('markdown-only keeps dirs, markdown and diagrams', () => {
-    expect(filterEntries(entries, { query: '', mdOnly: true }).map((e) => e.name)).toEqual([
+  it('markdown-only keeps dirs, markdown, diagrams and projects', () => {
+    const withProject = [...entries, mk('course.mdv.yaml', 'file', 'project')];
+    expect(filterEntries(withProject, { query: '', mdOnly: true }).map((e) => e.name)).toEqual([
       'sub',
       'Guide.md',
       'flow.mmd',
+      'course.mdv.yaml',
     ]);
   });
 });

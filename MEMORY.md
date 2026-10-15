@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ3 🔒 or PJ4a (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ4a (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -51,6 +51,7 @@ Full log: `agents/Decisions.md`.
 - D2 Go API (P0.5): `d2lib.Compile` + `d2svg.Render`, pure Go (no CGO/JS), ~1-3 ms for small diagrams, +22 MB binary, deterministic SVG with embedded fonts; details in `agents/Research.md`.
 - SMB/NFS mounts often emit no fsnotify events, so a polling fallback is required.
 - Task tracking is `TODO.md` and state is `status.yaml` (D-16). No AWB.
+- Since 2026-10-15, branches land through the project agent `git-merger` (Haiku, `.claude/agents/`), with project git permissions in `.claude/settings.json` (one plain git command per call; push/reset/rebase/amend/`branch -D` denied). The hook `.claude/hooks/require-merged.sh` refuses to create a branch unless on a clean `main` with no unmerged branches. User-level agents in `~/.claude/agents/` now pin a model each (no `inherit`).
 
 ## Known Limitations And Accepted Risks
 
@@ -90,6 +91,14 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ3)
+
+- Task: `GET /api/project`, shared stat resolver, `project` kind and client kind plumbing (🔒). Sonnet coder, Opus security review (approve-with-changes), coder fixed, orchestrator verified, Haiku gate.
+- Files changed: `internal/fsroot` (`FileKindProject` in `ClassifyName`; `statSem` + `Handle.LimitedStat`/`StatLimit`), new `internal/api/project.go`, `projectref.go` (`resolveRef`, `warnCode`, `refMessage`), `projectflight.go` (singleflight + TTL cache), `api.go` (route, `Server.flight`), tests; web `EntryKind`/`fileKind`/`KindIcon`/`ViewFileView`/md-only filter + tests; `docs/Architecture.md` (implementation notes, step 5).
+- Result: no security findings. The review found a lost `warnings_truncated` marker when only the parser overflowed, plus three tests that could not fail (size-before-read, limiter claim isolation, log leak); all fixed and each shown red under mutation. `./ab:b/c` used in tests because fsroot's drive-letter rule rejects `a:b` as a first segment at the root.
+- Process: the first merge attempt was refused by auto mode (no project git permissions; a batched `bash -c` commit). The owner approved project agents, permissions and the branch hook, landed in this merge as a separate `chore(agents)` commit.
+- Blockers or follow-up: PJ5 "Re-check" may want to bypass the stat cache (a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`).
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ2)
 
 - Task: `MDV_PREFS` + `GET /api/prefs` + Compose bind. Sonnet coder; orchestrator reviewed the read policy; Haiku gate and merge.
@@ -103,10 +112,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `go.mod`/`go.sum` (`go.yaml.in/yaml/v3` v3.0.4, offline), new `internal/settings/` (parse, warn, types, sem + tests and fuzzers), `internal/api/api.go` (`errorDetail.Line`, `omitempty`), `internal/fsroot/guard.go` (`isControl` exported as `IsControl`, behaviour unchanged).
 - Result: review found no panic/500/unbounded-resource path (densest 32 KiB input ~7.4 MiB, ~10 ms). Fixed from the review: depth/node limits now pinned by boundary tests (mutations go red), YAML 1.2 decimal-only numbers (go-yaml v3 read `024` as octal 20), precheck reports the offending line, line count matches the library's breaks (U+2028/2029/0085) and warning lines are clamped, Unicode format chars sanitized in a settings-local predicate (orchestrator kept ZWJ/ZWNJ for emoji and Persian/Indic names). Coverage 99.6%.
 - Blockers or follow-up: PJ2/PJ3 wire `settings.Sem` (4 slots) and the 32 KiB fstat check; PJ3 does the lexical reference rules (`Ref.Text` is raw). The bare `!` tag is accepted (see Known Limitations).
-
-### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ0)
-
-- Task: finalize the project/preferences contract. Sonnet designer draft, Opus debater challenge, owner answered 4 product questions (AskUserQuestion), designer applied all, orchestrator reviewed.
-- Files changed: `docs/Architecture.md` (Phase 2b contract; Config/API/Routes rows; 3 tables reflowed to compact pipes), `docs/Requirements.md` (FR-7.1/7.2/7.4, FR-8.5), `docs/Implementation.md` (PJ4a/b, PJ5a/b), `agents/Decisions.md` D-33, new `agents/PJ0-Design.md` (implementer detail; Architecture wins), `.markdownlint-cli2.yaml` (ignore `working/`).
-- Result: the challenge caught real issues before code: reader errors leaking host paths into YAML messages, unbounded stat fan-out across requests, an unbounded prefs stat goroutine, one-letter roots vs drive letters, and old UIs having stored defaults (needs a one-time migration). Orchestrator overrode the designer's device-layer overlay: inside a project only that project's device choices apply.
-- Blockers or follow-up: none. Coders for PJ1-PJ7 must read `agents/PJ0-Design.md` and the Architecture contract.

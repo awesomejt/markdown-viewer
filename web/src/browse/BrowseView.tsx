@@ -74,7 +74,10 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <label className="toggle">
+            <label
+              className="toggle"
+              title="Show only Markdown, diagram and project files (folders always stay)"
+            >
               <input
                 type="checkbox"
                 checked={mdOnly}

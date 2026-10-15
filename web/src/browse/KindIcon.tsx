@@ -6,6 +6,7 @@ const PATHS: Record<EntryKind | 'dir', string> = {
   diagram: 'M4 4h6v5H4zM14 15h6v5h-6zM7 9v4h10v2M17 15',
   image: 'M4 5h16v14H4zM4 16l5-5 4 4 3-3 4 4M15 9h.01',
   text: 'M6 3h9l4 4v14H6zM9 12h6M9 16h4',
+  project: 'M6 3h9l4 4v14H6zM9 11h6M9 15h6M9 7h2',
   other: 'M6 3h9l4 4v14H6zM15 3v4h4',
 };
 

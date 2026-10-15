@@ -23,7 +23,7 @@ export function expandedFor(path: string, ws: string, isFolder: boolean): Set<st
 }
 
 /**
- * Visible tree children: dot-files hidden unless `showHidden`, non-Markdown/diagram files hidden when
+ * Visible tree children: dot-files hidden unless `showHidden`, non-Markdown/diagram/project files hidden when
  * `mdOnly` (folders stay), folders first, then by name. The entry named `keep` (the viewed file) is
  * never filtered out.
  */

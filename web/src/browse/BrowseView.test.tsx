@@ -24,6 +24,7 @@ const bodies: Record<string, unknown> = {
     f('data.bin', 'other'),
   ]),
   docs: listing('docs', [f('a.md', 'markdown')]),
+  proj: listing('proj', [f('course.mdv.yaml', 'project'), f('notes.bin', 'other')]),
   empty: listing('empty', []),
   big: listing('big', [f('x.md', 'markdown')], true),
   many: listing(
@@ -89,6 +90,22 @@ describe('BrowseView', () => {
     await user.click(screen.getByRole('checkbox', { name: 'Markdown/diagrams only' }));
     expect(within(list).queryByText('data.bin')).toBeNull();
     expect(window.localStorage.getItem('mdv-md-only')).toBe('1');
+  });
+
+  it('shows a project icon for *.mdv.yaml entries, links to the view, and md-only keeps them', async () => {
+    const user = userEvent.setup();
+    renderAt('/browse/r/proj');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    const link = within(list).getByRole('link', { name: 'course.mdv.yaml' });
+    expect(link).toHaveAttribute('href', '/view/r/proj/course.mdv.yaml');
+    expect(link.parentElement?.querySelector('svg.kind-project')).not.toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: 'Markdown/diagrams only' }));
+    expect(within(list).getByRole('link', { name: 'course.mdv.yaml' })).toBeInTheDocument();
+    expect(within(list).queryByText('notes.bin')).toBeNull();
+    expect(screen.getByText('Markdown/diagrams only').closest('label')).toHaveAttribute(
+      'title',
+      expect.stringMatching(/project/i),
+    );
   });
 
   it('shows hidden files when toggled (persisted)', async () => {
