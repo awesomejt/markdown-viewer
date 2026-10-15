@@ -15,6 +15,7 @@ import (
 	"github.com/awesomejt/markdown-viewer/internal/config"
 	"github.com/awesomejt/markdown-viewer/internal/d2render"
 	"github.com/awesomejt/markdown-viewer/internal/fsroot"
+	"github.com/awesomejt/markdown-viewer/internal/settings"
 	"github.com/awesomejt/markdown-viewer/internal/watch"
 )
 
@@ -44,6 +45,11 @@ type Server struct {
 	d2     d2Renderer
 	hub    *watch.Hub
 
+	// parseSem bounds concurrent settings parses server-wide (prefs now,
+	// project files later).
+	parseSem   *settings.Sem
+	prefsStore *prefsStore // nil when MDV_PREFS is unset
+
 	pingInterval time.Duration // SSE keep-alive; tests shorten it
 	writeTimeout time.Duration // per-write SSE and /api/file chunk deadline; tests shorten it
 
@@ -62,6 +68,10 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 	}
 	s := &Server{reg: reg, cfg: cfg, logger: logger, mux: http.NewServeMux(), pingInterval: pingInterval, writeTimeout: writeTimeout,
 		maxStreams: maxStreams, maxStreamsPerIP: maxStreamsPerIP, streamsByIP: make(map[string]int)}
+	s.parseSem = settings.NewSem(settings.MaxConcurrentParses)
+	if cfg.Prefs != "" {
+		s.prefsStore = newPrefsStore(cfg.Prefs, cfg.FSTimeout, s.parseSem, logger)
+	}
 	s.hub = watch.New(reg, watch.Options{PollInterval: cfg.PollInterval, Logger: logger})
 	s.d2 = d2render.New(d2render.Options{
 		Timeout: cfg.D2Timeout, Concurrency: cfg.D2Concurrency, CacheEntries: cfg.D2CacheEntries,
@@ -69,6 +79,7 @@ func New(reg *fsroot.Registry, cfg *config.Config, logger *slog.Logger) *Server 
 	s.mux.HandleFunc("/healthz", s.get(s.healthz))
 	s.mux.HandleFunc("/api/roots", s.get(s.roots))
 	s.mux.HandleFunc("/api/list", s.get(s.list))
+	s.mux.HandleFunc("/api/prefs", s.get(s.prefs))
 	s.mux.HandleFunc("/api/file", fileHeaders(s.get(s.file)))
 	s.mux.Handle("/api/render/d2", crossOriginGuard(s.post(s.renderD2)))
 	s.mux.HandleFunc("/api/events", s.events) // GET only; events answers other methods itself

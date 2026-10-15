@@ -209,3 +209,28 @@ func TestAllowedHosts(t *testing.T) {
 		}
 	}
 }
+
+func TestPrefsConfig(t *testing.T) {
+	d := t.TempDir()
+	base := map[string]string{"MDV_ROOTS": "docs=" + d}
+	with := func(v string) map[string]string {
+		m := map[string]string{"MDV_PREFS": v}
+		for k, x := range base {
+			m[k] = x
+		}
+		return m
+	}
+	for _, v := range []string{"", "   "} {
+		c, err := Load(env(with(v)))
+		if err != nil || c.Prefs != "" {
+			t.Errorf("%q: %+v err=%v", v, c, err)
+		}
+	}
+	c, err := Load(env(with(" /config/preferences.yaml ")))
+	if err != nil || c.Prefs != "/config/preferences.yaml" {
+		t.Errorf("absolute: %+v %v", c, err)
+	}
+	if _, err := Load(env(with("config/preferences.yaml"))); err == nil || !strings.Contains(err.Error(), "MDV_PREFS") {
+		t.Errorf("relative: err=%v", err)
+	}
+}
