@@ -153,20 +153,22 @@ Each F-task from F1 on also adds its own Playwright e2e scenario (on the T0 scaf
 
 ## Phase 2b: Projects And Display Settings (S priorities)
 
-Owner request after the docker2 deployment (D-30). Requirements FR-2.8, FR-7, FR-8; draft contract in [Architecture](./Architecture.md#projects-and-settings-planned-phase-2b). Each task adds Go/unit/e2e tests for the behavior it adds.
+Owner request after the docker2 deployment (D-30). Requirements FR-2.8, FR-7, FR-8; contract in [Architecture](./Architecture.md#projects-and-settings-phase-2b-contract). Each task adds Go/unit/e2e tests for the behavior it adds.
 
 | ID | Tier | Role | Deps | Task (requirement) |
 | --- | --- | --- | --- | --- |
 | FV1 | S | coder | none | Workspace tree honours the "Markdown and diagrams only" toggle (FR-2.1 says filtered by default; `treeEntries` passes `mdOnly: false` today). |
 | FV2 | S | coder | FV1 | Sibling files: a file opened outside a workspace or project shows its folder's supported files in the sidebar (FR-2.8). |
-| PJ0 | S → O | designer, debater | none | Finalize the project/prefs contract: YAML library and limits, schema v1, API, warning codes, `?project=` scoping, device-layer rules (FR-8.5), fonts. Opus challenge, then update Architecture tables and record the decision. |
-| PJ1 🔒 | S | coder | PJ0 | `internal/settings`: typed schema, strict YAML parsing with limits and alias rejection, warnings for unknown keys and bad values; table tests incl. hostile YAML (FR-7.1, FR-7.7, FR-8.1). |
-| PJ2 | S | coder | PJ1 | `MDV_PREFS` + `GET /api/prefs`; Compose bind of `./config` (read-only) and `.env` passthrough (FR-8.2). |
-| PJ3 🔒 | S | coder | PJ1 | `GET /api/project` with reference resolution through `fsroot`, warning codes, `project` kind in listings (FR-7.1, FR-7.3, FR-7.5, FR-7.7). |
-| PJ4 | S | coder | PJ2 | Client display settings: `resolveSettings` layers, CSS variables, font/size/line height/width, A−/A+ and Ctrl/Cmd `+`/`−`/`0`, device text scale, theme "Default" entry, migration of existing device keys (FR-8.1, FR-8.3 to FR-8.5). |
-| PJ5 | S | coder | PJ3, PJ4, FV1 | Project mode: `?project=` route scoping, project sidebar (included folders as trees, files), `open` file, warnings panel, live reload of the project file, project settings layer (FR-7.2 to FR-7.4). |
-| PJ6 | S | coder | PJ5 | "Projects only" filter, project icon, "Recent projects" in the sidebar (FR-7.5, FR-7.6). |
-| PJ7 | S | documentor | PJ6 | README and Deployment (preferences file, project format), example project in `examples/` with one deliberate unresolved reference. |
+| PJ0 | S → O | designer, debater | none | **Done 2026-10-14.** Final contract in [Architecture](./Architecture.md#projects-and-settings-phase-2b-contract) and D-33 (Opus challenge applied). |
+| PJ1 🔒 | S | coder | PJ0 | `internal/settings`: add `go.yaml.in/yaml/v3` v3.0.4; Node-walk parser for project and preferences; pre-check (aliases, anchors, tags, merge keys, depth 8, 2000 nodes, one document); 32 KiB cap, 4-slot parse semaphore; `ParseError` with optional clamped line; message sanitizer; recover all panics; warnings and codes; `errorDetail.line`. Tests: hostile YAML table, reader-error host-path leak, syntax-error line per class, `FuzzParseProject`/`FuzzParsePrefs`, empty/comment-only prefs valid and empty project fatal (FR-7.1, FR-7.7, FR-8.1). |
+| PJ2 | S | coder | PJ1 | `MDV_PREFS` (absolute path) + `GET /api/prefs` (always 200, state table, per-request parse, `O_NONBLOCK` regular-file check, single outstanding read, hash-deduplicated logs); Compose bind of `./config` (read-only) and `.env` passthrough (FR-8.2). Tests: each state, FIFO does not block, hung read serves last result. |
+| PJ3 🔒 | S | coder | PJ1 | `GET /api/project`: reference resolution through `fsroot` with the per-Handle stat limiter, singleflight keyed on content hash with poll-interval TTL, `2 x FS timeout` deadline, total Kind-to-warning table, `project` kind (`.mdv.yaml`/`.mdv.yml`) in `ClassifyName`; client kind plumbing (`EntryKind`, `fileKind`, `KindIcon`, text view, md-only keeps projects) (FR-7.1, FR-7.3, FR-7.5, FR-7.7). Tests: concurrency bound with a blocking fake FS (`/api/file` still gets a slot), a row per Kind, `..notes.md` valid, one-letter root `c:foo` is cross-root, kind fallback fails without the plumbing. |
+| PJ4a | S | coder | PJ2 | Client settings core: pure `resolveSettings`, device stores (`undefined` = no choice), one-time migration (`mdv-settings-v=2`), theme `<select>` with `Default (...)`, `useApplySettings` CSS variables and `data-*` attributes, prefs banner (errors and warnings), first-paint hold (300 ms) and `mdv-prefs-cache` boot step (FR-8.1, FR-8.3, FR-8.5). Tests: precedence and leave-project as table tests, migration of each stored value and idempotence. |
+| PJ4b | S | coder | PJ4a | Device text scale: `mdv-text-scale` store, A−/percent/A+ buttons, Ctrl/Cmd `+`/`−`/`0` handler (FR-8.4). Tests: key handling (modifiers, inputs, `preventDefault`), clamping. |
+| PJ5a | S | coder | PJ3, PJ4a, FV1 | `?project=` routing and `NavScope` (stay in project within the root, explicit exits, `ws` exclusion), `ProjectProvider`/`useProject`, entering and switching projects, project home and `?source=1`, initial-load error states and "Close project", outlet hold (FR-7.2). Tests: switching projects does not leak settings, no redirect loop (`open`, included project file), dead `?project=` offers Close project. |
+| PJ5b | S | coder | PJ5a, PJ4b | Project sidebar tree (shared row renderer), warnings panel with Re-check, live reload of the project file, keep last good (422 error line, stale on 504, 404 error state), per-project device choices (`mdv-project-device`) and the one Reset control, "not part of the project" note (FR-7.3, FR-7.4, FR-8.5). Tests: per-project choice isolation, keep-last-good transitions. |
+| PJ6 | S | coder | PJ5b | "Projects only" filter, project icon polish, "Recent projects" in the sidebar and `project` on recents (FR-7.5, FR-7.6). |
+| PJ7 | S | documentor | PJ6 | README and Deployment (preferences file, project format), example project in `examples/` with a missing folder, a file where a folder is expected, enough `../` to really leave the root, an `other-root:` item, an unknown key and a bad `fontSize`. |
 | PJ8 | H | validator | PJ7 | Full validation run (as R2.12) plus deploy to docker2. |
 | PJ9 | O | reviewer | PJ8 | Phase 2b review, including hostile project files and iPad keyboard/size behavior. |
 
@@ -178,10 +180,10 @@ Owner request (D-31). Requirements FR-9; draft in [Architecture](./Architecture.
 | --- | --- | --- | --- | --- |
 | RX0 | S | researcher | none | Survey Typora themes, Obsidian and VS Code Markdown preview extensions (built-in preview, Markdown Preview Enhanced, GitHub-styled preview, read-time extensions). Propose 3-4 mdv styles and an OFL font shortlist (sans, serif, mono, plus a high-legibility font such as Atkinson Hyperlegible for script reading) with woff2 sizes. Owner picks. |
 | RT1 | S | coder | none | Read-time estimate: mdast word count with `Intl.Segmenter`, exclusions, header line (words + minutes); defaults wpm 160, headings and code excluded (FR-9.6). |
-| RT2 | S | coder | RT1, PJ4 | Per-section times in the TOC; `readTime` settings (`wpm`, `includeHeadings`, `includeCode`) from preferences and project layers (FR-9.7, FR-9.8). |
+| RT2 | S | coder | RT1, PJ4a | Per-section times in the TOC; `readTime` settings (`wpm`, `includeHeadings`, `includeCode`) from preferences and project layers (FR-9.7, FR-9.8). |
 | FM1 | S | coder | none | Focus mode: `data-focus`, toolbar toggle, shortcut, `?focus=1`, Esc/exit control, block tools hidden, live reload and scroll kept (FR-9.4). |
 | FM2 | S | coder | FM1 | Screen Wake Lock and optional full screen, with feature detection; checked on iPad (FR-9.5). |
-| DS1 | S | coder | RX0, PJ4 | Bundled fonts (`@font-face`, subsets, OFL files, cache headers) and font categories for `font`/`codeFont` (FR-9.2, FR-9.3, NFR-10). |
+| DS1 | S | coder | RX0, PJ4a | Bundled fonts (`@font-face`, subsets, OFL files, cache headers) and font categories for `font`/`codeFont` (FR-9.2, FR-9.3, NFR-10). |
 | DS2 | S | coder | DS1 | Reading styles as token CSS (`data-style`), light/dark variants; current look kept as `github` (FR-9.1). |
 | RX1 | H | validator | DS2, RT2, FM2 | Full validation run plus deploy to docker2. |
 | RX2 | O | reviewer | RX1 | Phase 2c review, including iPad focus mode during a long read, font payload size and offline behavior. |

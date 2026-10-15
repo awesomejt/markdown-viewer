@@ -3,6 +3,7 @@ globs:
 ignores:
   - "**/node_modules/**"
   - "build/**"
+  - "working/**"
   - "internal/web/dist/**"
   - ".agents/chats/**"
   - "testdata/fixtures/**"
