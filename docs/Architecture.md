@@ -325,9 +325,19 @@ settings:
 - Settings resolve in one pure function, `resolveSettings(defaults, prefs, project, device)`. The result becomes CSS custom properties on `<html>` (`--mdv-font`, `--mdv-font-size`, `--mdv-line-height`, `--mdv-content-width`) plus `data-theme`.
 - Device layer (localStorage): `mdv-text-scale` (relative scale, 50-200% in 10% steps) and explicit device choices for theme and the listing toggles (FR-8.5). The theme menu gets a "Default" entry that clears the device choice. Existing `mdv-theme`, `mdv-md-only`, `mdv-show-hidden` and `mdv-sort` values carry over as device choices.
 - Keyboard: Ctrl/Cmd with `=`/`+`, `-` and `0` adjust `mdv-text-scale` (`preventDefault` replaces browser zoom where the browser allows it). A−/A+ buttons in the toolbar are the iPad path.
-- Fonts come from system font stacks (NFR-5: no web fonts from the internet). Whether to bundle one reading font is an open question.
+- Fonts: bundled OFL woff2 files served by mdv plus local font stacks (see Reading Experience below). Nothing is loaded from the internet (NFR-5).
 
 PJ0 must settle: the YAML library (alias rejection, strict decoding), whether device toggle choices are global or per project, and how a project entry folder interacts with the workspace tree code.
+
+### Reading Experience (Planned, Phase 2c)
+
+Draft for FR-9 (D-31); RX0 picks the fonts and styles.
+
+- **Fonts:** woff2 files (Latin and Latin Extended subsets, variable fonts where available) live in `web/public/fonts/<family>/` with their `OFL.txt`, and are embedded in the binary like the KaTeX fonts. `@font-face` rules use `font-display: swap`, so text shows at once in a local font and switches when the bundled file arrives. Browsers download a font only when a rule that uses it applies, so unused families cost nothing on the device. Responses get a long `Cache-Control` (fonts are versioned by path or hash), so each device downloads a font once. No prompt is needed, because nothing leaves the LAN.
+- **Font categories:** CSS stacks such as `--mdv-font-serif: "<bundled serif>", Charter, "Iowan Old Style", Georgia, serif;` and `--mdv-font-system: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;`. `font`/`codeFont` settings map to a stack, or to a single bundled family plus its category fallback.
+- **Styles:** each style is a CSS file scoped by `html[data-style="<name>"]` that sets design tokens (fonts, sizes, spacing, heading rules, code, tables, blockquotes) for light and dark. `.markdown-body` uses only tokens, so styles cannot break layout. The current look becomes the `github` style and stays the default.
+- **Focus mode:** a `focus` flag from `?focus=1` or the toggle sets `data-focus` on `<html>`. The layout hides the shell, the TOC and per-block tools (copy buttons, diagram tools) and turns off transitions. A `navigator.wakeLock.request('screen')` lock is taken while focus mode is on and the page is visible, and re-taken on `visibilitychange`. Full screen is an explicit control (`requestFullscreen`), since browsers require a user gesture. Esc and the exit control clear the flag.
+- **Read time:** a pure function walks the parsed mdast (the same tree the renderer uses): it skips `yaml`, `code`, `math`/`inlineMath`, `html` and `image` nodes, and `heading` unless `includeHeadings`. Text is counted with `Intl.Segmenter` (`granularity: 'word'`, `isWordLike`), so CJK text counts correctly, with a whitespace split as fallback. The same pass yields per-section counts for the TOC. It runs on open and on each live reload.
 
 ## Security Model
 

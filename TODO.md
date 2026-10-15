@@ -57,6 +57,20 @@ Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, dev
 - [ ] **PJ8** [H] Full validation + deploy to docker2 (deps: PJ7)
 - [ ] **PJ9** [O] Phase 2b review (deps: PJ8)
 
+## Phase 2c: Reading Experience
+
+Owner request (D-31): reading styles, bundled OFL fonts, focus mode for voice-over reading, read-time estimates. Details in `docs/Implementation.md` (Phase 2c). RX0, RT1 and FM1 are ready now.
+
+- [ ] **RX0** [S] Survey Typora/Obsidian/VS Code preview styles; propose 3-4 styles + OFL font shortlist with sizes (owner picks)
+- [ ] **RT1** [S] Read-time estimate: words + minutes, front matter/code/diagrams/math excluded, headings excluded by default (FR-9.6)
+- [ ] **RT2** [S] Per-section read times in the TOC; `readTime` settings (deps: RT1, PJ4)
+- [ ] **FM1** [S] Focus mode: content only, toggle + shortcut + `?focus=1`, Esc/exit (FR-9.4)
+- [ ] **FM2** [S] Focus mode wake lock + optional full screen (deps: FM1)
+- [ ] **DS1** [S] Bundled fonts + font categories (deps: RX0, PJ4)
+- [ ] **DS2** [S] Reading styles, light/dark (deps: DS1)
+- [ ] **RX1** [H] Full validation + deploy to docker2 (deps: DS2, RT2, FM2)
+- [ ] **RX2** [O] Phase 2c review (deps: RX1)
+
 ## Phase 3: Future
 
 - [ ] **FUT1** [S] Design full-text search
@@ -78,6 +92,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 Move completed tasks here with a brief result note.
 
+- [x] 2026-10-14: Planned Phase 2c (reading experience): FR-9 (styles, bundled OFL fonts, font categories, focus mode, read time) in `docs/Requirements.md`, draft in `docs/Architecture.md`, tasks RX0-RX2, RT1-RT2, FM1-FM2, DS1-DS2 (D-31).
 - [x] 2026-10-14: Planned Phase 2b (projects, preferences, display settings): FR-2.8, FR-7, FR-8 in `docs/Requirements.md`, draft contract in `docs/Architecture.md`, tasks FV1-FV2, PJ0-PJ9, FUT7-FUT8; FUT2 superseded (D-30).
 - [x] 2026-10-14: **DEP1** [S] Deployed on docker2 (192.168.50.58, Ubuntu 26.04): Docker 29.1.3 + Compose 2.40 (Ubuntu packages), `jason` in `docker`; stack in `/opt/stacks/mdv` (git archive of 7e7bf4c, `.env` + `compose.override.yaml` binding `/mnt` `rslave` ro, root `content=/data/mnt/content`, UID/GID 1000) run by the generic `docker-compose@.service` template with an mdv drop-in after `mnt-content.mount` (D-29). stop/start/restart/reload, LAN access, Host allowlist (421) and a reboot (stack healthy 6 s after the mount) verified. Units in `deploy/systemd/`, docs in `docs/Deployment.md`.
 - [x] 2026-10-14: NAS root answered: `//192.168.50.4/Content` CIFS at `/mnt/content` on docker2, uid/gid 1000.
