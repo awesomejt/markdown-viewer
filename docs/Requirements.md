@@ -42,6 +42,7 @@ See [agents/Decisions.md](../agents/Decisions.md) for rationale.
 4. Render Mermaid and D2 diagrams, both inline in Markdown and as standalone diagram files.
 5. Live reload when the viewed file or folder changes on disk.
 6. Responsive, touch-friendly UI usable on an iPad.
+7. Project files (`*.mdv.yaml`) that gather folders and files for a course or project and carry display settings, layered over global preferences and per-device adjustments.
 
 ## Functional Requirements
 
@@ -72,7 +73,8 @@ Priority: **M** = MVP must-have, **S** = should-have (post-MVP refinement), **C*
 | FR-2.4 | Links to headings (`file.md#section`) scroll to the anchor. | M |
 | FR-2.5 | Per-document table of contents built from headings. | S |
 | FR-2.6 | Recently opened folders/files list (stored per browser). | S |
-| FR-2.7 | Pinned/favourite folders shared across devices (stored server-side). | C |
+| FR-2.7 | Pinned/favourite folders shared across devices (stored server-side). Superseded by project files (FR-7, D-30): a project stored on the NAS is shared across devices with no server write path. | C |
+| FR-2.8 | A file opened outside a workspace or project (from Recent, a link, or a bookmark) shows the supported files of its folder in the sidebar, so siblings are one tap away. | S |
 
 ### FR-3 Markdown Rendering
 
@@ -118,6 +120,32 @@ Priority: **M** = MVP must-have, **S** = should-have (post-MVP refinement), **C*
 | FR-6.1 | Every folder and file has a stable, bookmarkable URL (for example `/view/<root>/<path>`), so links can be shared between devices. | M |
 | FR-6.2 | Browser back/forward works for all navigation. | M |
 | FR-6.3 | The app can be added to the iPad/phone home screen as a web app with its own icon and title. | S |
+
+### FR-7 Project Files
+
+A project file is a YAML file named `*.mdv.yaml` inside a root. The owner writes it in any editor; mdv only reads it (D-30).
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-7.1 | A project file (schema `version: 1`) has an optional `name`, an optional `open` file shown first, an `include` list of folders and files, and an optional `settings` block (FR-8.1). Paths are relative to the project file's folder. | S |
+| FR-7.2 | Opening a project file from a listing opens project mode: the sidebar lists the included folders (expandable trees) and files, and the view shows `open` (else the first included Markdown file, else the project's entries). The project stays active while navigating to its entries and its `settings` apply while it is active. | S |
+| FR-7.3 | References that cannot be resolved (missing paths, a file where a folder was expected, paths that leave the root, unknown keys, invalid setting values, cross-root references before FR-7.8) are listed as warnings in the project panel. Valid entries still work. YAML syntax or schema-version errors show an error with the line and the project is not applied. | S |
+| FR-7.4 | Changes to the open project file apply live (live reload). | S |
+| FR-7.5 | Project files are listed with their own kind and icon. A "Projects only" filter limits a listing to project files. | S |
+| FR-7.6 | A "Recent projects" list in the sidebar (per browser, like FR-2.6) reopens recent projects. | S |
+| FR-7.7 | Project paths get the same root and path guards as every other request (no `..`, no symlink escapes, no host paths in responses). Project files have size and complexity limits. | S |
+| FR-7.8 | Cross-root references (`<root>:<path>` in `include` and `open`). Until built, they are reported as unsupported warnings (FR-7.3). | C |
+| FR-7.9 | Save device adjustments back to the project file (the first write path). | C |
+
+### FR-8 Display Settings And Preferences
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| FR-8.1 | Settings: `theme` (`system`/`light`/`dark`), `font` (system sans, serif, monospace; bundled fonts only, NFR-5), `fontSize` (px), `lineHeight`, `contentWidth` (`narrow`/`normal`/`wide`/`full`), `markdownOnly`, `showHidden`, `sort` (`name`/`date`). | S |
+| FR-8.2 | Global preferences: an optional server-side `preferences.yaml` with the same `settings` keys, applying to every device. A missing file means built-in defaults; an invalid file logs a warning, falls back to defaults and shows a notice. | S |
+| FR-8.3 | Precedence, lowest to highest: built-in defaults, global preferences, the active project, this device's adjustments. Leaving a project restores the lower layers. | S |
+| FR-8.4 | Device text size: A−/A+/reset controls and Ctrl/Cmd `+`, `−`, `0`. The adjustment is a per-device scale relative to the resolved `fontSize` (for example 110%), stored in the browser. It never changes the project or preferences file. | S |
+| FR-8.5 | Device choices for theme and the listing toggles (`markdownOnly`, `showHidden`, `sort`) override the resolved settings on that device, with a way to return to the project/preferences default. | S |
 
 ## Non-Functional Requirements
 
@@ -170,6 +198,6 @@ Conventions to research before designing a syntax: Fountain (screenplay format),
 
 ## Open Questions
 
-- Which NAS shares/paths become the initial roots, and what UID/GID owns them on the VM mount?
+- Fonts (FR-8.1): system font stacks only, or also bundle one reading font (adds about 100-300 KB)?
 - Desktop app: once the web app works, is a wrapper still wanted, or is a browser tab / home-screen web app enough?
 - Voice-over extensions: which of the candidates below are worth building, and is there an existing script convention to follow?
