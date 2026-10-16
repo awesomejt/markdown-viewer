@@ -4,8 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { useLiveSubscription } from '../live/LiveProvider';
 import { resetRecentCache } from '../recent/recent';
 import { parseRecentProjects, resetRecentProjectsCache } from '../recent/recentProjects';
+
+vi.mock('../live/LiveProvider', async (orig) => ({
+  ...(await orig<typeof import('../live/LiveProvider')>()),
+  useLiveSubscription: vi.fn(),
+}));
 
 const entry = (path: string, kind: string, type = 'file') => ({
   root: 'r',
@@ -126,6 +132,7 @@ beforeEach(() => {
       }
     }),
   );
+  vi.mocked(useLiveSubscription).mockClear();
   document.documentElement.removeAttribute('style');
 });
 afterEach(() => {
@@ -208,6 +215,33 @@ describe('entering a project', () => {
       'href',
       '/view/r/c.mdv.yaml?project=r:c.mdv.yaml',
     );
+  });
+
+  it('fetches the project once when entering through its file route', async () => {
+    const r = renderAt('/view/r/a.mdv.yaml');
+    await waitFor(() => expect(where(r)).toBe('/view/r/docs/start.md?project=r:a.mdv.yaml'));
+    await main().findByRole('heading', { name: 'Hello' });
+    await settle();
+    expect(projectCalls).toEqual(['a.mdv.yaml']);
+  });
+});
+
+describe('project live subscription', () => {
+  const projectSubs = (path: string) =>
+    vi
+      .mocked(useLiveSubscription)
+      .mock.calls.filter(([root, p]) => root === 'r' && p === path)
+      .map(([, , low]) => low);
+
+  it('is low priority before the project loads and normal after', async () => {
+    let release = () => {};
+    gates['plain.mdv.yaml'] = new Promise<void>((res) => (release = res));
+    renderAt('/view/r/p1.md?project=r:plain.mdv.yaml');
+    await waitFor(() => expect(projectCalls).toEqual(['plain.mdv.yaml']));
+    expect(projectSubs('plain.mdv.yaml')).toEqual([true]);
+    release();
+    await sidebar().findByRole('region', { name: 'Project' });
+    await waitFor(() => expect(projectSubs('plain.mdv.yaml').at(-1)).toBe(false));
   });
 });
 

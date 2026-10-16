@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 to FIX-32 done
-- Next recommended task: FIX-33 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 to FIX-33 done
+- Next recommended task: FIX-34, FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -94,6 +94,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-33)
+
+- Task: `?project=` into a missing folder failed `/api/events` (reconnect loop) and entering a project fetched `/api/project` twice. `ProjectLive` now subscribes the project file as `lsub` until the first success, then as a normal `sub` (an invalid-on-first-load project file still live-reloads); `useProjectQuery` `staleTime` 5 s (live changes still refetch via `invalidateQueries`). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
+- Files changed: `web/src/project/ProjectProvider.tsx`, `web/src/api/hooks.ts`, `web/src/project/project.test.tsx` (single fetch on entry, low-then-normal sub), e2e in `project.spec.ts` (missing-folder link: error state, ≤ 2 events requests in 3 s), `docs/Architecture.md`.
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-32)
 
 - Task: text-scale keys. Only text-entry controls (text-like `input`, `textarea`, contenteditable) block Ctrl/Cmd `+`/`−`/`0`; checkbox, radio, select, button, range now scale. `key` is matched first, `code` only for `Unidentified`/`Dead` (German `ß`, AZERTY `)`, Insert on Numpad0 ignored). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
@@ -107,10 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/app/Layout.tsx` (full/short label spans, `aria-label`), `web/src/app/app.css`, `web/src/project/project.css`, e2e in `settings.spec.ts` and `project.spec.ts`.
 - Result: `make check` and `make e2e` passed in the gate.
 - Blockers or follow-up: V1 should eyeball the "MDV" label and the taller project links on the iPad.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-30)
-
-- Task: project `open` outside `include` was flagged "not part of the project" (the shipped demo hit it). Sonnet coder; orchestrator reviewed the diff and tests. Haiku gate and merge.
-- Files changed: `web/src/project/logic.ts` (`inProject` takes `root` and `open`; counts the open file on a file route in the project's root), `ProjectSidebar.tsx`, new `web/src/project/logic.test.ts`, new fixture `testdata/fixtures/projects/outside-open.mdv.yaml`, e2e in `project.spec.ts` (no note, warnings panel open with 1 item).
-- Result: `make check` and `make e2e` passed in the gate.
-- Blockers or follow-up: none.
