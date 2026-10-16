@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ9)
+
+- Task: Phase 2b review. Three parallel Opus reviewers (backend/security with hostile project files, fuzzing and a slow/hung-stat harness on port 18091; frontend/iPad with vitest and Playwright probes; requirements conformance against a live server). Orchestrator verified each medium/low finding in source (`inProject` ignores `open`, `.app-title` flex rule, `isEditable` covers all `INPUT`/`SELECT`, `ProjectLive` mounts before success, `statRes` has only `dir`, `syntaxError` line offset).
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-34), `agents/Memory-History.md`, `status.yaml` only. No source changes. Scratch fixtures and harness in `build/pj9/`.
+- Result: no high findings; 2 medium, 6 low, several nits grouped into FIX-30 to FIX-35 and DOC3. FIX-30/FIX-31 before V1.
+- Blockers or follow-up: V1 checklist should include Cmd `+`/`−` on a hardware keyboard and Slide Over width.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ8)
 
 - Task: full validation and docker2 deploy (owner approved the deploy). Haiku validator ran the gates; orchestrator deployed.
