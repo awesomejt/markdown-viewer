@@ -7,6 +7,12 @@
   margin: 0 0 8px;
 }
 
+.project-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch);
+}
+
 .project-notice {
   margin: 0 0 8px;
 }

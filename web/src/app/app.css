@@ -88,13 +88,29 @@ h1 {
 
 .app-title {
   flex: 1;
-  min-width: 0;
+  min-width: var(--touch);
+  line-height: var(--touch);
   font-weight: 600;
   color: var(--fg);
   text-decoration: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Narrow phones (320 px Slide Over): a short label keeps the Home link a touch target. */
+.app-title-short {
+  display: none;
+}
+
+@media (max-width: 400px) {
+  .app-title-full {
+    display: none;
+  }
+
+  .app-title-short {
+    display: inline;
+  }
 }
 
 .btn {
@@ -749,7 +765,7 @@ html:has(.diagram-viewer[open]) {
   cursor: default;
 }
 
-.text-scale-reset {
+.text-scale .text-scale-reset {
   min-width: 3.4em;
   font-variant-numeric: tabular-nums;
 }
@@ -760,6 +776,13 @@ html:has(.diagram-viewer[open]) {
   min-width: 5rem;
   max-width: 11rem;
   padding: 0 4px;
+}
+
+/* 320 px budget: 304 content - 3x8 gaps - 44 menu - ~131 text size = ~105 for title (44) + theme. */
+@media (max-width: 400px) {
+  .theme-select {
+    min-width: 3.5rem;
+  }
 }
 
 /* Preferences notice above the content (settings/PrefsBanner.tsx). */

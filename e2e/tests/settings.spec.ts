@@ -77,6 +77,13 @@ test.describe('text scale', () => {
     await page.goto('/view/fixtures/README.md');
     await expect(page.getByRole('button', { name: 'Larger text' })).toBeVisible();
     await expect(page.getByRole('combobox', { name: 'Theme' })).toBeVisible();
+    const home = page.getByRole('link', { name: 'Markdown Viewer' });
+    await expect(home).toBeVisible();
+    const box = await home.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    const reset = await page.getByRole('button', { name: /^Reset text size/ }).boundingBox();
+    expect(reset?.width).toBeGreaterThanOrEqual(3.4 * 16 - 1);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );

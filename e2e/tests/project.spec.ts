@@ -104,6 +104,8 @@ test('the sidebar shows the project, lists entries and keeps the param on naviga
   await expect(bar.getByRole('heading', { name: 'Course project' })).toBeVisible();
   await expect(bar.getByRole('link', { name: 'Source' })).toBeVisible();
   await expect(bar.getByRole('link', { name: 'Open', exact: true })).toBeVisible();
+  const closeBox = await bar.getByRole('link', { name: 'Close project' }).boundingBox();
+  expect(closeBox?.height).toBeGreaterThanOrEqual(44);
   // The include folder holds the current file, so it is open.
   const intro = bar.getByRole('link', { name: 'intro.md' });
   await expect(intro).toHaveAttribute('aria-current', 'page');
@@ -117,6 +119,19 @@ test('the sidebar shows the project, lists entries and keeps the param on naviga
     'aria-current',
     'page',
   );
+});
+
+test('at 320 px the Home link stays a touch target and leaves the project', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto('/view/fixtures/projects/course.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  const home = page.getByRole('link', { name: 'Markdown Viewer' });
+  await expect(home).toBeVisible();
+  const box = await home.boundingBox();
+  expect(box?.width).toBeGreaterThanOrEqual(44);
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+  await home.click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe('/');
 });
 
 test('a file outside the project shows the note', async ({ page }) => {
