@@ -9,7 +9,7 @@ import { useMdOnly } from '../browse/mdOnly';
 import { useShowHidden } from '../browse/showHidden';
 import { useProjectParam } from '../project/useNavScope';
 import { useLiveSubscription } from '../live/LiveProvider';
-import { TREE_PAGE } from '../workspace/WorkspaceTree';
+import { TREE_PAGE } from '../workspace/TreeRows';
 import '../workspace/tree.css';
 
 /**

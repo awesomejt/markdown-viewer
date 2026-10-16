@@ -6,11 +6,13 @@ import { ErrorState, Loading } from './states';
 import { FolderFiles } from '../fileview/FolderFiles';
 import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
+import { ProjectSidebar } from '../project/ProjectSidebar';
 import { ProjectGate } from '../project/ProjectGate';
 import { ProjectProvider } from '../project/ProjectProvider';
-import { useProjectParam } from '../project/useNavScope';
+import { useProject } from '../project/context';
 import { FirstPaintHold } from '../settings/FirstPaintHold';
 import { PrefsBanner } from '../settings/PrefsBanner';
+import { ResetChoices } from '../settings/ResetChoices';
 import { TextScaleControls } from '../settings/TextScaleControls';
 import { ThemeSelect } from '../settings/ThemeSelect';
 import { useApplySettings } from '../settings/useApplySettings';
@@ -21,8 +23,11 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
   const [search] = useSearchParams();
   const location = useLocation();
   const roots = useRoots();
+  const project = useProject();
   const root = params.root;
   const ws = search.get('ws');
+  // While the project loads or is in its initial error state the normal content shows.
+  if (project.ref && project.data) return <ProjectSidebar />;
   if (workspace && root && ws !== null) {
     return (
       <WorkspaceTree
@@ -69,8 +74,9 @@ function Shell() {
   const location = useLocation();
   const params = useParams();
   const [search] = useSearchParams();
-  const project = useProjectParam();
-  const inWorkspace = params.root !== undefined && search.has('ws') && !project;
+  const project = useProject();
+  const inProject = project.ref !== null && project.data !== undefined;
+  const inWorkspace = params.root !== undefined && search.has('ws') && !project.ref;
   const [open, setOpen] = useState(false);
   const [lastKey, setLastKey] = useState(location.key);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -131,7 +137,7 @@ function Shell() {
         />
         <nav id="sidebar" className={`sidebar${open ? ' is-open' : ''}`} aria-label="Sidebar">
           <div className="sidebar-head">
-            <h2>{inWorkspace ? 'Workspace' : 'Roots'}</h2>
+            <h2>{inProject ? 'Project' : inWorkspace ? 'Workspace' : 'Roots'}</h2>
             <button
               ref={closeRef}
               type="button"
@@ -143,6 +149,7 @@ function Shell() {
             </button>
           </div>
           <SidebarContent workspace={inWorkspace} />
+          <ResetChoices />
         </nav>
         <main className="main">
           <PrefsBanner />

@@ -1,4 +1,7 @@
 import type { Page } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { expect, test } from './fixtures';
 
 // testdata/fixtures/projects/course.mdv.yaml: name "Course project", open course/intro.md,
@@ -37,7 +40,7 @@ test('navigation within the root keeps the project; Home drops it and its settin
 
 test('the project home lists the entries and carries the param', async ({ page }) => {
   await page.goto(`/view/fixtures/projects/course.mdv.yaml?project=${PROJECT}`);
-  await expect(page.getByRole('heading', { name: 'Course project' })).toBeVisible();
+  await expect(page.locator('main').getByRole('heading', { name: 'Course project' })).toBeVisible();
   await page
     .getByRole('list', { name: 'Project entries' })
     .getByRole('link', { name: 'projects/course' })
@@ -70,4 +73,116 @@ test('Close project on a broken project opened from its folder shows the listing
   await expect(page).toHaveURL(/\/browse\/fixtures\/projects$/);
   await expect(page.getByRole('list', { name: 'Entries' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Close project' })).toHaveCount(0);
+});
+
+const sidebar = (page: Page) => page.getByRole('navigation', { name: 'Sidebar' });
+
+/** Below 900 px (e.g. iPad portrait) the sidebar is a drawer: open it when the menu button shows. */
+async function openSidebar(page: Page): Promise<void> {
+  const menu = page.getByRole('button', { name: 'Open menu' });
+  if (await menu.isVisible()) await expect(sidebar(page)).toBeHidden();
+  if (!(await sidebar(page).isVisible())) await menu.click();
+  await expect(sidebar(page)).toBeVisible();
+}
+
+/** The header (theme select) is not part of the drawer; close it before using main content. */
+async function closeSidebar(page: Page): Promise<void> {
+  if (await page.getByRole('button', { name: 'Close menu' }).isVisible()) {
+    await page.keyboard.press('Escape');
+    await expect(sidebar(page)).toBeHidden();
+  }
+}
+
+test('the sidebar shows the project, lists entries and keeps the param on navigation', async ({
+  page,
+}) => {
+  await page.goto('/view/fixtures/projects/course.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  await openSidebar(page);
+  const bar = sidebar(page);
+  await expect(bar.getByRole('heading', { name: 'Project', exact: true })).toBeVisible();
+  await expect(bar.getByRole('heading', { name: 'Course project' })).toBeVisible();
+  await expect(bar.getByRole('link', { name: 'Source' })).toBeVisible();
+  await expect(bar.getByRole('link', { name: 'Open', exact: true })).toBeVisible();
+  // The include folder holds the current file, so it is open.
+  const intro = bar.getByRole('link', { name: 'intro.md' });
+  await expect(intro).toHaveAttribute('aria-current', 'page');
+  await expect(bar.getByText('This file is not part of the project')).toHaveCount(0);
+
+  await bar.getByRole('link', { name: 'next.md' }).click();
+  await expect(page.getByRole('heading', { name: 'Course next' })).toBeVisible();
+  expect(projectParam(page)).toBe(PROJECT);
+  await openSidebar(page);
+  await expect(sidebar(page).getByRole('link', { name: 'next.md' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+});
+
+test('a file outside the project shows the note', async ({ page }) => {
+  await page.goto(`/view/fixtures/README.md?project=${PROJECT}`);
+  await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+  await openSidebar(page);
+  await expect(sidebar(page).getByText('This file is not part of the project')).toBeVisible();
+});
+
+test('theme choices are kept per project and do not cross the project boundary', async ({
+  page,
+}) => {
+  const theme = page.getByRole('combobox', { name: 'Theme' });
+  const html = page.locator('html');
+  await page.goto('/view/fixtures/projects/course.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await theme.selectOption('dark');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  // Close project: the project's choice is gone with the project.
+  await openSidebar(page);
+  await sidebar(page).getByRole('link', { name: 'Close project' }).click();
+  await expect(page).not.toHaveURL(/project=/);
+  await expect(html).toHaveAttribute('data-theme', 'light');
+
+  // A global choice does not apply inside the project; the project's own choice survives reload.
+  await theme.selectOption('system');
+  await page.goto('/view/fixtures/projects/course.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+
+  // Reset clears this project's choice only.
+  await openSidebar(page);
+  await sidebar(page).getByRole('button', { name: "Reset this device's choices" }).click();
+  await closeSidebar(page);
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => window.localStorage.getItem('mdv-project-device'))).toBeNull();
+  expect(await page.evaluate(() => window.localStorage.getItem('mdv-theme'))).toBe('system');
+});
+
+// The `live` root is a writable, polled directory under build/e2e/live (see playwright.config.ts).
+const liveDir = path.resolve(import.meta.dirname, '../../build/e2e/live');
+
+test('a live edit of the project file updates the sidebar and settings', async ({ page }) => {
+  const name = `t-${randomUUID().slice(0, 8)}`;
+  const dir = path.join(liveDir, name);
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, 'p.mdv.yaml');
+  writeFileSync(path.join(dir, 'doc.md'), '# Live doc\n');
+  writeFileSync(file, 'version: 1\nname: Live one\nopen: doc.md\nsettings:\n  fontSize: 20\n');
+
+  await page.goto(`/view/live/${name}/p.mdv.yaml`);
+  await expect(page.getByRole('heading', { name: 'Live doc' })).toBeVisible();
+  await expect(page.locator('html')).toHaveCSS('--mdv-font-size', '20px');
+  await openSidebar(page);
+  await expect(sidebar(page).getByRole('heading', { name: 'Live one' })).toBeVisible();
+
+  writeFileSync(file, 'version: 1\nname: Live two\nopen: doc.md\nsettings:\n  fontSize: 24\n');
+  await expect(page.locator('html')).toHaveCSS('--mdv-font-size', '24px');
+  await expect(sidebar(page).getByRole('heading', { name: 'Live two' })).toBeAttached();
+
+  // A broken edit keeps the last good version and says so.
+  writeFileSync(file, 'version: 1\nname: [unclosed\n');
+  await expect(sidebar(page).getByRole('alert')).toContainText('showing the last valid version');
+  await expect(page.locator('html')).toHaveCSS('--mdv-font-size', '24px');
 });

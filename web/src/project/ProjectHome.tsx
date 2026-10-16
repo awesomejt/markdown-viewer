@@ -5,6 +5,7 @@ import { KindIcon } from '../browse/KindIcon';
 import { kindOf } from '../browse/logic';
 import { baseName } from '../fileview/logic';
 import { useProject } from './context';
+import { ProjectWarnings } from './ProjectWarnings';
 
 /** Project / Source switch in the project header; `source` marks the current side. */
 export function ProjectToggle({ project, source }: { project: ProjectRef; source: boolean }) {
@@ -23,8 +24,7 @@ export function ProjectToggle({ project, source }: { project: ProjectRef; source
 
 /** `/view/<root>/<x>.mdv.yaml?project=<same>`: title, entries and the server's warnings. */
 export function ProjectHome() {
-  const { ref, query } = useProject();
-  const data = query?.data;
+  const { ref, data } = useProject();
   if (!ref || !data) return <Loading label="Loading project…" />;
   return (
     <section className="project-home">
@@ -51,25 +51,7 @@ export function ProjectHome() {
           ))}
         </ul>
       )}
-      {data.warnings.length > 0 && (
-        <>
-          <h2>Warnings ({data.warnings.length})</h2>
-          <ul className="project-warning-list" aria-label="Project warnings">
-            {data.warnings.map((w, i) => (
-              <li key={i}>
-                {w.message}
-                {w.ref !== undefined && (
-                  <>
-                    {' '}
-                    <code>{w.ref}</code>
-                  </>
-                )}
-                {w.line !== undefined && <span className="muted"> line {w.line}</span>}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <ProjectWarnings />
     </section>
   );
 }

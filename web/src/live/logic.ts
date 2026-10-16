@@ -1,3 +1,4 @@
+import { isProjectPath } from '../api/client';
 import { queryKeys } from '../api/hooks';
 import { parentDir } from '../fileview/logic';
 
@@ -74,19 +75,29 @@ export function parseChange(data: string): ChangeEvent | null {
 
 /**
  * Query keys to invalidate for a change: the file itself (all `force` variants by prefix), the listing
- * of its parent (the `/view` kind depends on it), and its own listing when it is a watched directory.
+ * of its parent (the `/view` kind depends on it), its own listing when it is a watched directory, and
+ * the project of a `.mdv.yaml`/`.mdv.yml` file.
  */
 export function keysForChange(e: Sub): (readonly unknown[])[] {
-  return [
+  const keys: (readonly unknown[])[] = [
     ['file', e.root, e.path],
     queryKeys.list(e.root, parentDir(e.path)),
     queryKeys.list(e.root, e.path),
   ];
+  // A project file also refetches its project (entries, settings and warnings).
+  if (isProjectPath(e.path)) keys.push(queryKeys.project(e.root, e.path));
+  return keys;
 }
 
 /** Whether a query should be refetched after (re)connecting: API data, not immutable renders. */
 export function isApiQueryKey(key: readonly unknown[]): boolean {
-  return key[0] === 'roots' || key[0] === 'list' || key[0] === 'file' || key[0] === 'project';
+  return (
+    key[0] === 'roots' ||
+    key[0] === 'list' ||
+    key[0] === 'file' ||
+    key[0] === 'project' ||
+    key[0] === 'prefs'
+  );
 }
 
 export interface HeadingPos {

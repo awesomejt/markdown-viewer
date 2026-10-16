@@ -65,7 +65,7 @@ function ProjectError() {
  * states. The project's own source (`?source=1`) stays reachable so a broken file can be read.
  */
 export function ProjectGate({ children }: { children: ReactNode }) {
-  const { ref, query } = useProject();
+  const { ref, query, data } = useProject();
   const params = useParams();
   const { pathname } = useLocation();
   const [search] = useSearchParams();
@@ -80,7 +80,8 @@ export function ProjectGate({ children }: { children: ReactNode }) {
   }
   if (ref && query) {
     if (query.isPending) return <Loading label="Loading project…" />;
-    if (query.isError && !query.data) {
+    // `data` is also unset after a 404 on a refetch: that is the error state again.
+    if (query.isError && !data) {
       const onSource =
         pathname.startsWith('/view/') &&
         root === ref.root &&

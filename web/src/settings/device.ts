@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from 'react';
+import { formatProject, type ProjectRef } from '../api/client';
 import { THEME_STORAGE_KEY, type ThemeMode } from '../app/theme';
 import { createStoredStore, type StoredStore } from '../app/storedStore';
 import {
@@ -74,14 +75,73 @@ export function setTextScale(percent: number | undefined): void {
   textScaleStore.set(v === 100 ? undefined : v);
 }
 
-const stores = [themeStore, mdOnlyStore, showHiddenStore, sortStore, textScaleStore] as const;
+export const PROJECT_DEVICE_STORAGE_KEY = 'mdv-project-device';
+/** Per-project choices kept on this device; the least recently written are dropped beyond it. */
+export const PROJECT_DEVICE_MAX = 50;
+
+/** One project's device choices (`undefined` = no choice). */
+export type ProjectChoices = Pick<DeviceLayer, 'theme' | 'markdownOnly' | 'showHidden' | 'sort'>;
+/** `root:path` (as in `?project=`) to choices; insertion order is write recency (oldest first). */
+export type ProjectChoiceMap = Readonly<Record<string, ProjectChoices>>;
+
+const CHOICE_KEYS = ['theme', 'markdownOnly', 'showHidden', 'sort'] as const;
+type DeviceKey = (typeof CHOICE_KEYS)[number];
+
+/** Keeps only valid fields; `undefined` when nothing valid is left. */
+function cleanChoices(raw: unknown): ProjectChoices | undefined {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined;
+  const r = raw as Record<string, unknown>;
+  const out: ProjectChoices = {};
+  if (r.theme === 'system' || r.theme === 'light' || r.theme === 'dark') out.theme = r.theme;
+  if (typeof r.markdownOnly === 'boolean') out.markdownOnly = r.markdownOnly;
+  if (typeof r.showHidden === 'boolean') out.showHidden = r.showHidden;
+  if (r.sort === 'name' || r.sort === 'date') out.sort = r.sort;
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Never throws: bad JSON is an empty map, invalid fields and entries are dropped, 50 at most. */
+export function parseProjectChoices(raw: string | null): ProjectChoiceMap {
+  if (raw === null) return {};
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return {};
+  }
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return {};
+  const entries: [string, ProjectChoices][] = [];
+  for (const [k, v] of Object.entries(data)) {
+    if (!k.includes(':')) continue;
+    const c = cleanChoices(v);
+    if (c) entries.push([k, c]);
+  }
+  return Object.fromEntries(entries.slice(-PROJECT_DEVICE_MAX));
+}
+
+export function serializeProjectChoices(map: ProjectChoiceMap): string | null {
+  return Object.keys(map).length === 0 ? null : JSON.stringify(map);
+}
+
+export const projectDeviceStore = createStoredStore<ProjectChoiceMap>(
+  PROJECT_DEVICE_STORAGE_KEY,
+  parseProjectChoices,
+  serializeProjectChoices,
+);
+
+const stores = [
+  themeStore,
+  mdOnlyStore,
+  showHiddenStore,
+  sortStore,
+  textScaleStore,
+  projectDeviceStore,
+] as const;
 
 /** Test hook: forget every cached device value. */
 export function resetDeviceCaches(): void {
   for (const s of stores) s.reset();
 }
 
-type DeviceKey = 'theme' | 'markdownOnly' | 'showHidden' | 'sort';
 const byKey: { [K in DeviceKey]: StoredStore<DeviceLayer[K]> } = {
   theme: themeStore,
   markdownOnly: mdOnlyStore,
@@ -89,38 +149,84 @@ const byKey: { [K in DeviceKey]: StoredStore<DeviceLayer[K]> } = {
   sort: sortStore,
 };
 
+/** The device scope of a choice: a project's own entry, or (`null`/absent) the global keys. */
+export type DeviceScope = ProjectRef | null | undefined;
+
 /**
- * Writes one device choice (`undefined` removes it). This is the seam for PJ5b: inside a
- * project the write goes to that project's entry instead of the global key.
+ * Writes one device choice (`undefined` removes it) to the scope it was made in: inside a
+ * project only that project's entry changes (it becomes the most recently written), outside
+ * only the global key.
  */
-export function setDeviceChoice<K extends DeviceKey>(key: K, value: DeviceLayer[K]): void {
-  (byKey[key] as StoredStore<DeviceLayer[K]>).set(value);
+export function setDeviceChoice<K extends DeviceKey>(
+  key: K,
+  value: DeviceLayer[K],
+  scope?: DeviceScope,
+): void {
+  if (!scope) {
+    (byKey[key] as StoredStore<DeviceLayer[K]>).set(value);
+    return;
+  }
+  const id = formatProject(scope);
+  const map = projectDeviceStore.get();
+  const next: ProjectChoices = { ...map[id] };
+  if (value === undefined) delete next[key];
+  else (next as Record<string, unknown>)[key] = value;
+  const rest = Object.entries(map).filter(([k]) => k !== id);
+  if (Object.keys(next).length > 0) rest.push([id, next]);
+  projectDeviceStore.set(Object.fromEntries(rest.slice(-PROJECT_DEVICE_MAX)));
+}
+
+/**
+ * Clears this device's choices of the scope: the project's entry, or the four global keys.
+ * The text scale is global and untouched.
+ */
+export function resetDeviceChoices(scope?: DeviceScope): void {
+  if (scope) {
+    const id = formatProject(scope);
+    const map = projectDeviceStore.get();
+    if (!(id in map)) return;
+    projectDeviceStore.set(Object.fromEntries(Object.entries(map).filter(([k]) => k !== id)));
+    return;
+  }
+  for (const k of CHOICE_KEYS) (byKey[k] as StoredStore<unknown>).set(undefined);
 }
 
 const percentToScale = (p: number | undefined): number | undefined =>
   p === undefined ? undefined : p / 100;
 
-/** The device layer for the current scope (global only until PJ5b). */
-export function useDeviceLayer(): DeviceLayer {
+const EMPTY: ProjectChoices = {};
+
+/** The device layer for the scope: inside a project only its choices, else the global ones. */
+export function useDeviceLayer(scope?: DeviceScope): DeviceLayer {
   const theme = useSyncExternalStore(themeStore.subscribe, themeStore.get);
   const markdownOnly = useSyncExternalStore(mdOnlyStore.subscribe, mdOnlyStore.get);
   const showHidden = useSyncExternalStore(showHiddenStore.subscribe, showHiddenStore.get);
   const sort = useSyncExternalStore(sortStore.subscribe, sortStore.get);
   const percent = useSyncExternalStore(textScaleStore.subscribe, textScaleStore.get);
+  const projects = useSyncExternalStore(projectDeviceStore.subscribe, projectDeviceStore.get);
+  const id = scope ? formatProject(scope) : null;
+  const own = id === null ? undefined : (projects[id] ?? EMPTY);
   const textScale = percentToScale(percent);
   return useMemo(
-    () => ({ theme, markdownOnly, showHidden, sort, textScale }),
-    [theme, markdownOnly, showHidden, sort, textScale],
+    () => ({
+      theme: own ? own.theme : theme,
+      markdownOnly: own ? own.markdownOnly : markdownOnly,
+      showHidden: own ? own.showHidden : showHidden,
+      sort: own ? own.sort : sort,
+      textScale,
+    }),
+    [own, theme, markdownOnly, showHidden, sort, textScale],
   );
 }
 
-/** Non-React read of the global device layer (boot step). */
-export function readDeviceLayer(): DeviceLayer {
+/** Non-React read of the device layer of the scope (boot step). */
+export function readDeviceLayer(scope?: DeviceScope): DeviceLayer {
+  const own = scope ? (projectDeviceStore.get()[formatProject(scope)] ?? EMPTY) : undefined;
   return {
-    theme: themeStore.get(),
-    markdownOnly: mdOnlyStore.get(),
-    showHidden: showHiddenStore.get(),
-    sort: sortStore.get(),
+    theme: own ? own.theme : themeStore.get(),
+    markdownOnly: own ? own.markdownOnly : mdOnlyStore.get(),
+    showHidden: own ? own.showHidden : showHiddenStore.get(),
+    sort: own ? own.sort : sortStore.get(),
     textScale: percentToScale(textScaleStore.get()),
   };
 }
