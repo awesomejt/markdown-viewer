@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/awesomejt/markdown-viewer/internal/fsroot"
+	"go.yaml.in/yaml/v3"
 )
 
 func mustProject(t *testing.T, src string) (*Project, []Warning) {
@@ -288,9 +289,19 @@ func TestSyntaxErrorLines(t *testing.T) {
 	}{
 		{"scanner error line 3", "version: 1\nname: ok\nfoo: \"unterminated\n", 3},
 		{"scanner mapping value", "version: 1\nname: a: b\n", 2},
-		// Parser errors report the start of the enclosing construct (the
-		// block mapping that begins on line 3), not the offending line 4.
-		{"parser error reports context line", "version: 1\nsettings:\n  theme: dark\n - bad\n", 3},
+		// Scanner class: "found character that cannot start any token".
+		{"scanner line 1", "@a\n", 1},
+		{"scanner line 2", "a: 1\n@a\n", 2},
+		{"scanner line 5", "a: 1\nb: 1\nc: 1\nd: 1\n@a\n", 5},
+		// Parser class: "did not find expected key" (library says 1 and 4).
+		{"parser line 2", "a: 1\n- b\n", 2},
+		{"parser line 5", "a: 1\nb: 1\nc: 1\nd: 1\n- e\n", 5},
+		// Parser class: "did not find expected ',' or ']'", no library line.
+		{"parser line 1", "[1, 2}\n", 1},
+		// The library's context mark is the outer mapping on line 1 (0-based 0,
+		// treated as unset), so it reports the problem mark: 0-based 3, which
+		// is line 4 (" - bad").
+		{"parser error reports problem line", "version: 1\nsettings:\n  theme: dark\n - bad\n", 4},
 		{"parser error, second class", "version: 1\nname: x\n  y: z\n", 3},
 		{"unknown anchor has no line", "version: 1\nname: *nope\n", 0},
 		{"tab indentation", "version: 1\nsettings:\n\ttheme: dark\n", 3},
@@ -313,6 +324,27 @@ func TestSyntaxErrorLines(t *testing.T) {
 			}
 			checkText(t, pe.Msg, MaxMessageRunes)
 		})
+	}
+}
+
+// TestLibraryErrorLineBehavior pins the raw library line numbers that
+// syntaxError corrects, so a library change is noticed.
+func TestLibraryErrorLineBehavior(t *testing.T) {
+	for src, want := range map[string]string{
+		// parser class: 0-based, one too low (true lines 2 and 5)
+		"a: 1\n- b\n":                   "yaml: line 1: did not find expected key",
+		"a: 1\nb: 1\nc: 1\nd: 1\n- e\n": "yaml: line 4: did not find expected key",
+		// parser class on line 1: no prefix
+		"[1, 2}\n": "yaml: did not find expected ',' or ']'",
+		// scanner class: 1-based; line 1 has no prefix
+		"a: 1\n@a\n": "yaml: line 2: found character that cannot start any token",
+		"@a\n":       "yaml: found character that cannot start any token",
+	} {
+		var n yaml.Node
+		err := yaml.Unmarshal([]byte(src), &n)
+		if err == nil || err.Error() != want {
+			t.Errorf("library error for %q = %v, want %q", src, err, want)
+		}
 	}
 }
 
