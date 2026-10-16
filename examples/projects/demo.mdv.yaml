@@ -1,0 +1,20 @@
+# Demo mdv project. Open it from the listing; it shows the project sidebar.
+# Paths are relative to this file's folder (examples/projects/), so "../" is
+# the examples root. The entries marked "warning" below are broken on purpose
+# and show up in the project's warnings panel. Everything else works.
+version: 1
+name: mdv demo project
+open: ../gfm-tour.md
+include:
+  - ../guide/  # folder: expandable tree
+  - ../mermaid.md  # file
+  - ../d2.md  # file
+  - ../no-such-folder/  # warning: missing (nothing at that path)
+  - ../gfm-tour.md/  # warning: not_a_dir (trailing / says folder, but it is a file)
+  - ../../outside.md  # warning: outside_root (leaves the examples root)
+  - notes:intro.md  # warning: cross_root_unsupported (<root>:<path> is not supported yet)
+settings:
+  fontSize: 99  # warning: invalid_value (allowed range is 12 to 32; the key is ignored)
+  contentWidth: wide
+# warning: unknown_key (not part of the project schema; ignored)
+favorite: true

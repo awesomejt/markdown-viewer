@@ -117,7 +117,8 @@ MDV_PORT=8080
 - `MDV_ALLOWED_HOSTS` is needed if you will open mdv by name. See [Opening by hostname](#opening-by-hostname).
 - A root path must be a real directory (or a mount point), not a symlink; symlinks in its parent folders are fine. A root may be a subfolder of a share (`notes=/data/nas/markdown/notes`), but then everyone who can write to its parent folders can rename or replace it. mdv refuses a root that is a symlink (also after a restart), resolves symlinks in the parent folders once, and on every open checks the whole path without following symlinks, so a root or parent folder replaced by a symlink while mdv runs goes unavailable instead of exposing other files (FIX-21). A parent folder replaced by a symlink before mdv starts is still followed, so keep the parent folders, up to the mount point, writable only by trusted users. The root then shows as unavailable until the directory is put back. To point a root elsewhere, edit `MDV_ROOTS` and restart.
 
-- Global preferences (optional): copy `config/preferences.example.yaml` to `config/preferences.yaml` in the stack folder. The file is untracked, so re-archiving the stack does not overwrite it, and mdv re-reads it on every request. Keep it out of the served roots.
+- Global preferences (optional): copy `config/preferences.example.yaml` to `config/preferences.yaml` in the stack folder. Compose sets `MDV_PREFS=/config/preferences.yaml` and bind-mounts `./config` read-only at `/config`. The file is untracked, so re-archiving the stack does not overwrite it. mdv re-reads it on every request, so edits apply without a restart, and a missing file means defaults. Keep it out of the served roots.
+- Project files (`*.mdv.yaml`) live inside the served roots, next to the notes they describe. They need no deployment setting. See [Project files](../README.md#project-files).
 
 The `.env` file holds no secrets, but keep it out of Git if it names private paths.
 

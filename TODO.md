@@ -40,9 +40,8 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ7 is ready now.
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ8 is ready now.
 
-- [ ] **PJ7** [S] Docs + example project with an unresolved reference (deps: PJ6)
 - [ ] **PJ8** [H] Full validation + deploy to docker2 (deps: PJ7)
 - [ ] **PJ9** [O] Phase 2b review (deps: PJ8)
 
@@ -80,6 +79,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-16: **PJ7** [S] Docs: README "Project files" section and a shared settings table under Global preferences, Deployment preferences/project bullets; example `examples/projects/demo.mdv.yaml` with valid entries plus six intentional warnings (missing folder, file as folder, `../../` outside the root, `notes:` cross-root, unknown key, `fontSize: 99`), confirmed against a running server.
 - [x] 2026-10-16: **PJ6** [S] "Projects only" toolbar checkbox (not persisted, keeps folders), briefcase project icon, Recent projects (`mdv-recent-projects`, 10, recorded when the project loads, on Home and in the normal sidebar; links enter the project afresh), recent files/folders carry their `project`. Web tests 431 passed; `make check` and `make e2e` passed.
 - [x] 2026-10-16: **FIX-29** [S] Flaky Shiki-dependent web tests: `ViewFileView` text query broke once a warm Shiki split the line into spans (now `findCodeText` matches the `<pre>` in both states); cold Shiki start exceeded the 1 s `waitFor` default under load (`SHIKI_WAIT` 5 s in `CodeFile`/`highlight` tests). 8 concurrent full web runs passed.
 - [x] 2026-10-16: **PJ5b** [S] Project sidebar (title, Source/Open/Close project links, warnings `<details>` with server + client warnings and Re-check, entry tree sharing `TreeRows` with the workspace tree, "not part of the project" note), live sub on the project file (`keysForChange` adds the project key), keep last good (422 error line, 504/network "may be out of date", 404 drops data and settings), per-project device choices `mdv-project-device` (50 max, write-recency order) through the scoped `setDeviceChoice`/`useDeviceLayer`/boot read, one Reset control per scope. Isolation and 404 tests shown red under mutation. Web tests 412 passed (96.7% lines), `make e2e` 299 passed, 1 skipped.

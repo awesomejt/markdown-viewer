@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ7 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ8 (Phase 2b validation + docker2 deploy, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -93,6 +93,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ7)
+
+- Task: project file and preferences docs, example project. Sonnet documentor; orchestrator checked the README UI claims against the client (labels, text scale 50-200 %, `../` only as leading segments) and ran mdv on `examples/` to confirm the demo project's warnings. Haiku gate and merge.
+- Files changed: `README.md` (shared settings table under Global preferences, new "Project files" section), `docs/Deployment.md` (preferences bullet, project files bullet), new `examples/projects/demo.mdv.yaml`, `examples/README.md`.
+- Result: `GET /api/project` on the demo returns 3 entries, `open` `gfm-tour.md` and exactly the six intended warnings (`invalid_value`, `unknown_key`, `missing`, `not_a_dir`, `outside_root`, `cross_root_unsupported`).
+- Blockers or follow-up: none. README says `style`/`font`/`codeFont`/`readTime` are accepted but have no effect until Phase 2c.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ6)
 
 - Task: "Projects only" filter, project icon, Recent projects, `project` on recent items. Sonnet coder; orchestrator review removed a dead "not after a 404" recording guard (a 404 only follows a success, which already recorded the project; its test could not fail under mutation) and made the `recent.spec.ts` role queries exact (Playwright names match by substring, so "Recent" also hit "Recent projects"). Haiku gate and merge.
@@ -107,10 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/markdown/test-utils.ts` (`SHIKI_WAIT` 5 s, `findCodeText` matching a `<pre>` by full text in both states); `ViewFileView.test.tsx`, `CodeFile.test.tsx`, `highlight.test.tsx` use them.
 - Result: the probe passes; 8 concurrent full web runs (2 rounds of 4) passed.
 - Blockers or follow-up: none.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5b)
-
-- Task: project sidebar, warnings, live reload with keep-last-good, per-project device choices. Sonnet coder; orchestrator reviewed (all device writers go through `useSettings`, so scope is enforced in one place) and showed the isolation and 404 tests red under mutation; Haiku gate and merge.
-- Files changed: new `web/src/workspace/TreeRows.tsx` (shared `TreeRow`/`TreeChildren`/`TREE_PAGE`), `web/src/project/` (`ProjectSidebar`, `ProjectTree`, `ProjectWarnings`, `logic.ts`, `project.css`; provider computes effective `data` + `problem` and subscribes to the project file), `settings/device.ts` (`mdv-project-device`, scope arg on `setDeviceChoice`/`useDeviceLayer`/`readDeviceLayer`/`resetDeviceChoices`), `boot.ts` (reads `?project=`), `useSettings.ts`, `project.ts` (`useProjectWarnings`), new `ResetChoices.tsx`, `live/logic.ts`, `Layout.tsx`, tests, e2e live edit in the `live` root, `docs/Architecture.md` PJ5b notes.
-- Result: web tests 412 passed (96.7% lines); `make e2e` 299 passed, 1 skipped. Deviation: a "Close project" link was added to the sidebar (otherwise only Home leaves a healthy project).
-- Blockers or follow-up: an unknown style/font in a project shows in both the prefs banner and the project warnings. Gate found a sidebar test race (asserted before the project sidebar rendered; orchestrator made it wait). The PJ4b `ViewFileView` flake recurred once under concurrent runs: FIX-29.
