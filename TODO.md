@@ -46,9 +46,8 @@ All Phase 2b tasks are done.
 
 ## Phase 2c: Reading Experience
 
-Owner request (D-31): reading styles, bundled OFL fonts, focus mode for voice-over reading, read-time estimates. Details in `docs/Implementation.md` (Phase 2c). RX0, RT1 and FM1 are ready now.
+Owner request (D-31): reading styles, bundled OFL fonts, focus mode for voice-over reading, read-time estimates. Details in `docs/Implementation.md` (Phase 2c). RX0 is done (D-35); RT1, FM1 and DS1 are ready now.
 
-- [ ] **RX0** [S] Survey Typora/Obsidian/VS Code preview styles; propose 3-4 styles + OFL font shortlist with sizes (owner picks)
 - [ ] **RT1** [S] Read-time estimate: words + minutes at 160 wpm default; front matter/diagrams/math always excluded, headings and code excluded by default (FR-9.6)
 - [ ] **RT2** [S] Per-section read times in the TOC; `readTime` settings (`wpm`, `includeHeadings`, `includeCode`) in preferences + project (deps: RT1, PJ4a)
 - [ ] **FM1** [S] Focus mode: content only, toggle + shortcut + `?focus=1`, Esc/exit (FR-9.4)
@@ -78,6 +77,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-16: **RX0** [S] Style/font survey (`agents/RX0-Styles.md`); owner picked all recommendations (D-35): styles `github`/`clean`/`book`/`script`; Inter, Literata, JetBrains Mono, Atkinson Hyperlegible Next with italics, ~0.68 MB woff2 (sizes verified on jsDelivr).
 - [x] 2026-10-16: **DOC3** [S] Phase 2b docs drift: `ProjectGate` keeps `?source=1` when entering by the file URL (test added; source assertions match whole `<code>` text, as Shiki splits spans); Architecture (built status, `./a:b/c` root-level caveat, project files enter the project, `useProjectLayer`/device-layer notes), README + FR-8.5 (only the project's device choices apply in a project), dotfile note, example `font` warns until DS1.
 - [x] 2026-10-16: **FIX-35** [S] YAML error lines: `syntaxError` classifies go-yaml v3.0.4 problems; parser-class gets +1, a prefix-less scanner/parser problem is line 1. Fixed the pinned case (3 → 4), added lines 1/2/5 per class and a raw-library guard test.
 - [x] 2026-10-16: **FIX-34** [S] `statRes` records `regular`: a FIFO/socket/device as `open` gives `not_a_file`, as an include `forbidden` (matches `/api/file`). `prefs_unreadable` WARN logs a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Go tests: FIFO open/include, `TestPrefsLogCauses` (no path in logs).
