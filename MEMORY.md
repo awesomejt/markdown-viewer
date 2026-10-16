@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ6 (Phase 2b, D-30; FIX-29 done); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ7 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -93,6 +93,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ6)
+
+- Task: "Projects only" filter, project icon, Recent projects, `project` on recent items. Sonnet coder; orchestrator review removed a dead "not after a 404" recording guard (a 404 only follows a success, which already recorded the project; its test could not fail under mutation) and made the `recent.spec.ts` role queries exact (Playwright names match by substring, so "Recent" also hit "Recent projects"). Haiku gate and merge.
+- Files changed: `web/src/browse/` (`filterEntries` `projectsOnly`, `BrowseView` checkbox, briefcase `project` glyph in `KindIcon`, `RootsView`), new `web/src/recent/recentProjects.ts` + `RecentProjects.tsx`, `recent.ts`/`RecentList.tsx` (`project` stored as the `formatProject` string, wins over `ws`), `ProjectProvider.tsx` (records on load), `ViewFileView.tsx`, `Layout.tsx`, tests, e2e in `project.spec.ts`, `docs/Architecture.md` PJ6 notes.
+- Result: web tests 431 passed; `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: none. Recent projects are not shown inside a project (the project sidebar replaces the normal one).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-29)
 
 - Task: flaky Shiki-dependent web tests. Orchestrator fixed it directly (test-only change, smaller than a coder brief). Haiku gate and merge.
@@ -107,10 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/workspace/TreeRows.tsx` (shared `TreeRow`/`TreeChildren`/`TREE_PAGE`), `web/src/project/` (`ProjectSidebar`, `ProjectTree`, `ProjectWarnings`, `logic.ts`, `project.css`; provider computes effective `data` + `problem` and subscribes to the project file), `settings/device.ts` (`mdv-project-device`, scope arg on `setDeviceChoice`/`useDeviceLayer`/`readDeviceLayer`/`resetDeviceChoices`), `boot.ts` (reads `?project=`), `useSettings.ts`, `project.ts` (`useProjectWarnings`), new `ResetChoices.tsx`, `live/logic.ts`, `Layout.tsx`, tests, e2e live edit in the `live` root, `docs/Architecture.md` PJ5b notes.
 - Result: web tests 412 passed (96.7% lines); `make e2e` 299 passed, 1 skipped. Deviation: a "Close project" link was added to the sidebar (otherwise only Home leaves a healthy project).
 - Blockers or follow-up: an unknown style/font in a project shows in both the prefs banner and the project warnings. Gate found a sidebar test race (asserted before the project sidebar rendered; orchestrator made it wait). The PJ4b `ViewFileView` flake recurred once under concurrent runs: FIX-29.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5a)
-
-- Task: `?project=` routing and project mode entry. Sonnet coder; orchestrator review found "Close project" re-entering the project when shown on the project file itself (where a failed load lands) and sent it back; the fix's test was shown red by the orchestrator. Orchestrator made the sidebar root list an explicit exit (contract). Haiku gate and merge.
-- Files changed: `web/src/api/client.ts` (`ProjectRef`, `NavScope`, `parseProjectParam`/`formatProject`, `getProject`, `ApiError.line`), `api/hooks.ts` (`useProjectQuery`, `notifyOnChangeProps: 'all'` because deeper readers mount after the result), new `web/src/project/` (`ProjectProvider`, `ProjectGate`, `ProjectHome`, `useNavScope`, tests), `settings/project.ts` (real `useProjectLayer`), callers moved to `NavScope` (browse, workspace, fileview, markdown links, recent, Layout), `live/logic.ts` (`isApiQueryKey` knows `project`), e2e `project.spec.ts` + `testdata/fixtures/projects/`, `internal/fsroot/list_test.go` (new fixture folder), `docs/Architecture.md` PJ5a notes.
-- Result: web tests 392 passed (96.5% lines); `make e2e` 283 passed, 1 skipped.
-- Blockers or follow-up: `useProjectLayer` keeps the last data of the current key, so PJ5b's keep-last-good builds on it. No live sub on the project file yet (PJ5b).

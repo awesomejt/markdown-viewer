@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5a)
+
+- Task: `?project=` routing and project mode entry. Sonnet coder; orchestrator review found "Close project" re-entering the project when shown on the project file itself (where a failed load lands) and sent it back; the fix's test was shown red by the orchestrator. Orchestrator made the sidebar root list an explicit exit (contract). Haiku gate and merge.
+- Files changed: `web/src/api/client.ts` (`ProjectRef`, `NavScope`, `parseProjectParam`/`formatProject`, `getProject`, `ApiError.line`), `api/hooks.ts` (`useProjectQuery`, `notifyOnChangeProps: 'all'` because deeper readers mount after the result), new `web/src/project/` (`ProjectProvider`, `ProjectGate`, `ProjectHome`, `useNavScope`, tests), `settings/project.ts` (real `useProjectLayer`), callers moved to `NavScope` (browse, workspace, fileview, markdown links, recent, Layout), `live/logic.ts` (`isApiQueryKey` knows `project`), e2e `project.spec.ts` + `testdata/fixtures/projects/`, `internal/fsroot/list_test.go` (new fixture folder), `docs/Architecture.md` PJ5a notes.
+- Result: web tests 392 passed (96.5% lines); `make e2e` 283 passed, 1 skipped.
+- Blockers or follow-up: `useProjectLayer` keeps the last data of the current key, so PJ5b's keep-last-good builds on it. No live sub on the project file yet (PJ5b).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4b)
 
 - Task: device text scale. Sonnet coder; orchestrator reviewed and merged the duplicated round/clamp code into `snapTextScale`; Haiku gate and merge.
