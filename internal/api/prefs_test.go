@@ -383,3 +383,53 @@ func TestPrefsSharedParseSem(t *testing.T) {
 		t.Errorf("res = %+v", res)
 	}
 }
+
+// prefsLogOf returns the log text after one /api/prefs request.
+func prefsLogOf(t *testing.T, s *Server, logs *bytes.Buffer) string {
+	t.Helper()
+	getPrefs(t, s)
+	return logs.String()
+}
+
+func TestPrefsLogCauses(t *testing.T) {
+	fifo := filepath.Join(t.TempDir(), "preferences.yaml")
+	fifoOK := syscall.Mkfifo(fifo, 0o600) == nil
+	unreadable := writePrefs(t, "settings:\n  theme: dark\n")
+	if err := os.Chmod(unreadable, 0); err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		name  string
+		path  string
+		setup func(*Server)
+		skip  bool
+		want  []string
+	}{
+		{name: "invalid", path: writePrefs(t, "settings: [\n"), want: []string{"level=WARN", "code=prefs_invalid", "line="}},
+		{name: "fifo", path: fifo, skip: !fifoOK, want: []string{"level=WARN", "code=prefs_unreadable", "cause=not_regular"}},
+		{name: "permission", path: unreadable, skip: os.Geteuid() == 0, want: []string{"level=WARN", "cause=permission"}},
+		{name: "io", path: "/unused/preferences.yaml",
+			setup: func(s *Server) { s.prefsStore.read = func(string) ([]byte, error) { return nil, errors.New("boom") } },
+			want:  []string{"level=WARN", "cause=io"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.skip {
+				t.Skip("not testable here")
+			}
+			s, logs := prefsServer(t, c.path, 0)
+			if c.setup != nil {
+				c.setup(s)
+			}
+			out := prefsLogOf(t, s, logs)
+			for _, w := range c.want {
+				if !strings.Contains(out, w) {
+					t.Errorf("log missing %q:\n%s", w, out)
+				}
+			}
+			if strings.Contains(out, c.path) || strings.Contains(out, "preferences.yaml") {
+				t.Errorf("log leaks the path:\n%s", out)
+			}
+		})
+	}
+}
