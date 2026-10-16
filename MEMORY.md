@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), all done
-- Next recommended task: RX0 (Phase 2c); RT1 and FM1 are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK; FIX-32 to FIX-35 not deployed yet) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: RX0 done (2026-10-16): Phase 2c styles and fonts picked (D-35)
+- Next recommended task: RT1 (Phase 2c); FM1 and DS1 are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK; FIX-32 to FIX-35 not deployed yet) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -24,6 +24,7 @@ Full log: `agents/Decisions.md`.
 - Per-task Git workflow, YAML lint configs, coverage gates, `build/` artifacts (D-13 to D-15).
 - Model tiers (D-18): Haiku = Git + tool runs only; Sonnet = authoring/research/planning; Opus = big reviews, debates, escalations. Always verify subagent claims independently: Haiku overstated results in P0.1 and P0.2.
 - Phase 2b (D-30): `*.mdv.yaml` project files + global `preferences.yaml` + per-device relative text scale; cross-root refs later (FUT7), project save later (FUT8).
+- Phase 2c styles/fonts (D-35): `github` (default), `clean`, `book`, `script`; Inter, Literata, JetBrains Mono, Atkinson Hyperlegible Next (variable, with italics, ~0.68 MB); `font`/`codeFont` override the style.
 - Phase 2c (D-31): reading styles + bundled OFL fonts served by mdv (no internet, NFR-5), focus mode for VO reading, read-time estimates (160 wpm default, `includeCode` per project, D-32); teleprompter later (FUT9).
 - Future (post-MVP): voice-over script Markdown extensions (see `docs/Requirements.md`, VO-1..VO-8).
 
@@ -77,6 +78,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
 - Project stat cache (PJ3): a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`, so PJ5b's "Re-check" may want to bypass the cache.
+- Prefs logs (FIX-34): the `busy`/`timeout` causes of `prefs_unreadable` have no dedicated log test.
 - Projects (PJ9, D-34): a reference into a hung sub-mount can hold both stat slots of its root, so later projects there report `unavailable` after 2 × `MDV_FS_TIMEOUT` (`/api/file` unaffected). YAML library messages may echo an anchor name (sanitized). Settings apply in `useEffect` (one possible stale frame); a reloaded project's theme is not cached (prefs theme shows until the project loads). `FolderFiles` is keyed by root only (its "Show more" limit carries across folders) and always sorts by name.
 - Project warnings (PJ5b): an unknown style/font name set by a project appears both in the prefs banner (resolved-value warnings) and in the project warnings panel.
 - Settings parser (PJ1): the non-specific YAML tag `!` (for example `fontSize: ! 18`) passes the pre-check because go-yaml discards it, so the value is typed as if untagged (no security impact; pinned by a test). Integers are decimal only (no hex/octal/underscores).
@@ -94,6 +96,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (RX0)
+
+- Task: style and font survey. Sonnet researcher wrote `agents/RX0-Styles.md` (survey, 4 styles, OFL shortlist with Fontsource woff2 sizes, fallback stacks); orchestrator re-fetched the Inter, Literata and Atkinson sizes and licenses from jsDelivr (match). Owner answered via AskUserQuestion: all recommendations (D-35).
+- Files changed: `agents/RX0-Styles.md` (new), `agents/Decisions.md` (D-35), `docs/Architecture.md` (Reading Experience, registry notes).
+- Result: docs only; `make check` passed in the gate.
+- Blockers or follow-up: survey rows for some Typora/Obsidian themes come from general knowledge (web search was thin); they are inspiration only.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (DOC3)
 
 - Task: Phase 2b docs drift. Chose the code fix for `?source=1`: `Entering` in `ProjectGate` navigates at once to the project file with `project=` and `source=1` (README claim now holds). Orchestrator verified the `./a:b/c` caveat in `projectref.go`/`fsroot/guard.go` and the device-layer scoping. Sonnet coder; orchestrator reviewed and tightened wording.
@@ -107,10 +116,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/settings/parse.go`, `parse_test.go` (lines 1/2/5 per class, raw-library guard `TestLibraryErrorLineBehavior`), `docs/Architecture.md`.
 - Result: `make check` passed in the gate.
 - Blockers or follow-up: a go-yaml bump must re-check the problem lists (the guard test fails on a line-behavior change, not on new problem strings).
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-34)
-
-- Task: `/api/project` treated FIFOs/sockets/devices as files. `statRes` now records `regular`; a non-regular `open` gives `not_a_file`, a non-regular include `forbidden` (verified: `/api/file` answers 403 `forbidden` via `fsroot` `KindForbidden`). `LimitedStat` follows in-root symlinks, so a symlink to a regular file stays regular. `prefs_unreadable` WARN logs carry a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Sonnet coder; orchestrator reviewed and updated Architecture.
-- Files changed: `internal/api/project.go`, `projectflight.go`, `prefs.go`, tests in `project_test.go` (FIFO open, `TestProjectIncludeFIFO`) and `prefs_test.go` (`TestPrefsLogCauses`, no path in logs), `docs/Architecture.md`.
-- Result: `make check` and `make e2e` passed in the gate.
-- Blockers or follow-up: `busy`/`timeout` causes have no dedicated log test.

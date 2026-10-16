@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-34)
+
+- Task: `/api/project` treated FIFOs/sockets/devices as files. `statRes` now records `regular`; a non-regular `open` gives `not_a_file`, a non-regular include `forbidden` (verified: `/api/file` answers 403 `forbidden` via `fsroot` `KindForbidden`). `LimitedStat` follows in-root symlinks, so a symlink to a regular file stays regular. `prefs_unreadable` WARN logs carry a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Sonnet coder; orchestrator reviewed and updated Architecture.
+- Files changed: `internal/api/project.go`, `projectflight.go`, `prefs.go`, tests in `project_test.go` (FIFO open, `TestProjectIncludeFIFO`) and `prefs_test.go` (`TestPrefsLogCauses`, no path in logs), `docs/Architecture.md`.
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: `busy`/`timeout` causes have no dedicated log test.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-33)
 
 - Task: `?project=` into a missing folder failed `/api/events` (reconnect loop) and entering a project fetched `/api/project` twice. `ProjectLive` now subscribes the project file as `lsub` until the first success, then as a normal `sub` (an invalid-on-first-load project file still live-reloads); `useProjectQuery` `staleTime` 5 s (live changes still refetch via `invalidateQueries`). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
