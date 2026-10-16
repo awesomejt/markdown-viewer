@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isHighlighterStarted, resetHighlighter } from '../markdown/highlight';
 import { MAX_HIGHLIGHT_CHARS } from '../markdown/highlight';
 import { CodeFile } from './CodeFile';
+import { SHIKI_WAIT } from '../markdown/test-utils';
 
 const settle = () => new Promise((r) => setTimeout(r, 50));
 
@@ -14,7 +15,7 @@ describe('CodeFile', () => {
       <CodeFile path="text/sample.go" text={'package sample\n\nfunc Hello() {}\n'} />,
     );
     expect(container.querySelector('pre.text-file')?.textContent).toContain('package sample');
-    await vi.waitFor(() => expect(container.querySelector('pre.shiki')).not.toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('pre.shiki')).not.toBeNull(), SHIKI_WAIT);
     const code = container.querySelector('pre.shiki code');
     expect(code).toHaveClass('language-go');
     expect(code?.textContent).toBe('package sample\n\nfunc Hello() {}');
@@ -25,7 +26,7 @@ describe('CodeFile', () => {
   it('keeps file content as text', async () => {
     const text = 'const s = "<img src=x onerror=alert(1)>";\n';
     const { container } = render(<CodeFile path="x.ts" text={text} />);
-    await vi.waitFor(() => expect(container.querySelector('pre.shiki')).not.toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('pre.shiki')).not.toBeNull(), SHIKI_WAIT);
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('pre.shiki code')?.textContent).toBe(text.trimEnd());
   });

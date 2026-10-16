@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { findCodeText } from '../markdown/test-utils';
 
 const mtime = '2026-01-02T03:04:05Z';
 const yaml = 'version: 1\nname: Docker course\n';
@@ -62,13 +63,13 @@ describe('ViewFileView with project files', () => {
   it("opens the open project's file as YAML text with ?source=1", async () => {
     renderAt('/view/r/proj/c.mdv.yaml?project=r:proj/c.mdv.yaml&source=1');
     expect(await screen.findByRole('heading', { name: 'c.mdv.yaml' })).toBeInTheDocument();
-    expect(await screen.findByText(/name: Docker course/)).toBeInTheDocument();
+    expect(await findCodeText(/name: Docker course/)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Download/ })).toBeNull();
   });
 
   it('falls back to the project kind (text view) when the listing is unavailable', async () => {
     renderAt('/view/r/lost/.mdv.yml?project=r:lost/.mdv.yml&source=1');
     expect(await screen.findByRole('heading', { name: '.mdv.yml' })).toBeInTheDocument();
-    expect(await screen.findByText(/name: Docker course/)).toBeInTheDocument();
+    expect(await findCodeText(/name: Docker course/)).toBeInTheDocument();
   });
 });

@@ -12,6 +12,7 @@ import {
   resolveLanguage,
 } from './highlight';
 import MarkdownView from './MarkdownView';
+import { SHIKI_WAIT } from './test-utils';
 
 vi.mock('../diagrams/mermaid', () => ({
   renderMermaid: () => ({
@@ -83,7 +84,7 @@ describe('syntax highlighting', () => {
     const { body } = renderMd('```ts\nconst x: number = 1;\n```');
     expect(body.querySelector('pre code.language-ts')?.textContent).toContain('const x');
     expect(body.querySelector('.shiki')).toBeNull();
-    await vi.waitFor(() => expect(body.querySelector('pre.shiki')).not.toBeNull());
+    await vi.waitFor(() => expect(body.querySelector('pre.shiki')).not.toBeNull(), SHIKI_WAIT);
     const code = body.querySelector('pre.shiki code');
     expect(code).toHaveClass('language-ts');
     expect(code?.textContent).toBe('const x: number = 1;');
@@ -100,7 +101,7 @@ describe('syntax highlighting', () => {
         '<img src=x onerror=alert(3)>',
       ].join('\n\n'),
     );
-    await vi.waitFor(() => expect(body.querySelector('pre.shiki')).not.toBeNull());
+    await vi.waitFor(() => expect(body.querySelector('pre.shiki')).not.toBeNull(), SHIKI_WAIT);
     expect(body.querySelector('script')).toBeNull();
     expect(body.querySelector('.shiki img, .shiki script')).toBeNull();
     expect(body.querySelector('img[onerror]')).toBeNull();
@@ -154,7 +155,7 @@ describe('syntax highlighting', () => {
     const { body } = renderMd(
       '```go\npackage a\n```\n\n```golang\npackage b\n```\n\n```py\nx = 1\n```',
     );
-    await vi.waitFor(() => expect(body.querySelectorAll('pre.shiki').length).toBe(3));
+    await vi.waitFor(() => expect(body.querySelectorAll('pre.shiki').length).toBe(3), SHIKI_WAIT);
     expect(go).toHaveBeenCalledTimes(1);
     expect(python).toHaveBeenCalledTimes(1);
     expect(rust).not.toHaveBeenCalled();
@@ -177,7 +178,7 @@ describe('syntax highlighting', () => {
     const { rerender, container } = render(
       <RouterProvider router={make('```json\n{"a": 1}\n```')} />,
     );
-    await vi.waitFor(() => expect(container.querySelector('pre.shiki')).not.toBeNull());
+    await vi.waitFor(() => expect(container.querySelector('pre.shiki')).not.toBeNull(), SHIKI_WAIT);
     expect(container.querySelector('pre.shiki')?.textContent).toBe('{"a": 1}');
     rerender(<RouterProvider router={make('```json\n{"b": 2}\n```')} />);
     await vi.waitFor(() =>
