@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34)
-- Next recommended task: FIX-30, then FIX-31 (both before V1), then FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34); FIX-30 done
+- Next recommended task: FIX-31 (before V1), then FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -94,6 +94,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-30)
+
+- Task: project `open` outside `include` was flagged "not part of the project" (the shipped demo hit it). Sonnet coder; orchestrator reviewed the diff and tests. Haiku gate and merge.
+- Files changed: `web/src/project/logic.ts` (`inProject` takes `root` and `open`; counts the open file on a file route in the project's root), `ProjectSidebar.tsx`, new `web/src/project/logic.test.ts`, new fixture `testdata/fixtures/projects/outside-open.mdv.yaml`, e2e in `project.spec.ts` (no note, warnings panel open with 1 item).
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ9)
 
 - Task: Phase 2b review. Three parallel Opus reviewers (backend/security with hostile project files, fuzzing and a slow/hung-stat harness on port 18091; frontend/iPad with vitest and Playwright probes; requirements conformance against a live server). Orchestrator verified each medium/low finding in source (`inProject` ignores `open`, `.app-title` flex rule, `isEditable` covers all `INPUT`/`SELECT`, `ProjectLive` mounts before success, `statRes` has only `dir`, `syntaxError` line offset).
@@ -106,10 +113,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Task: full validation and docker2 deploy (owner approved the deploy). Haiku validator ran the gates; orchestrator deployed.
 - Result: `make check` passed (431 web tests, Go coverage all above thresholds), `go test -race ./...` clean, `make e2e` 311 passed, 1 skipped (Ctrl keys on ipad), `docker compose build` passed. docker2 upgraded from 7e7bf4c to fe9c96a (`git archive main` into `/opt/stacks/mdv`, `MDV_VERSION` and `.deployed-commit` updated, `systemctl reload docker-compose@mdv`): container healthy, `/api/prefs` `configured:true` with no file (WARN `missing` logged, defaults), root `content` available, LAN 200.
 - Blockers or follow-up: the image build's `npm audit` 5 high findings are the known dev-only `braces` ones (FIX-20). No `config/preferences.yaml` on docker2 yet (owner may add one). V1 iPad checklist still open and now also covers Phase 2b.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ7)
-
-- Task: project file and preferences docs, example project. Sonnet documentor; orchestrator checked the README UI claims against the client (labels, text scale 50-200 %, `../` only as leading segments) and ran mdv on `examples/` to confirm the demo project's warnings. Haiku gate and merge.
-- Files changed: `README.md` (shared settings table under Global preferences, new "Project files" section), `docs/Deployment.md` (preferences bullet, project files bullet), new `examples/projects/demo.mdv.yaml`, `examples/README.md`.
-- Result: `GET /api/project` on the demo returns 3 entries, `open` `gfm-tour.md` and exactly the six intended warnings (`invalid_value`, `unknown_key`, `missing`, `not_a_dir`, `outside_root`, `cross_root_unsupported`).
-- Blockers or follow-up: none. README says `style`/`font`/`codeFont`/`readTime` are accepted but have no effect until Phase 2c.

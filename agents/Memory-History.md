@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ7)
+
+- Task: project file and preferences docs, example project. Sonnet documentor; orchestrator checked the README UI claims against the client (labels, text scale 50-200 %, `../` only as leading segments) and ran mdv on `examples/` to confirm the demo project's warnings. Haiku gate and merge.
+- Files changed: `README.md` (shared settings table under Global preferences, new "Project files" section), `docs/Deployment.md` (preferences bullet, project files bullet), new `examples/projects/demo.mdv.yaml`, `examples/README.md`.
+- Result: `GET /api/project` on the demo returns 3 entries, `open` `gfm-tour.md` and exactly the six intended warnings (`invalid_value`, `unknown_key`, `missing`, `not_a_dir`, `outside_root`, `cross_root_unsupported`).
+- Blockers or follow-up: none. README says `style`/`font`/`codeFont`/`readTime` are accepted but have no effect until Phase 2c.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-29)
 
 - Task: flaky Shiki-dependent web tests. Orchestrator fixed it directly (test-only change, smaller than a coder brief). Haiku gate and merge.
