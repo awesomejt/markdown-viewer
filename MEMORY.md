@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34); FIX-30 done
-- Next recommended task: FIX-31 (before V1), then FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 and FIX-31 done
+- Next recommended task: FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -94,6 +94,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-31)
+
+- Task: header at 320 px (Home link collapsed to 0 px), project link touch targets, `.text-scale-reset` specificity. Sonnet coder; orchestrator review replaced the coder's `display: flex` on `.app-title` (it would stop the ellipsis on the full label above 400 px) with `line-height: var(--touch)`, and confirmed the text scale only sizes `.markdown-body`, so the 320 px budget (~5 px slack) holds at any scale. Haiku gate and merge.
+- Files changed: `web/src/app/Layout.tsx` (full/short label spans, `aria-label`), `web/src/app/app.css`, `web/src/project/project.css`, e2e in `settings.spec.ts` and `project.spec.ts`.
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: V1 should eyeball the "MDV" label and the taller project links on the iPad.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-30)
 
 - Task: project `open` outside `include` was flagged "not part of the project" (the shipped demo hit it). Sonnet coder; orchestrator reviewed the diff and tests. Haiku gate and merge.
@@ -107,9 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-34), `agents/Memory-History.md`, `status.yaml` only. No source changes. Scratch fixtures and harness in `build/pj9/`.
 - Result: no high findings; 2 medium, 6 low, several nits grouped into FIX-30 to FIX-35 and DOC3. FIX-30/FIX-31 before V1.
 - Blockers or follow-up: V1 checklist should include Cmd `+`/`−` on a hardware keyboard and Slide Over width.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ8)
-
-- Task: full validation and docker2 deploy (owner approved the deploy). Haiku validator ran the gates; orchestrator deployed.
-- Result: `make check` passed (431 web tests, Go coverage all above thresholds), `go test -race ./...` clean, `make e2e` 311 passed, 1 skipped (Ctrl keys on ipad), `docker compose build` passed. docker2 upgraded from 7e7bf4c to fe9c96a (`git archive main` into `/opt/stacks/mdv`, `MDV_VERSION` and `.deployed-commit` updated, `systemctl reload docker-compose@mdv`): container healthy, `/api/prefs` `configured:true` with no file (WARN `missing` logged, defaults), root `content` available, LAN 200.
-- Blockers or follow-up: the image build's `npm audit` 5 high findings are the known dev-only `braces` ones (FIX-20). No `config/preferences.yaml` on docker2 yet (owner may add one). V1 iPad checklist still open and now also covers Phase 2b.

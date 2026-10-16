@@ -129,8 +129,13 @@ function Shell() {
         >
           ☰
         </button>
-        <Link to="/" className="app-title">
-          Markdown Viewer
+        <Link to="/" className="app-title" aria-label="Markdown Viewer">
+          <span className="app-title-full" aria-hidden="true">
+            Markdown Viewer
+          </span>
+          <span className="app-title-short" aria-hidden="true">
+            MDV
+          </span>
         </Link>
         <TextScaleControls />
         <ThemeSelect />
