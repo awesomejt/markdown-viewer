@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-35)
+
+- Task: YAML error lines. go-yaml v3.0.4 `(*parser).fail` uses 0-based marks and adds 1 only for scanner errors (orchestrator verified in the module source). `syntaxError` now classifies the problem text: parser-class problems (11, from `parserc.go`) get +1; a scanner/parser-class problem without a prefix is line 1. The pinned case was wrong (problem mark on line 4, not a context line 3). Sonnet coder; orchestrator reviewed and updated Architecture.
+- Files changed: `internal/settings/parse.go`, `parse_test.go` (lines 1/2/5 per class, raw-library guard `TestLibraryErrorLineBehavior`), `docs/Architecture.md`.
+- Result: `make check` passed in the gate.
+- Blockers or follow-up: a go-yaml bump must re-check the problem lists (the guard test fails on a line-behavior change, not on new problem strings).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-34)
 
 - Task: `/api/project` treated FIFOs/sockets/devices as files. `statRes` now records `regular`; a non-regular `open` gives `not_a_file`, a non-regular include `forbidden` (verified: `/api/file` answers 403 `forbidden` via `fsroot` `KindForbidden`). `LimitedStat` follows in-root symlinks, so a symlink to a regular file stays regular. `prefs_unreadable` WARN logs carry a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Sonnet coder; orchestrator reviewed and updated Architecture.

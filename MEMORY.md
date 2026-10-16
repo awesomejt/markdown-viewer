@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: RX0 done (2026-10-16): Phase 2c styles and fonts picked (D-35)
-- Next recommended task: RT1 (Phase 2c); FM1 and DS1 are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK; FIX-32 to FIX-35 not deployed yet) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: RT1 done (2026-10-16): read-time line; RX0 styles and fonts picked (D-35)
+- Next recommended task: FM1 (Phase 2c); RT2 and DS1 are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK; FIX-32 to FIX-35 not deployed yet) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -96,6 +96,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (RT1)
+
+- Task: read-time estimate (FR-9.6). Sonnet coder; orchestrator reviewed the capture timing (the remark plugin fills a ref during the child render, before the parent effect; a stale-text guard skips old trees) and fixed a misplaced CSS comment.
+- Files changed: `web/src/markdown/readTime.ts` (+ tests), `MarkdownView.tsx` (+ test), `web/src/app/app.css`, `e2e/tests/readtime.spec.ts`, `testdata/fixtures/docs/readtime.md`, `docs/Architecture.md`, `README.md`, `testdata/fixtures/README.md`.
+- Result: `make check` and `make e2e` (327 passed, 1 existing skip) passed before the gate.
+- Blockers or follow-up: RT2 maps `sections` onto TOC entries by order and text (the TOC skips empty headings); `README.md` already failed `prettier --check` before this task (not part of `make check`).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (RX0)
 
 - Task: style and font survey. Sonnet researcher wrote `agents/RX0-Styles.md` (survey, 4 styles, OFL shortlist with Fontsource woff2 sizes, fallback stacks); orchestrator re-fetched the Inter, Literata and Atkinson sizes and licenses from jsDelivr (match). Owner answered via AskUserQuestion: all recommendations (D-35).
@@ -109,10 +116,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/project/ProjectGate.tsx`, `project.test.tsx` (new test; `yamlSource()` helper fixes an order-dependent Shiki span flake), `README.md`, `docs/Architecture.md`, `docs/Requirements.md` (FR-8.5), `config/preferences.example.yaml`.
 - Result: `make check` and `make e2e` passed in the gate (merge only happens on pass).
 - Blockers or follow-up: none.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-35)
-
-- Task: YAML error lines. go-yaml v3.0.4 `(*parser).fail` uses 0-based marks and adds 1 only for scanner errors (orchestrator verified in the module source). `syntaxError` now classifies the problem text: parser-class problems (11, from `parserc.go`) get +1; a scanner/parser-class problem without a prefix is line 1. The pinned case was wrong (problem mark on line 4, not a context line 3). Sonnet coder; orchestrator reviewed and updated Architecture.
-- Files changed: `internal/settings/parse.go`, `parse_test.go` (lines 1/2/5 per class, raw-library guard `TestLibraryErrorLineBehavior`), `docs/Architecture.md`.
-- Result: `make check` passed in the gate.
-- Blockers or follow-up: a go-yaml bump must re-check the problem lists (the guard test fails on a line-behavior change, not on new problem strings).
