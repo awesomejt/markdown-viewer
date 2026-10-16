@@ -8,8 +8,10 @@ import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
 import { FirstPaintHold } from '../settings/FirstPaintHold';
 import { PrefsBanner } from '../settings/PrefsBanner';
+import { TextScaleControls } from '../settings/TextScaleControls';
 import { ThemeSelect } from '../settings/ThemeSelect';
 import { useApplySettings } from '../settings/useApplySettings';
+import { useTextScaleKeys } from '../settings/useTextScaleKeys';
 
 function SidebarContent({ workspace }: { workspace: boolean }) {
   const params = useParams();
@@ -60,6 +62,7 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
 
 export function Layout() {
   useApplySettings();
+  useTextScaleKeys();
   const location = useLocation();
   const params = useParams();
   const [search] = useSearchParams();
@@ -112,6 +115,7 @@ export function Layout() {
         <Link to="/" className="app-title">
           Markdown Viewer
         </Link>
+        <TextScaleControls />
         <ThemeSelect />
       </header>
       <div className="body">
