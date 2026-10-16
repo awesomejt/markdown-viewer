@@ -263,7 +263,10 @@ func TestProjectOpenKinds(t *testing.T) {
 		"d/":         "", "i.png": "x", "p.mdv.yaml": "version: 1\n", "t.txt": "x", "g.mmd": "x", "o.bin": "x",
 		"x.md": "x",
 	})
-	for open, wantOK := range map[string]bool{"d": false, "d/": false, "i.png": false, "p.mdv.yaml": false,
+	if err := syscall.Mkfifo(filepath.Join(root, "pipe.md"), 0o600); err != nil {
+		t.Skip("mkfifo unavailable:", err)
+	}
+	for open, wantOK := range map[string]bool{"pipe.md": false, "d": false, "d/": false, "i.png": false, "p.mdv.yaml": false,
 		"o.bin": false, "t.txt": true, "g.mmd": true, "x.md": true, "nope.md": false} {
 		body := "version: 1\nopen: '" + open + "'\n"
 		if err := os.WriteFile(filepath.Join(root, "a.mdv.yaml"), []byte(body), 0o644); err != nil {
@@ -285,6 +288,26 @@ func TestProjectOpenKinds(t *testing.T) {
 				t.Errorf("open %q: warnings %v", open, warnCodes(out.Warnings))
 			}
 		}
+	}
+}
+
+func TestProjectIncludeFIFO(t *testing.T) {
+	s, root := projectServer(t, map[string]string{
+		"a.mdv.yaml": "version: 1\ninclude: [pipe.md, 'pipe2/', x.md]\n", "x.md": "x"})
+	for _, n := range []string{"pipe.md", "pipe2"} {
+		if err := syscall.Mkfifo(filepath.Join(root, n), 0o600); err != nil {
+			t.Skip("mkfifo unavailable:", err)
+		}
+	}
+	out, rec := getProject(t, s, "a.mdv.yaml")
+	if rec.Code != 200 {
+		t.Fatal(rec.Body)
+	}
+	if len(out.Entries) != 1 || out.Entries[0].Path != "x.md" {
+		t.Errorf("entries = %+v", out.Entries)
+	}
+	if !hasWarn(out.Warnings, "forbidden", "include[0]") || !hasWarn(out.Warnings, "not_a_dir", "include[1]") {
+		t.Errorf("warnings = %v", warnCodes(out.Warnings))
 	}
 }
 

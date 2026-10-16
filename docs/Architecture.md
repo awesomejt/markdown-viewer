@@ -345,7 +345,7 @@ Fuzz tests (`FuzzParseProject`, `FuzzParsePrefs`) assert no panic, bounded time,
 
 New config: `MDV_PREFS` (see Configuration). New error: 422 `project_invalid`, with an optional `line` (omitted when unknown) in `error`. Reused: 400, 403, 404, 504. Neither endpoint sends an ETag; both send `Cache-Control: no-cache`.
 
-**Warning object:** `{"code","message","key"?,"ref"?,"line"?}`; `key` is a dotted path such as `settings.fontSize` or `include[2]`. Codes: `unknown_key`, `duplicate_key`, `invalid_value`, `invalid_path`, `missing`, `not_a_dir`, `not_a_file`, `outside_root`, `forbidden`, `cross_root_unsupported`, `unavailable`, `too_many_includes`, `warnings_truncated`. Client-only: `unknown_style`, `unknown_font`. `fsroot` errors map as: bad request to `invalid_path`; forbidden to `forbidden` when it is a permission error, else `outside_root`; not found (including ENOTDIR, ELOOP, dangling) to `missing`; timeout and internal to `unavailable`; a file where a folder was hinted to `not_a_dir`; a folder or disallowed kind for `open` to `not_a_file`.
+**Warning object:** `{"code","message","key"?,"ref"?,"line"?}`; `key` is a dotted path such as `settings.fontSize` or `include[2]`. Codes: `unknown_key`, `duplicate_key`, `invalid_value`, `invalid_path`, `missing`, `not_a_dir`, `not_a_file`, `outside_root`, `forbidden`, `cross_root_unsupported`, `unavailable`, `too_many_includes`, `warnings_truncated`. Client-only: `unknown_style`, `unknown_font`. `fsroot` errors map as: bad request to `invalid_path`; forbidden to `forbidden` when it is a permission error, else `outside_root`; not found (including ENOTDIR, ELOOP, dangling) to `missing`; timeout and internal to `unavailable`; a file where a folder was hinted to `not_a_dir`; a folder, a non-regular file (FIFO, socket, device) or a disallowed kind for `open` to `not_a_file`; a non-regular file as an `include` to `forbidden` (as `/api/file` answers).
 
 **`GET /api/prefs`** always answers 200: `{"configured":false|true,"settings":{...},"warnings":[...],"error":null|{"code","message","line"?}}`.
 
@@ -354,7 +354,7 @@ New config: `MDV_PREFS` (see Configuration). New error: 422 `project_invalid`, w
 | `MDV_PREFS` unset | `configured:false`, empty settings |
 | File missing | `configured:true`, empty settings, no error, WARN logged once |
 | Empty or comment-only | valid, empty settings |
-| Unreadable (permission, not a regular file, I/O error, timeout) | empty settings, `error.code` `prefs_unreadable` |
+| Unreadable (permission, not a regular file, I/O error, timeout) | empty settings, `error.code` `prefs_unreadable`; the WARN log adds a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`), never the path or OS text |
 | Invalid (size, syntax, version, forbidden construct) | empty settings, `error.code` `prefs_invalid` with line |
 | Valid with bad keys | good keys plus `warnings` |
 

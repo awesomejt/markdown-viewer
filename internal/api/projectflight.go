@@ -11,11 +11,13 @@ import (
 // stat limiter), so memory stays bounded whatever the request mix.
 const maxFlights = 256
 
-// statRes is one reference's stat outcome. code is "" on success. It holds no
-// error values, so nothing host-specific is retained.
+// statRes is one reference's stat outcome. code is "" on success. dir and
+// regular are the target's type (both false for a FIFO, socket or device). It
+// holds no error values, so nothing host-specific is retained.
 type statRes struct {
-	dir  bool
-	code string
+	dir     bool
+	regular bool
+	code    string
 }
 
 type flightKey struct {

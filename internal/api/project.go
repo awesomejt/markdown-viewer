@@ -204,7 +204,7 @@ func (s *Server) resolveProject(ctx context.Context, h *fsroot.Handle, root, pro
 		switch {
 		case st.code != "":
 			warn(st.code, "", *proj.Open)
-		case st.dir || openRes.dirHint || (kind != fsroot.FileKindMarkdown && kind != fsroot.FileKindDiagram && kind != fsroot.FileKindText):
+		case st.dir || !st.regular || openRes.dirHint || (kind != fsroot.FileKindMarkdown && kind != fsroot.FileKindDiagram && kind != fsroot.FileKindText):
 			warn(settings.CodeNotAFile, "", *proj.Open)
 		default:
 			out.Open = &projectOpenJSON{Root: root, Path: openRes.path, Kind: string(kind)}
@@ -225,6 +225,8 @@ func (s *Server) resolveProject(ctx context.Context, h *fsroot.Handle, root, pro
 			warn(st.code, "", ref)
 		case res.dirHint && !st.dir:
 			warn(settings.CodeNotADir, "", ref)
+		case !st.dir && !st.regular: // FIFO, socket, device: /api/file refuses it
+			warn(settings.CodeForbidden, "", ref)
 		case st.dir:
 			out.Entries = append(out.Entries, projectEntryJSON{Root: root, Path: res.path, Type: "dir",
 				Kind: string(fsroot.FileKindOther), Ref: settings.Sanitize(ref.Text, settings.MaxRefRunes), Line: ref.Line})
@@ -270,6 +272,7 @@ func (s *Server) statPaths(ctx context.Context, h *fsroot.Handle, paths []string
 					st.code = warnCode(err)
 				} else {
 					st.dir = fi.IsDir()
+					st.regular = fi.Mode().IsRegular()
 				}
 				mu.Lock()
 				res[paths[i]] = st

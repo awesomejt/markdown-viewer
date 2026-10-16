@@ -30,6 +30,9 @@ const (
 // errPrefsTooLarge marks a file over [settings.MaxFileSize].
 var errPrefsTooLarge = errors.New("preferences file too large")
 
+// errPrefsNotRegular marks a path that is not a regular file.
+var errPrefsNotRegular = errors.New("preferences path is not a regular file")
+
 // prefsResult is one completed load, ready to serve.
 type prefsResult struct {
 	settings settings.Settings
@@ -37,6 +40,7 @@ type prefsResult struct {
 	err      *errorDetail
 	state    string // "missing", "unreadable", "timeout", "invalid", "valid"
 	content  []byte // hashed for log de-duplication only; never logged
+	cause    string // fixed class of an unreadable result, for the log only
 }
 
 // prefsRead is one outstanding read; done closes after res is set.
@@ -83,7 +87,7 @@ func readPrefsFile(path string) ([]byte, error) {
 		return nil, err
 	}
 	if !fi.Mode().IsRegular() {
-		return nil, errors.New("not a regular file")
+		return nil, errPrefsNotRegular
 	}
 	if fi.Size() > settings.MaxFileSize {
 		return nil, errPrefsTooLarge
@@ -121,7 +125,7 @@ func (p *prefsStore) get(ctx context.Context) prefsResult {
 	if last != nil {
 		return *last
 	}
-	res := prefsResult{state: "timeout", err: &errorDetail{Code: codePrefsUnreadable, Message: msgPrefsTimeout}}
+	res := prefsResult{state: "timeout", cause: "timeout", err: &errorDetail{Code: codePrefsUnreadable, Message: msgPrefsTimeout}}
 	p.record(res)
 	return res
 }
@@ -146,13 +150,20 @@ func (p *prefsStore) load() prefsResult {
 	case errors.Is(err, errPrefsTooLarge):
 		return prefsResult{state: "invalid", err: &errorDetail{Code: codePrefsInvalid, Message: msgPrefsTooLarge}}
 	case err != nil:
-		return prefsResult{state: "unreadable", err: &errorDetail{Code: codePrefsUnreadable, Message: msgPrefsUnreadable}}
+		cause := "io"
+		switch {
+		case errors.Is(err, errPrefsNotRegular):
+			cause = "not_regular"
+		case errors.Is(err, fs.ErrPermission):
+			cause = "permission"
+		}
+		return prefsResult{state: "unreadable", cause: cause, err: &errorDetail{Code: codePrefsUnreadable, Message: msgPrefsUnreadable}}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), p.timeout)
 	defer cancel()
 	release, err := p.sem.Acquire(ctx)
 	if err != nil {
-		return prefsResult{state: "unreadable", err: &errorDetail{Code: codePrefsUnreadable, Message: msgPrefsBusy}}
+		return prefsResult{state: "unreadable", cause: "busy", err: &errorDetail{Code: codePrefsUnreadable, Message: msgPrefsBusy}}
 	}
 	defer release()
 	prefs, warns, err := settings.ParsePrefs(b)
@@ -189,6 +200,9 @@ func (p *prefsStore) record(res prefsResult) {
 		attrs = append(attrs, "code", res.err.Code)
 		if res.err.Line > 0 {
 			attrs = append(attrs, "line", res.err.Line)
+		}
+		if res.cause != "" {
+			attrs = append(attrs, "cause", res.cause)
 		}
 	}
 	ctx := context.Background()
