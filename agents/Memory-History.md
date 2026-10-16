@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ2)
+
+- Task: `MDV_PREFS` + `GET /api/prefs` + Compose bind. Sonnet coder; orchestrator reviewed the read policy; Haiku gate and merge.
+- Files changed: `internal/config` (`Prefs`, absolute path required, empty = unset), new `internal/api/prefs.go` (+ `prefs_unix.go`/`prefs_other.go`, tests), `api.go` (`parseSem` 4 slots on `Server` for PJ3, route), `compose.yaml` (`MDV_PREFS` default `/config/preferences.yaml`, `./config:/config:ro`), new tracked `config/preferences.example.yaml`, `.gitignore` (`/config/preferences.yaml`), README, `docs/Deployment.md`.
+- Result: one read outstanding (joiners wait `MDV_FS_TIMEOUT`, then the last result); `O_NONBLOCK` + regular-file check (FIFO test); fixed error strings so no host path leaks; logs de-duplicated by a hash of state + content. Compose defaults to a path in the stack folder so an operator only drops the file in; the real file is untracked and survives re-archiving on docker2.
+- Blockers or follow-up: with the Compose default, a stack without the file logs one WARN "missing" (per contract).
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ1)
 
 - Task: `internal/settings` YAML parser for project files and preferences (🔒). Sonnet coder, Opus security review (approve-with-changes, 7 findings), coder fixed, orchestrator verified and adjusted, Haiku gate and merge.

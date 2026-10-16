@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ4b (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ5a (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -91,6 +91,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4b)
+
+- Task: device text scale. Sonnet coder; orchestrator reviewed and merged the duplicated round/clamp code into `snapTextScale`; Haiku gate and merge.
+- Files changed: `web/src/settings/device.ts` (`mdv-text-scale` store, integer percent 50-200 in steps of 10, 100 removes the key, global only and outside the `setDeviceChoice` seam, fed into the device layer and boot step), new `useTextScale.ts`, `useTextScaleKeys.ts` (`onTextScaleKey`), `TextScaleControls.tsx` (A−, percent reset, A+), tests; `Layout.tsx`; content CSS `clamp(8px, ..., 48px)` (text/code 0.9 of that, top 43.2px); header fits 320 px (theme select may shrink, title truncates first); e2e in `settings.spec.ts` (Ctrl keys skipped on the ipad project); `docs/Architecture.md` PJ4b notes.
+- Result: web tests 368 passed, coverage 96.4% lines; `make e2e` 263 passed, 1 skipped.
+- Blockers or follow-up: `ViewFileView.test.tsx` "falls back to the project kind" failed once under `make -j32` load and passed on every rerun (possible flaky timing; investigate if it repeats).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4a)
 
 - Task: client settings core. Sonnet coder; orchestrator reviewed the diff and added `src/settings/**` to the vitest coverage `include`; Haiku gate and merge.
@@ -105,10 +112,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Result: no security findings. The review found a lost `warnings_truncated` marker when only the parser overflowed, plus three tests that could not fail (size-before-read, limiter claim isolation, log leak); all fixed and each shown red under mutation. `./ab:b/c` used in tests because fsroot's drive-letter rule rejects `a:b` as a first segment at the root.
 - Process: the first merge attempt was refused by auto mode (no project git permissions; a batched `bash -c` commit). The owner approved project agents, permissions and the branch hook, landed in this merge as a separate `chore(agents)` commit.
 - Blockers or follow-up: PJ5 "Re-check" may want to bypass the stat cache (a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`).
-
-### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ2)
-
-- Task: `MDV_PREFS` + `GET /api/prefs` + Compose bind. Sonnet coder; orchestrator reviewed the read policy; Haiku gate and merge.
-- Files changed: `internal/config` (`Prefs`, absolute path required, empty = unset), new `internal/api/prefs.go` (+ `prefs_unix.go`/`prefs_other.go`, tests), `api.go` (`parseSem` 4 slots on `Server` for PJ3, route), `compose.yaml` (`MDV_PREFS` default `/config/preferences.yaml`, `./config:/config:ro`), new tracked `config/preferences.example.yaml`, `.gitignore` (`/config/preferences.yaml`), README, `docs/Deployment.md`.
-- Result: one read outstanding (joiners wait `MDV_FS_TIMEOUT`, then the last result); `O_NONBLOCK` + regular-file check (FIFO test); fixed error strings so no host path leaks; logs de-duplicated by a hash of state + content. Compose defaults to a path in the stack folder so an operator only drops the file in; the real file is untracked and survives re-archiving on docker2.
-- Blockers or follow-up: with the Compose default, a stack without the file logs one WARN "missing" (per contract).

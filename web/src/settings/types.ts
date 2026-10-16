@@ -26,7 +26,7 @@ export interface Settings {
 /** A sparse layer from the preferences file or a project file. */
 export type SettingsLayer = Partial<Omit<Settings, 'readTime'>> & { readTime?: Partial<ReadTime> };
 
-/** Choices made on this device; `textScale` (percent / 100) has no UI until PJ4b. */
+/** Choices made on this device; `textScale` is percent / 100. */
 export type DeviceLayer = Partial<
   Pick<Settings, 'theme' | 'markdownOnly' | 'showHidden' | 'sort'>
 > & {

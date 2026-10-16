@@ -416,6 +416,13 @@ Implementation notes (PJ4a):
 - Banner dismissal is kept in `sessionStorage` (`mdv-prefs-banner-dismissed`) as a hash of the error and warning content, so a different problem shows again.
 - The e2e server runs with `testdata/e2e-preferences.yaml` (`fontSize: 17` and one unknown key), so every e2e spec sees the warning banner.
 
+Implementation notes (PJ4b):
+
+- `mdv-text-scale` is a global store (`textScaleStore`, not part of `setDeviceChoice`, so PJ5b's per-project choices do not include it). Parsing never throws: non-numeric is no choice; numbers are rounded to the nearest 10 and clamped to 50-200. `setTextScale(100)` removes the key. The device layer carries it as `textScale = percent / 100`, in the hook and in the boot read.
+- Content font sizes are `clamp(8px, calc(var(--mdv-font-size) * var(--mdv-text-scale)), 48px)`; plain-text and code file blocks use 0.9 of that (`clamp(8px, ... * 0.9, 43.2px)`). The shell and diagrams do not scale.
+- `useTextScaleKeys()` (in the layout) installs one document `keydown` handler. At a limit a handled key still calls `preventDefault` but changes nothing. Plain `+ - 0` are untouched (the diagram viewer's keys ignore Ctrl/Meta, so there is no conflict).
+- The header group is compact (36 px wide buttons) and the theme select may shrink, so the header fits 320 px; the app title truncates first.
+
 ### Security notes
 
 A writer of a project file can reference any path in the same root (already readable on the LAN); `..` and symlink escapes are blocked lexically and by `os.Root` and reported as `outside_root` (an escaping symlink thus reveals that an in-root link of that name exists, which `/api/list` omits; accepted). Stat load is bounded by 201 references, the per-Handle limiter, singleflight and the deadline. Names, refs and messages render as text only, are length-limited and stripped of controls. Settings are enumerated or range-checked, and style/font names never reach CSS text or URLs. YAML bombs are stopped by the 32 KiB cap, no aliases, node/depth limits and the parse semaphore; panics become 422. It cannot read outside roots, write, run code or fetch URLs (`http://x` looks cross-root and is dropped). `MDV_PREFS` is trusted operator config and must not be bind-mounted inside a root. Logs: the request line; parse failures at DEBUG (root, path, line, code); preferences state changes once per change (hash-deduplicated); never file contents, reference text or host paths.

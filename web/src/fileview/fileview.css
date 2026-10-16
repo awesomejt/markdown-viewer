@@ -10,7 +10,7 @@
   padding: 12px;
   overflow: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: calc(var(--mdv-font-size) * var(--mdv-text-scale) * 0.9);
+  font-size: clamp(8px, calc(var(--mdv-font-size) * var(--mdv-text-scale) * 0.9), 43.2px);
   white-space: pre;
   background: var(--bg-alt);
   border: 1px solid var(--border);
