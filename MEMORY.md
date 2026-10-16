@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 and FIX-31 done
-- Next recommended task: FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Next recommended task: FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
