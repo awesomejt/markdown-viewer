@@ -40,9 +40,9 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ9 review fixes (D-34) are ready now; FIX-30 and FIX-31 should land before V1 (both done).
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ9 review fixes (D-34) are done.
 
-- [ ] **DOC3** [S] Phase 2b docs drift: README `?source=1` only works on an already open project (or make `ProjectGate` keep `source=1` when entering); `./a:b/c` escape fails for one-letter prefixes in a root-level project (Architecture References); README + FR-8.5 wording: inside a project only that project's device choices apply (global ones do not); `config/preferences.example.yaml` `# font: serif` only warns until DS1; stale Architecture text (line ~297 "not built yet", ~375 "`project` files open as text", PJ4a `useProjectLayer` note); a bare `.mdv.yaml` is a dotfile, hidden unless Show hidden
+All Phase 2b tasks are done.
 
 ## Phase 2c: Reading Experience
 
@@ -78,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-16: **DOC3** [S] Phase 2b docs drift: `ProjectGate` keeps `?source=1` when entering by the file URL (test added; source assertions match whole `<code>` text, as Shiki splits spans); Architecture (built status, `./a:b/c` root-level caveat, project files enter the project, `useProjectLayer`/device-layer notes), README + FR-8.5 (only the project's device choices apply in a project), dotfile note, example `font` warns until DS1.
 - [x] 2026-10-16: **FIX-35** [S] YAML error lines: `syntaxError` classifies go-yaml v3.0.4 problems; parser-class gets +1, a prefix-less scanner/parser problem is line 1. Fixed the pinned case (3 → 4), added lines 1/2/5 per class and a raw-library guard test.
 - [x] 2026-10-16: **FIX-34** [S] `statRes` records `regular`: a FIFO/socket/device as `open` gives `not_a_file`, as an include `forbidden` (matches `/api/file`). `prefs_unreadable` WARN logs a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Go tests: FIFO open/include, `TestPrefsLogCauses` (no path in logs).
 - [x] 2026-10-16: **FIX-33** [S] Project file is an `lsub` until the first success, then a normal `sub`, so a `?project=` link into a missing folder shows the error without failing `/api/events`; project query `staleTime` 5 s, so entering fetches once. Unit tests (single fetch, low-then-normal sub) and e2e (missing-folder link, no reconnect loop).

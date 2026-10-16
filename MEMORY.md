@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 to FIX-35 done
-- Next recommended task: DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK; FIX-32 to FIX-35 not deployed yet) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), all done
+- Next recommended task: RX0 (Phase 2c); RT1 and FM1 are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK; FIX-32 to FIX-35 not deployed yet) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -94,6 +94,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (DOC3)
+
+- Task: Phase 2b docs drift. Chose the code fix for `?source=1`: `Entering` in `ProjectGate` navigates at once to the project file with `project=` and `source=1` (README claim now holds). Orchestrator verified the `./a:b/c` caveat in `projectref.go`/`fsroot/guard.go` and the device-layer scoping. Sonnet coder; orchestrator reviewed and tightened wording.
+- Files changed: `web/src/project/ProjectGate.tsx`, `project.test.tsx` (new test; `yamlSource()` helper fixes an order-dependent Shiki span flake), `README.md`, `docs/Architecture.md`, `docs/Requirements.md` (FR-8.5), `config/preferences.example.yaml`.
+- Result: `make check` and `make e2e` passed in the gate (merge only happens on pass).
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-35)
 
 - Task: YAML error lines. go-yaml v3.0.4 `(*parser).fail` uses 0-based marks and adds 1 only for scanner errors (orchestrator verified in the module source). `syntaxError` now classifies the problem text: parser-class problems (11, from `parserc.go`) get +1; a scanner/parser-class problem without a prefix is line 1. The pinned case was wrong (problem mark on line 4, not a context line 3). Sonnet coder; orchestrator reviewed and updated Architecture.
@@ -107,10 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/api/project.go`, `projectflight.go`, `prefs.go`, tests in `project_test.go` (FIFO open, `TestProjectIncludeFIFO`) and `prefs_test.go` (`TestPrefsLogCauses`, no path in logs), `docs/Architecture.md`.
 - Result: `make check` and `make e2e` passed in the gate.
 - Blockers or follow-up: `busy`/`timeout` causes have no dedicated log test.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-33)
-
-- Task: `?project=` into a missing folder failed `/api/events` (reconnect loop) and entering a project fetched `/api/project` twice. `ProjectLive` now subscribes the project file as `lsub` until the first success, then as a normal `sub` (an invalid-on-first-load project file still live-reloads); `useProjectQuery` `staleTime` 5 s (live changes still refetch via `invalidateQueries`). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
-- Files changed: `web/src/project/ProjectProvider.tsx`, `web/src/api/hooks.ts`, `web/src/project/project.test.tsx` (single fetch on entry, low-then-normal sub), e2e in `project.spec.ts` (missing-folder link: error state, ≤ 2 events requests in 3 s), `docs/Architecture.md`.
-- Result: `make check` and `make e2e` passed in the gate.
-- Blockers or follow-up: none.

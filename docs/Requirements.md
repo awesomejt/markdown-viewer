@@ -146,7 +146,7 @@ A project file is a YAML file named `*.mdv.yaml` inside a root. The owner writes
 | FR-8.2 | Global preferences: an optional server-side `preferences.yaml` with the same `settings` keys, applying to every device. A missing file means built-in defaults; an invalid file logs a warning, falls back to defaults and shows a notice. | S |
 | FR-8.3 | Precedence, lowest to highest: built-in defaults, global preferences, the active project, this device's adjustments. Leaving a project restores the lower layers. | S |
 | FR-8.4 | Device text size: A−/A+/reset controls and Ctrl/Cmd `+`, `−`, `0`. The adjustment is a per-device scale relative to the resolved `fontSize` (for example 110%), stored in the browser. It never changes the project or preferences file. | S |
-| FR-8.5 | Device choices for theme and the listing toggles (`markdownOnly`, `showHidden`, `sort`) override the resolved settings on that device. Inside a project they are remembered per project on that device; outside a project they are global. One "Reset" control returns to the project/preferences default. | S |
+| FR-8.5 | Device choices for theme and the listing toggles (`markdownOnly`, `showHidden`, `sort`) override the resolved settings on that device. Inside a project only that project's device choices apply (remembered per project on that device) and the global device choices do not; outside a project the global ones apply. One "Reset" control returns to the project/preferences default. | S |
 
 ### FR-9 Reading Experience
 

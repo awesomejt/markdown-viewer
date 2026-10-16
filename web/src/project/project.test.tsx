@@ -157,6 +157,9 @@ const where = (r: ReturnType<typeof renderAt>) =>
   r.router.state.location.pathname + r.router.state.location.search;
 const fontSize = () => document.documentElement.style.getPropertyValue('--mdv-font-size');
 const main = () => within(document.querySelector('main') as HTMLElement);
+// The highlighter may split the text into spans, so match the whole <code> text.
+const yamlSource = () =>
+  main().findByText((_, el) => el?.tagName === 'CODE' && /version: 1/.test(el.textContent ?? ''));
 const settle = () => act(() => new Promise((r) => setTimeout(r, 60)));
 
 describe('entering a project', () => {
@@ -210,11 +213,19 @@ describe('entering a project', () => {
     expect(main().getByText('gone.md').tagName).toBe('CODE');
     expect(main().getByText(/line 7/)).toBeInTheDocument();
     await userEvent.click(main().getByRole('link', { name: 'Source' }));
-    expect(await main().findByText(/version: 1/)).toBeInTheDocument();
+    expect(await yamlSource()).toBeInTheDocument();
     expect(main().getByRole('link', { name: 'Project' })).toHaveAttribute(
       'href',
       '/view/r/c.mdv.yaml?project=r:c.mdv.yaml',
     );
+  });
+
+  it('keeps source=1 when entering by the file URL', async () => {
+    const r = renderAt('/view/r/a.mdv.yaml?source=1');
+    await waitFor(() => expect(where(r)).toBe('/view/r/a.mdv.yaml?project=r:a.mdv.yaml&source=1'));
+    expect(await yamlSource()).toBeInTheDocument();
+    await settle();
+    expect(r.visited).toEqual(['/view/r/a.mdv.yaml?project=r:a.mdv.yaml&source=1']);
   });
 
   it('fetches the project once when entering through its file route', async () => {
@@ -304,7 +315,7 @@ describe('initial error states', () => {
     const source = main().getByRole('link', { name: 'Show source' });
     expect(source).toHaveAttribute('href', '/view/r/bad.mdv.yaml?project=r:bad.mdv.yaml&source=1');
     await userEvent.click(source);
-    expect(await main().findByText(/version: 1/)).toBeInTheDocument();
+    expect(await yamlSource()).toBeInTheDocument();
     expect(main().queryByText('YAML line 3')).toBeNull();
   });
 
