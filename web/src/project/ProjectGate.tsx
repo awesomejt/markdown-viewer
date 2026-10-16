@@ -15,9 +15,22 @@ export function landingHref(data: ProjectResponse, ref: ProjectRef): string {
   return first ? viewHref(first.root, first.path, scope) : viewHref(ref.root, ref.path, scope);
 }
 
-/** Fetches the project being entered, then replaces the location with its landing page. */
+/**
+ * Fetches the project being entered, then replaces the location with its landing page. With
+ * `?source=1` it goes at once to the project's own file, keeping `source=1`.
+ */
 function Entering({ target }: { target: ProjectRef }) {
   const query = useProjectQuery(target.root, target.path);
+  const [search] = useSearchParams();
+  // `?source=1` reads the YAML itself: keep it and skip the landing page (no fetch wait).
+  if (search.get('source') === '1') {
+    return (
+      <Navigate
+        replace
+        to={`${viewHref(target.root, target.path, { project: target })}&source=1`}
+      />
+    );
+  }
   if (query.isPending) return <Loading label="Loading project…" />;
   // On an error the project home shows the error state (and offers Close project).
   const to = query.data
@@ -62,7 +75,8 @@ function ProjectError() {
  * Wraps the main outlet. Entering or switching: viewing a project file that is not the open
  * project redirects to its landing page (never when it equals `?project=`, so there is no loop).
  * Otherwise it holds the outlet (spinner) until the project settles and shows the initial error
- * states. The project's own source (`?source=1`) stays reachable so a broken file can be read.
+ * states. The project's own source (`?source=1`) stays reachable so a broken file can be read,
+ * also when entering by the file URL (`source=1` is kept).
  */
 export function ProjectGate({ children }: { children: ReactNode }) {
   const { ref, query, data } = useProject();
