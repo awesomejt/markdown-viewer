@@ -27,6 +27,10 @@ Sample files for manual testing and demos. Point mdv at this folder (for example
 - [images/logo.svg](images/logo.svg): hand-written SVG logo.
 - [images/swatches.png](images/swatches.png): small generated PNG of colour swatches.
 
+## Project
+
+- [projects/demo.mdv.yaml](projects/demo.mdv.yaml): a project file. Click it in the listing to open it as a project: the sidebar shows the guide folder and two pages, and `gfm-tour.md` opens first. It also contains six deliberately broken items (a missing folder, a file written as a folder, a path outside the root, a cross-root reference, an unknown key and an out-of-range `fontSize`). Their warnings in the warnings panel are intentional. See [Project files](../README.md#project-files) in the main README.
+
 ## Intentionally broken
 
 These show the error boundary for invalid diagrams.

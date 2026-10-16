@@ -69,6 +69,22 @@ Durations use Go syntax (`500ms`, `2s`, `1m`). The binary also has `mdv version`
 
 Default settings for every device (theme, fonts, sort, and so on) come from one YAML file. Copy `config/preferences.example.yaml` to `config/preferences.yaml` and uncomment the keys you want; Compose mounts `config/` read-only at `/config`. The file is re-read on every request, so edits apply without a restart, and a missing file just means defaults. Do not put it inside a served root: anyone who can write in a root would then control the preferences of every device.
 
+The file allows only `version` (optional, `1`) and `settings`. Invalid values and unknown keys are ignored, and a dismissible banner lists them. If the file cannot be read or is not valid YAML, mdv uses the defaults and the banner says so. The same `settings` keys work in [project files](#project-files):
+
+| Key | Values | Default |
+| --- | --- | --- |
+| `theme` | `system`, `light`, `dark` | `system` |
+| `fontSize` | 12 to 32 (px) | `16` |
+| `lineHeight` | 1.0 to 2.5 | `1.6` |
+| `contentWidth` | `narrow`, `normal`, `wide`, `full` | `normal` |
+| `markdownOnly` | `true`, `false` (listings show only Markdown, diagrams and projects) | `false` |
+| `showHidden` | `true`, `false` | `false` |
+| `sort` | `name`, `date` | `name` |
+| `style`, `font`, `codeFont` | a name: `a-z`, `0-9`, `-`, up to 32 characters | `github`, `system`, `mono` |
+| `readTime` | `wpm` (60 to 600), `includeHeadings`, `includeCode` | reserved |
+
+`style`, `font`, `codeFont` and `readTime` are accepted and checked, but the reading styles, bundled fonts and read time arrive in a later release. Today only the default names exist; any other name falls back to the default with a warning, and `readTime` has no effect.
+
 Compose-only variables (read by Compose, not by mdv):
 
 | Variable | Default | Meaning |
@@ -77,6 +93,40 @@ Compose-only variables (read by Compose, not by mdv):
 | `MDV_UID` | `1000` | User ID the container runs as. Must be able to read the NAS mount. |
 | `MDV_GID` | `1000` | Group ID the container runs as. |
 | `MDV_VERSION` | `dev` | Image tag and version string baked into the binary. |
+
+### Project files
+
+A project file is a small YAML file named `*.mdv.yaml` or `*.mdv.yml` that lives inside a served root. It picks a set of folders and files to show in the sidebar, a file to open first, and optional display settings. mdv only reads it. Because it sits on the share, it is the same on every device. It needs no server configuration. See `examples/projects/demo.mdv.yaml` for a working file with deliberate mistakes.
+
+```yaml
+version: 1                   # required, must be 1
+name: Docker course          # optional, 1 to 100 characters
+open: outlines/README.md     # optional file shown first
+include:                     # optional, up to 200 items
+  - notes/                   # a folder (expandable tree)
+  - scripts/intro.md         # a file
+settings:                    # optional, same keys as global preferences
+  fontSize: 18
+  contentWidth: wide
+```
+
+- `include` items are folders or files. A trailing `/` says "this is a folder"; if the path is a file, you get a warning.
+- Paths are relative to the project file's folder, use `/`, and must stay inside the same root. `../` is allowed at the start only (`../shared/notes/`). A path that leaves the root is a warning.
+- `open` must be a Markdown, diagram or text file. It does not need to be listed in `include`.
+- `settings` accepts the [keys above](#global-preferences). The project file is limited to 32 KiB and cannot use YAML aliases, anchors, tags or merge keys.
+- Cross-root references such as `other-root:path` are not supported yet and give a warning.
+
+**Opening a project.** Click a project file in a listing (it has its own icon), or tick "Projects only" in the listing toolbar to see just the project files and folders. Opened projects appear under "Recent projects" on the home page and in the sidebar. A project is a link too: `/view/<root>/<path>?project=<root>:<path>` (the browser address bar shows it). Add `?source=1` to a project file's address to read the YAML itself. "Close project" in the sidebar returns to the normal view.
+
+**Warnings.** Problems with single entries do not stop the project. The sidebar shows a Warnings panel with each problem, the text you wrote and the YAML line. Valid entries keep working. "Re-check" tests the paths again, for example after you create a missing folder. The panel also reports setting values that are out of range and unknown keys.
+
+**Errors.** A file that is not valid YAML, has a wrong `version`, or is empty cannot be used. You get an error with the line number and "Show source", and the project is not applied. If you break a project while it is open, mdv keeps the last good version and shows the error line until the file is valid again.
+
+**Live reload.** Edits to the project file apply right away. Changes to the files it references show on the next refresh or "Re-check".
+
+**Which setting wins.** Lowest to highest: built-in defaults, global preferences, the open project, this device. Device choices are the theme selector and the listing toggles (Markdown only, show hidden, sort). Inside a project they are remembered per project on that device. Outside a project they are global. One "Reset this device's choices" button clears them. Leaving the project brings back the lower layers.
+
+Text size is separate: A−, A+ and the percentage button in the header, or Ctrl/Cmd with `+`, `-` and `0`, scale the reading text on this device (50 to 200 %). It is not part of any file and "Reset" does not change it. On iPad and Safari the browser may still zoom with the keys, so use the buttons there.
 
 ## Deploying on a VM
 
