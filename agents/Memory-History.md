@@ -4,6 +4,12 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ8)
+
+- Task: full validation and docker2 deploy (owner approved the deploy). Haiku validator ran the gates; orchestrator deployed.
+- Result: `make check` passed (431 web tests, Go coverage all above thresholds), `go test -race ./...` clean, `make e2e` 311 passed, 1 skipped (Ctrl keys on ipad), `docker compose build` passed. docker2 upgraded from 7e7bf4c to fe9c96a (`git archive main` into `/opt/stacks/mdv`, `MDV_VERSION` and `.deployed-commit` updated, `systemctl reload docker-compose@mdv`): container healthy, `/api/prefs` `configured:true` with no file (WARN `missing` logged, defaults), root `content` available, LAN 200.
+- Blockers or follow-up: the image build's `npm audit` 5 high findings are the known dev-only `braces` ones (FIX-20). No `config/preferences.yaml` on docker2 yet (owner may add one). V1 iPad checklist still open and now also covers Phase 2b.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ7)
 
 - Task: project file and preferences docs, example project. Sonnet documentor; orchestrator checked the README UI claims against the client (labels, text scale 50-200 %, `../` only as leading segments) and ran mdv on `examples/` to confirm the demo project's warnings. Haiku gate and merge.
