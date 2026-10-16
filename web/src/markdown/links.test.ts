@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveLink, type LinkContext } from './links';
 
 const ctx: LinkContext = { root: 'r', docPath: 'docs/guide.md' };
-const withWs = (ws: string): LinkContext => ({ ...ctx, ws });
+const withWs = (ws: string): LinkContext => ({ ...ctx, scope: { ws } });
 const href = (h: string, c = ctx, img = false) => {
   const l = resolveLink(h, c, img);
   return l.type === 'blocked' ? `blocked:${l.reason}` : `${l.type}:${l.href}`;
@@ -69,6 +69,18 @@ describe('resolveLink', () => {
     expect(href('../README.md', withWs('docs'))).toBe('internal:/view/r/README.md');
     expect(href('../docs2/a.md', withWs('docs'))).toBe('internal:/view/r/docs2/a.md');
     expect(href('../docs/a.md', withWs('docs'))).toBe('internal:/view/r/docs/a.md?ws=docs');
+  });
+
+  it('carries an open project on every internal link within its root, never ws', () => {
+    const project = { root: 'r', path: 'p.mdv.yaml' };
+    const c: LinkContext = { ...ctx, scope: { project, ws: 'docs' } };
+    expect(href('../README.md#s', c)).toBe('internal:/view/r/README.md?project=r:p.mdv.yaml#s');
+    expect(href('sub/', c)).toBe('internal:/browse/r/docs/sub?project=r:p.mdv.yaml');
+  });
+
+  it('drops the project for a link in another root', () => {
+    const c: LinkContext = { ...ctx, scope: { project: { root: 'other', path: 'p.mdv.yaml' } } };
+    expect(href('a.md', c)).toBe('internal:/view/r/docs/a.md');
   });
 
   it('treats an empty ws as the whole root', () => {

@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ5a (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ5b (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -76,6 +76,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - Deployment (DEP1): docker2 uses the per-stack systemd drop-in (D-29), tested with a reboot; the `docker.service` `RequiresMountsFor=` variant in `docs/Deployment.md` is untested.
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
+- Project stat cache (PJ3): a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`, so PJ5b's "Re-check" may want to bypass the cache.
 - Settings parser (PJ1): the non-specific YAML tag `!` (for example `fontSize: ! 18`) passes the pre-check because go-yaml discards it, so the value is typed as if untagged (no security impact; pinned by a test). Integers are decimal only (no hex/octal/underscores).
 
 ## Open Questions
@@ -91,6 +92,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5a)
+
+- Task: `?project=` routing and project mode entry. Sonnet coder; orchestrator review found "Close project" re-entering the project when shown on the project file itself (where a failed load lands) and sent it back; the fix's test was shown red by the orchestrator. Orchestrator made the sidebar root list an explicit exit (contract). Haiku gate and merge.
+- Files changed: `web/src/api/client.ts` (`ProjectRef`, `NavScope`, `parseProjectParam`/`formatProject`, `getProject`, `ApiError.line`), `api/hooks.ts` (`useProjectQuery`, `notifyOnChangeProps: 'all'` because deeper readers mount after the result), new `web/src/project/` (`ProjectProvider`, `ProjectGate`, `ProjectHome`, `useNavScope`, tests), `settings/project.ts` (real `useProjectLayer`), callers moved to `NavScope` (browse, workspace, fileview, markdown links, recent, Layout), `live/logic.ts` (`isApiQueryKey` knows `project`), e2e `project.spec.ts` + `testdata/fixtures/projects/`, `internal/fsroot/list_test.go` (new fixture folder), `docs/Architecture.md` PJ5a notes.
+- Result: web tests 392 passed (96.5% lines); `make e2e` 283 passed, 1 skipped.
+- Blockers or follow-up: `useProjectLayer` keeps the last data of the current key, so PJ5b's keep-last-good builds on it. No live sub on the project file yet (PJ5b).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4b)
 
 - Task: device text scale. Sonnet coder; orchestrator reviewed and merged the duplicated round/clamp code into `snapTextScale`; Haiku gate and merge.
@@ -104,11 +112,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: new `web/src/settings/` (types/defaults/registry, pure `resolveSettings` + `applyRegistry`, `sanitizeLayer`, `mdv-prefs-cache`, `usePrefs`, global device stores `T | undefined` with the `setDeviceChoice`/`useDeviceLayer` seam for PJ5b, migration `mdv-settings-v=2`, `useSettings`, `applySettings`/`useApplySettings`, `bootSettings`, `ThemeSelect`, `PrefsBanner`, `FirstPaintHold`, `useProjectLayer` stub for PJ5a, tests); `api` (`getPrefs`, `queryKeys.prefs`, types); `Layout`, `main.tsx`, `theme.ts` (cycle hook removed), browse/workspace consumers read resolved values; content CSS uses `--mdv-*` variables (normal width 50rem, 16 px, 1.6 = previous look); e2e `MDV_PREFS` fixture (`testdata/e2e-preferences.yaml`), `settings.spec.ts`, theme specs on the select; `docs/Architecture.md` implementation notes.
 - Result: defaults look unchanged; prefs reach CSS only through the sanitizer; unknown style/font names fall back with a client warning in the banner. Web coverage 96.2% lines with settings counted.
 - Blockers or follow-up: every e2e spec now sees the one-warning banner (a second e2e server would isolate it). Theme select fit at phone width not checked in a browser (iPad project passes). Reset control and per-project choices are PJ5b; text-scale UI is PJ4b.
-
-### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ3)
-
-- Task: `GET /api/project`, shared stat resolver, `project` kind and client kind plumbing (🔒). Sonnet coder, Opus security review (approve-with-changes), coder fixed, orchestrator verified, Haiku gate.
-- Files changed: `internal/fsroot` (`FileKindProject` in `ClassifyName`; `statSem` + `Handle.LimitedStat`/`StatLimit`), new `internal/api/project.go`, `projectref.go` (`resolveRef`, `warnCode`, `refMessage`), `projectflight.go` (singleflight + TTL cache), `api.go` (route, `Server.flight`), tests; web `EntryKind`/`fileKind`/`KindIcon`/`ViewFileView`/md-only filter + tests; `docs/Architecture.md` (implementation notes, step 5).
-- Result: no security findings. The review found a lost `warnings_truncated` marker when only the parser overflowed, plus three tests that could not fail (size-before-read, limiter claim isolation, log leak); all fixed and each shown red under mutation. `./ab:b/c` used in tests because fsroot's drive-letter rule rejects `a:b` as a first segment at the root.
-- Process: the first merge attempt was refused by auto mode (no project git permissions; a batched `bash -c` commit). The owner approved project agents, permissions and the branch hook, landed in this merge as a separate `chore(agents)` commit.
-- Blockers or follow-up: PJ5 "Re-check" may want to bypass the stat cache (a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`).

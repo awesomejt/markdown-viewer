@@ -25,6 +25,11 @@ const DESCRIPTIONS: Record<string, Description> = {
     hint: 'The storage behind this folder is slow or offline. Try again in a moment.',
     retry: true,
   },
+  project_invalid: {
+    title: 'Invalid project file',
+    hint: 'The project file could not be read.',
+    retry: false,
+  },
   too_large: { title: 'File too large', hint: 'This file is too large to display.', retry: false },
   busy: {
     title: 'Server busy',

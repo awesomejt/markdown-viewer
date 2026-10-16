@@ -6,7 +6,7 @@ import {
   findIndexFile,
   formatSize,
   isWithin,
-  scopeWs,
+  scopeNav,
   sortEntries,
   workspaceTarget,
 } from './logic';
@@ -85,7 +85,7 @@ describe('findIndexFile / workspaceTarget', () => {
 
 describe('breadcrumbs', () => {
   it('builds links with the last crumb current', () => {
-    expect(breadcrumbs('r', 'a/b', 'a')).toEqual([
+    expect(breadcrumbs('r', 'a/b', { ws: 'a' })).toEqual([
       { label: 'Roots', href: '/' },
       { label: 'r', href: '/browse/r' },
       { label: 'a', href: '/browse/r/a?ws=a' },
@@ -95,7 +95,7 @@ describe('breadcrumbs', () => {
   });
 
   it('keeps an empty (root) workspace on every crumb', () => {
-    expect(breadcrumbs('r', 'a/b', '')[1].href).toBe('/browse/r?ws=');
+    expect(breadcrumbs('r', 'a/b', { ws: '' })[1].href).toBe('/browse/r?ws=');
   });
 });
 
@@ -109,12 +109,17 @@ describe('isWithin', () => {
   });
 });
 
-describe('scopeWs', () => {
+describe('scopeNav', () => {
   it('keeps ws only for paths inside the workspace', () => {
-    expect(scopeWs('docs/a.md', 'docs')).toBe('docs');
-    expect(scopeWs('other/a.md', 'docs')).toBeUndefined();
-    expect(scopeWs('any', '')).toBe('');
-    expect(scopeWs('any', undefined)).toBeUndefined();
+    expect(scopeNav('docs/a.md', { ws: 'docs' })).toEqual({ ws: 'docs' });
+    expect(scopeNav('other/a.md', { ws: 'docs' })).toEqual({});
+    expect(scopeNav('any', { ws: '' })).toEqual({ ws: '' });
+    expect(scopeNav('any')).toEqual({});
+  });
+  it('keeps a project for every path and lets it win over ws', () => {
+    const project = { root: 'r', path: 'p.mdv.yaml' };
+    expect(scopeNav('other/a.md', { project })).toEqual({ project });
+    expect(scopeNav('docs/a.md', { ws: 'docs', project })).toEqual({ project });
   });
 });
 

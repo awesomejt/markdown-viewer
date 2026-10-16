@@ -60,3 +60,24 @@ export interface PrefsResponse {
   warnings: Warning[];
   error: PrefsError | null;
 }
+
+export interface ProjectEntry {
+  root: string;
+  path: string;
+  type: EntryType;
+  kind: EntryKind;
+  /** The reference text as written in the project file. */
+  ref: string;
+  line: number;
+}
+
+/** `GET /api/project`. `settings` is sparse; the client sanitizes it before use. */
+export interface ProjectResponse {
+  root: string;
+  path: string;
+  name: string | null;
+  open: { root: string; path: string; kind: EntryKind } | null;
+  entries: ProjectEntry[];
+  settings: Record<string, unknown>;
+  warnings: Warning[];
+}

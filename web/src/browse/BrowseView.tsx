@@ -1,11 +1,12 @@
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
 import type { ListEntry } from '../api/types';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { browseHref, viewHref } from '../api/client';
+import { Link, useNavigate, useParams } from 'react-router';
+import { browseHref, viewHref, type NavScope } from '../api/client';
 import { useList } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
+import { useNavScope } from '../project/useNavScope';
 import { useRecordRecent } from '../recent/RecentList';
 import { Breadcrumbs } from './Breadcrumbs';
 import { KindIcon } from './KindIcon';
@@ -18,7 +19,7 @@ import {
   formatSize,
   joinPath,
   kindOf,
-  scopeWs,
+  scopeNav,
   sortEntries,
   type SortKey,
   workspaceTarget,
@@ -27,15 +28,15 @@ import './browse.css';
 
 export function BrowseView() {
   const params = useParams();
-  const [search] = useSearchParams();
+  const scope = useNavScope();
   const root = params.root ?? '';
   const path = params['*'] ?? '';
-  const ws = search.get('ws') ?? undefined;
   // Keyed by folder so the filter text resets on navigation.
-  return <FolderView key={`${root}/${path}`} root={root} path={path} ws={ws} />;
+  return <FolderView key={`${root}/${path}`} root={root} path={path} scope={scope} />;
 }
 
-function FolderView({ root, path, ws }: { root: string; path: string; ws?: string }) {
+function FolderView({ root, path, scope }: { root: string; path: string; scope: NavScope }) {
+  const ws = scope.ws;
   const navigate = useNavigate();
   const list = useList(root, path);
   useLiveSubscription(root, path);
@@ -55,7 +56,7 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
 
   return (
     <section className="browse">
-      <Breadcrumbs root={root} path={path} ws={ws} />
+      <Breadcrumbs root={root} path={path} scope={scope} />
       <h1>{path ? path.split('/').pop() : root}</h1>
       {ws !== undefined && (
         <p className="ws-indicator">
@@ -128,7 +129,7 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
                 : 'No entries match the current filter.'}
             </p>
           ) : (
-            <EntryList root={root} path={path} ws={ws} entries={entries} />
+            <EntryList root={root} path={path} scope={scope} entries={entries} />
           )}
         </>
       )}
@@ -142,7 +143,7 @@ const VIRTUAL_MIN = 200;
 interface ListProps {
   root: string;
   path: string;
-  ws?: string;
+  scope: NavScope;
   entries: readonly ListEntry[];
 }
 
@@ -205,7 +206,7 @@ interface RowProps extends ListProps {
   style?: CSSProperties;
 }
 
-function EntryRow({ root, path, ws, entries, entry: e, index, rowRef, style }: RowProps) {
+function EntryRow({ root, path, scope, entries, entry: e, index, rowRef, style }: RowProps) {
   const child = joinPath(path, e.name);
   const kind = kindOf(e);
   return (
@@ -222,8 +223,8 @@ function EntryRow({ root, path, ws, entries, entry: e, index, rowRef, style }: R
         className="entry-name"
         to={
           e.type === 'dir'
-            ? browseHref(root, child, scopeWs(child, ws))
-            : viewHref(root, child, scopeWs(child, ws))
+            ? browseHref(root, child, scopeNav(child, scope))
+            : viewHref(root, child, scopeNav(child, scope))
         }
       >
         {e.name}

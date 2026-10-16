@@ -16,6 +16,17 @@ beforeEach(() => {
       if (u.pathname === '/api/roots') {
         return Response.json({ roots: [{ name: 'r', watch: 'poll', available: true }] });
       }
+      if (u.pathname === '/api/project') {
+        return Response.json({
+          root: 'r',
+          path: u.searchParams.get('path'),
+          name: 'Docker course',
+          open: null,
+          entries: [],
+          settings: {},
+          warnings: [],
+        });
+      }
       if (u.pathname === '/api/file') {
         return new Response(yaml, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
@@ -48,15 +59,15 @@ function renderAt(path: string) {
 }
 
 describe('ViewFileView with project files', () => {
-  it('opens a project-kind file as YAML text', async () => {
-    renderAt('/view/r/proj/c.mdv.yaml');
+  it("opens the open project's file as YAML text with ?source=1", async () => {
+    renderAt('/view/r/proj/c.mdv.yaml?project=r:proj/c.mdv.yaml&source=1');
     expect(await screen.findByRole('heading', { name: 'c.mdv.yaml' })).toBeInTheDocument();
     expect(await screen.findByText(/name: Docker course/)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Download/ })).toBeNull();
   });
 
   it('falls back to the project kind (text view) when the listing is unavailable', async () => {
-    renderAt('/view/r/lost/.mdv.yml');
+    renderAt('/view/r/lost/.mdv.yml?project=r:lost/.mdv.yml&source=1');
     expect(await screen.findByRole('heading', { name: '.mdv.yml' })).toBeInTheDocument();
     expect(await screen.findByText(/name: Docker course/)).toBeInTheDocument();
   });

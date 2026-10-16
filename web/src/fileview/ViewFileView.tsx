@@ -1,10 +1,13 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router';
-import { ApiError, fileUrl } from '../api/client';
+import { ApiError, fileUrl, type NavScope } from '../api/client';
 import { useFile, useList } from '../api/hooks';
 import type { EntryKind } from '../api/types';
 import { ErrorState, Loading } from '../app/states';
 import { useLiveSubscription } from '../live/LiveProvider';
+import { useProject } from '../project/context';
+import { ProjectHome, ProjectToggle } from '../project/ProjectHome';
+import { useNavScope } from '../project/useNavScope';
 import { useRecordRecent } from '../recent/RecentList';
 import { formatSize } from '../browse/logic';
 import { CodeFile } from './CodeFile';
@@ -83,24 +86,26 @@ function ViewByKind({
   kind,
   root,
   path,
-  ws,
+  scope,
   size,
   version,
 }: {
   kind: EntryKind;
   root: string;
   path: string;
-  ws?: string;
+  scope: NavScope;
   size?: number;
   version?: string;
 }) {
+  const { ref } = useProject();
+  const [search] = useSearchParams();
   switch (kind) {
     case 'markdown':
       return (
         <TextGate root={root} path={path} size={size}>
           {(text) => (
             <Suspense fallback={<Loading />}>
-              <MarkdownView text={text} root={root} docPath={path} ws={ws} />
+              <MarkdownView text={text} root={root} docPath={path} scope={scope} />
             </Suspense>
           )}
         </TextGate>
@@ -118,17 +123,22 @@ function ViewByKind({
     case 'image':
       return <ImageFile root={root} path={path} version={version} />;
     case 'text':
-    case 'project': // plain YAML text until the project view lands (PJ5)
+    case 'project': {
+      // The open project file shows the project home, or its YAML with `?source=1`.
+      const open = kind === 'project' && ref?.root === root && ref.path === path ? ref : null;
+      if (open && search.get('source') !== '1') return <ProjectHome />;
       return (
         <TextGate root={root} path={path} size={size}>
           {(text) => (
             <section className="file-view">
               <h1>{baseName(path)}</h1>
+              {open && <ProjectToggle project={open} source />}
               <CodeFile path={path} text={text} />
             </section>
           )}
         </TextGate>
       );
+    }
     default:
       return <OtherFile root={root} path={path} size={size} />;
   }
@@ -137,14 +147,13 @@ function ViewByKind({
 /** `/view/:root/*`: the kind comes from the parent folder listing (the server's classification). */
 export function ViewFileView() {
   const params = useParams();
-  const [search] = useSearchParams();
+  const scope = useNavScope();
   const root = params.root ?? '';
   const path = params['*'] ?? '';
-  const ws = search.get('ws') ?? undefined;
   const list = useList(root, parentDir(path));
   useLiveSubscription(root, path);
   const entry = list.data?.entries.find((e) => e.type === 'file' && e.name === baseName(path));
-  useRecordRecent(entry && { root, path, type: 'file', ws });
+  useRecordRecent(entry && { root, path, type: 'file', ws: scope.ws });
   if (list.isPending) return <Loading />;
   return (
     <ViewByKind
@@ -152,7 +161,7 @@ export function ViewFileView() {
       kind={entry?.kind ?? fileKind(path)}
       root={root}
       path={path}
-      ws={ws}
+      scope={scope}
       size={entry?.size}
       version={entry && `${entry.mtime}-${entry.size}`}
     />

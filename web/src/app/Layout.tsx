@@ -6,6 +6,9 @@ import { ErrorState, Loading } from './states';
 import { FolderFiles } from '../fileview/FolderFiles';
 import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
+import { ProjectGate } from '../project/ProjectGate';
+import { ProjectProvider } from '../project/ProjectProvider';
+import { useProjectParam } from '../project/useNavScope';
 import { FirstPaintHold } from '../settings/FirstPaintHold';
 import { PrefsBanner } from '../settings/PrefsBanner';
 import { TextScaleControls } from '../settings/TextScaleControls';
@@ -60,13 +63,14 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
   );
 }
 
-export function Layout() {
+function Shell() {
   useApplySettings();
   useTextScaleKeys();
   const location = useLocation();
   const params = useParams();
   const [search] = useSearchParams();
-  const inWorkspace = params.root !== undefined && search.has('ws');
+  const project = useProjectParam();
+  const inWorkspace = params.root !== undefined && search.has('ws') && !project;
   const [open, setOpen] = useState(false);
   const [lastKey, setLastKey] = useState(location.key);
   const menuRef = useRef<HTMLButtonElement>(null);
@@ -143,10 +147,20 @@ export function Layout() {
         <main className="main">
           <PrefsBanner />
           <FirstPaintHold>
-            <Outlet />
+            <ProjectGate>
+              <Outlet />
+            </ProjectGate>
           </FirstPaintHold>
         </main>
       </div>
     </div>
+  );
+}
+
+export function Layout() {
+  return (
+    <ProjectProvider>
+      <Shell />
+    </ProjectProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { browseHref, viewHref } from '../api/client';
+import { browseHref, viewHref, type NavScope } from '../api/client';
 import type { EntryKind, ListEntry } from '../api/types';
 
 export const MD_ONLY_STORAGE_KEY = 'mdv-md-only';
@@ -99,8 +99,8 @@ export function findIndexFile(entries: ListEntry[]): string | undefined {
 export function workspaceTarget(root: string, folder: string, entries: ListEntry[]): string {
   const index = findIndexFile(entries);
   return index !== undefined
-    ? viewHref(root, joinPath(folder, index), folder)
-    : browseHref(root, folder, folder);
+    ? viewHref(root, joinPath(folder, index), { ws: folder })
+    : browseHref(root, folder, { ws: folder });
 }
 
 /** True when `path` is the workspace folder `ws` or inside it (`""` is the whole root). */
@@ -108,9 +108,13 @@ export function isWithin(path: string, ws: string): boolean {
   return ws === '' || path === ws || path.startsWith(`${ws}/`);
 }
 
-/** `ws` when `path` is inside the workspace, else `undefined` (links outside it drop `ws`). */
-export function scopeWs(path: string, ws?: string): string | undefined {
-  return ws !== undefined && isWithin(path, ws) ? ws : undefined;
+/**
+ * The scope a link to `path` carries: a project is kept for every path (the caller's href builder
+ * drops it for another root); `ws` only inside the workspace folder.
+ */
+export function scopeNav(path: string, scope: NavScope = {}): NavScope {
+  if (scope.project) return { project: scope.project };
+  return scope.ws !== undefined && isWithin(path, scope.ws) ? { ws: scope.ws } : {};
 }
 
 export interface Crumb {
@@ -119,10 +123,10 @@ export interface Crumb {
   href: string | null;
 }
 
-export function breadcrumbs(root: string, path: string, ws?: string): Crumb[] {
+export function breadcrumbs(root: string, path: string, scope: NavScope = {}): Crumb[] {
   const segs = path === '' ? [] : path.split('/');
-  // Ancestors above the workspace folder drop `ws` (it is kept only within the workspace).
-  const href = (p: string) => browseHref(root, p, scopeWs(p, ws));
+  // Ancestors above the workspace folder drop `ws` (it is kept only within the workspace); a project is kept.
+  const href = (p: string) => browseHref(root, p, scopeNav(p, scope));
   const crumbs: Crumb[] = [{ label: 'Roots', href: '/' }];
   crumbs.push({ label: root, href: segs.length === 0 ? null : href('') });
   segs.forEach((seg, i) => {

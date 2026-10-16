@@ -7,6 +7,7 @@ import { KindIcon } from '../browse/KindIcon';
 import { filterEntries, joinPath, kindOf, sortEntries } from '../browse/logic';
 import { useMdOnly } from '../browse/mdOnly';
 import { useShowHidden } from '../browse/showHidden';
+import { useProjectParam } from '../project/useNavScope';
 import { useLiveSubscription } from '../live/LiveProvider';
 import { TREE_PAGE } from '../workspace/WorkspaceTree';
 import '../workspace/tree.css';
@@ -27,6 +28,8 @@ export function FolderFiles({ root, path }: { root: string; path: string }) {
   useLiveSubscription(root, dir, true);
   const [limit, setLimit] = useState(TREE_PAGE);
   const headingId = useId();
+  // Siblings keep an open project but never a workspace.
+  const project = useProjectParam() ?? undefined;
 
   let body;
   if (list.isPending) body = <Loading />;
@@ -48,7 +51,7 @@ export function FolderFiles({ root, path }: { root: string; path: string }) {
           <li key={e.name}>
             <Link
               aria-current={e.name === name ? 'page' : undefined}
-              to={viewHref(root, joinPath(dir, e.name))}
+              to={viewHref(root, joinPath(dir, e.name), { project })}
             >
               <KindIcon kind={kindOf(e)} />
               {e.name}
@@ -74,7 +77,7 @@ export function FolderFiles({ root, path }: { root: string; path: string }) {
     <section className="folder-files" aria-labelledby={headingId}>
       <h3 id={headingId}>In this folder</h3>
       <p className="muted folder-files-dir">{dir === '' ? root : dir}</p>
-      <Link to={viewHref(root, path, dir)}>Open as workspace</Link>
+      <Link to={viewHref(root, path, { ws: dir })}>Open as workspace</Link>
       {body}
     </section>
   );

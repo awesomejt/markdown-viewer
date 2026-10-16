@@ -35,7 +35,7 @@ export function WorkspaceTree({ root, ws, path, isFolder }: TreeProps) {
       <Link
         className="tree-root"
         aria-current={isFolder && path === ws ? 'page' : undefined}
-        to={browseHref(root, ws, ws)}
+        to={browseHref(root, ws, { ws })}
       >
         {ws === '' ? root : ws}
       </Link>
@@ -101,8 +101,8 @@ function TreeChildren({ dir, ...ctx }: Ctx & { dir: string }) {
                 aria-current={current ? 'page' : undefined}
                 to={
                   e.type === 'dir'
-                    ? browseHref(ctx.root, child, ctx.ws)
-                    : viewHref(ctx.root, child, ctx.ws)
+                    ? browseHref(ctx.root, child, { ws: ctx.ws })
+                    : viewHref(ctx.root, child, { ws: ctx.ws })
                 }
               >
                 <KindIcon kind={kind} />

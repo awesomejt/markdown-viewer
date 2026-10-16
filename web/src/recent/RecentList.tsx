@@ -45,7 +45,9 @@ export function RecentList({ heading: Heading = 'h2' }: { heading?: 'h2' | 'h3' 
           <li key={`${r.type}:${r.root}/${r.path}`}>
             <Link
               to={
-                r.type === 'dir' ? browseHref(r.root, r.path, r.ws) : viewHref(r.root, r.path, r.ws)
+                r.type === 'dir'
+                  ? browseHref(r.root, r.path, { ws: r.ws })
+                  : viewHref(r.root, r.path, { ws: r.ws })
               }
               title={`${r.root}/${r.path}`}
             >
