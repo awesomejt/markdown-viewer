@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ6 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ6 (Phase 2b, D-30; FIX-29 done); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -93,6 +93,14 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-29)
+
+- Task: flaky Shiki-dependent web tests. Orchestrator fixed it directly (test-only change, smaller than a coder brief). Haiku gate and merge.
+- Cause: (1) `ViewFileView.test.tsx` matched `findByText(/name: Docker course/)`, which only works while the file is plain; with the highlighter warm from the first test, Shiki can split the line into token spans before the query runs (shown red by a probe that waits for `pre.shiki` first). (2) Captured under 4 concurrent full runs: `CodeFile.test.tsx` timed out on a cold Shiki start with the 1 s `vi.waitFor` default.
+- Files changed: new `web/src/markdown/test-utils.ts` (`SHIKI_WAIT` 5 s, `findCodeText` matching a `<pre>` by full text in both states); `ViewFileView.test.tsx`, `CodeFile.test.tsx`, `highlight.test.tsx` use them.
+- Result: the probe passes; 8 concurrent full web runs (2 rounds of 4) passed.
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5b)
 
 - Task: project sidebar, warnings, live reload with keep-last-good, per-project device choices. Sonnet coder; orchestrator reviewed (all device writers go through `useSettings`, so scope is enforced in one place) and showed the isolation and 404 tests red under mutation; Haiku gate and merge.
@@ -106,10 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/api/client.ts` (`ProjectRef`, `NavScope`, `parseProjectParam`/`formatProject`, `getProject`, `ApiError.line`), `api/hooks.ts` (`useProjectQuery`, `notifyOnChangeProps: 'all'` because deeper readers mount after the result), new `web/src/project/` (`ProjectProvider`, `ProjectGate`, `ProjectHome`, `useNavScope`, tests), `settings/project.ts` (real `useProjectLayer`), callers moved to `NavScope` (browse, workspace, fileview, markdown links, recent, Layout), `live/logic.ts` (`isApiQueryKey` knows `project`), e2e `project.spec.ts` + `testdata/fixtures/projects/`, `internal/fsroot/list_test.go` (new fixture folder), `docs/Architecture.md` PJ5a notes.
 - Result: web tests 392 passed (96.5% lines); `make e2e` 283 passed, 1 skipped.
 - Blockers or follow-up: `useProjectLayer` keeps the last data of the current key, so PJ5b's keep-last-good builds on it. No live sub on the project file yet (PJ5b).
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4b)
-
-- Task: device text scale. Sonnet coder; orchestrator reviewed and merged the duplicated round/clamp code into `snapTextScale`; Haiku gate and merge.
-- Files changed: `web/src/settings/device.ts` (`mdv-text-scale` store, integer percent 50-200 in steps of 10, 100 removes the key, global only and outside the `setDeviceChoice` seam, fed into the device layer and boot step), new `useTextScale.ts`, `useTextScaleKeys.ts` (`onTextScaleKey`), `TextScaleControls.tsx` (A−, percent reset, A+), tests; `Layout.tsx`; content CSS `clamp(8px, ..., 48px)` (text/code 0.9 of that, top 43.2px); header fits 320 px (theme select may shrink, title truncates first); e2e in `settings.spec.ts` (Ctrl keys skipped on the ipad project); `docs/Architecture.md` PJ4b notes.
-- Result: web tests 368 passed, coverage 96.4% lines; `make e2e` 263 passed, 1 skipped.
-- Blockers or follow-up: `ViewFileView.test.tsx` "falls back to the project kind" failed once under `make -j32` load and passed on every rerun (possible flaky timing; investigate if it repeats).

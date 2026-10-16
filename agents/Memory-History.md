@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4b)
+
+- Task: device text scale. Sonnet coder; orchestrator reviewed and merged the duplicated round/clamp code into `snapTextScale`; Haiku gate and merge.
+- Files changed: `web/src/settings/device.ts` (`mdv-text-scale` store, integer percent 50-200 in steps of 10, 100 removes the key, global only and outside the `setDeviceChoice` seam, fed into the device layer and boot step), new `useTextScale.ts`, `useTextScaleKeys.ts` (`onTextScaleKey`), `TextScaleControls.tsx` (A−, percent reset, A+), tests; `Layout.tsx`; content CSS `clamp(8px, ..., 48px)` (text/code 0.9 of that, top 43.2px); header fits 320 px (theme select may shrink, title truncates first); e2e in `settings.spec.ts` (Ctrl keys skipped on the ipad project); `docs/Architecture.md` PJ4b notes.
+- Result: web tests 368 passed, coverage 96.4% lines; `make e2e` 263 passed, 1 skipped.
+- Blockers or follow-up: `ViewFileView.test.tsx` "falls back to the project kind" failed once under `make -j32` load and passed on every rerun (possible flaky timing; investigate if it repeats).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4a)
 
 - Task: client settings core. Sonnet coder; orchestrator reviewed the diff and added `src/settings/**` to the vitest coverage `include`; Haiku gate and merge.
