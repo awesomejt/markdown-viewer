@@ -16,6 +16,8 @@ export interface FilterOptions {
   mdOnly: boolean;
   /** Keep dot-files and dot-folders (FR-1.4); hidden by default. */
   showHidden?: boolean;
+  /** Keep only project files (and folders), FR-7.5. */
+  projectsOnly?: boolean;
 }
 
 /** Kinds the Markdown-only toggle keeps (folders always stay). */
@@ -24,12 +26,13 @@ const MD_ONLY_KINDS: ReadonlySet<EntryKind> = new Set(['markdown', 'diagram', 'p
 /** Hides dot-files unless `showHidden`, applies the case-insensitive name filter and the markdown/diagrams/projects toggle. */
 export function filterEntries(
   entries: ListEntry[],
-  { query, mdOnly, showHidden = false }: FilterOptions,
+  { query, mdOnly, showHidden = false, projectsOnly = false }: FilterOptions,
 ): ListEntry[] {
   const q = query.trim().toLowerCase();
   return entries.filter((e) => {
     if (!showHidden && isHidden(e.name)) return false;
     if (mdOnly && e.type !== 'dir' && !MD_ONLY_KINDS.has(e.kind)) return false;
+    if (projectsOnly && e.type !== 'dir' && e.kind !== 'project') return false;
     return q === '' || e.name.toLowerCase().includes(q);
   });
 }

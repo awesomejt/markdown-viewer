@@ -11,11 +11,17 @@ export function useRecordRecent(item: RecentItem | undefined): void {
   const path = item?.path;
   const type = item?.type;
   const ws = item?.ws;
+  const projectRoot = item?.project?.root;
+  const projectPath = item?.project?.path;
   useEffect(() => {
     if (root !== undefined && path !== undefined && type !== undefined) {
-      recordRecent(ws === undefined ? { root, path, type } : { root, path, type, ws });
+      const project =
+        projectRoot !== undefined && projectPath !== undefined
+          ? { root: projectRoot, path: projectPath }
+          : undefined;
+      recordRecent({ root, path, type, ws, project });
     }
-  }, [root, path, type, ws]);
+  }, [root, path, type, ws, projectRoot, projectPath]);
 }
 
 function label(item: RecentItem): string {
@@ -46,8 +52,8 @@ export function RecentList({ heading: Heading = 'h2' }: { heading?: 'h2' | 'h3' 
             <Link
               to={
                 r.type === 'dir'
-                  ? browseHref(r.root, r.path, { ws: r.ws })
-                  : viewHref(r.root, r.path, { ws: r.ws })
+                  ? browseHref(r.root, r.path, { ws: r.ws, project: r.project })
+                  : viewHref(r.root, r.path, { ws: r.ws, project: r.project })
               }
               title={`${r.root}/${r.path}`}
             >

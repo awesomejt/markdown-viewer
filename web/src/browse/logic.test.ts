@@ -57,6 +57,25 @@ describe('filterEntries', () => {
   });
 });
 
+describe('filterEntries projectsOnly', () => {
+  const withProject = [...entries, mk('course.mdv.yaml', 'file', 'project')];
+  const names = (o: Partial<Parameters<typeof filterEntries>[1]>) =>
+    filterEntries(withProject, { query: '', mdOnly: false, ...o }).map((e) => e.name);
+  it('keeps folders and project files only', () => {
+    expect(names({ projectsOnly: true })).toEqual(['sub', 'course.mdv.yaml']);
+  });
+  it('combines with the name filter, hidden files and markdown-only', () => {
+    expect(names({ projectsOnly: true, query: 'course' })).toEqual(['course.mdv.yaml']);
+    expect(names({ projectsOnly: true, query: 'sub' })).toEqual(['sub']);
+    expect(names({ projectsOnly: true, showHidden: true })).toEqual([
+      'sub',
+      '.hidden',
+      'course.mdv.yaml',
+    ]);
+    expect(names({ projectsOnly: true, mdOnly: true })).toEqual(['sub', 'course.mdv.yaml']);
+  });
+});
+
 describe('formatSize', () => {
   it('formats units and blanks dirs', () => {
     expect(formatSize({ type: 'dir', size: 4096 })).toBe('');

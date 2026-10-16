@@ -1,4 +1,5 @@
 import { useCallback, useSyncExternalStore } from 'react';
+import { formatProject, parseProjectParam, type ProjectRef } from '../api/client';
 import { createStoredStore } from '../app/storedStore';
 
 // Recently opened files and folders (FR-2.6), newest first, stored per browser. One store is
@@ -12,6 +13,19 @@ export interface RecentItem {
   type: 'file' | 'dir';
   /** Workspace the item was opened in, so reopening it restores the tree. */
   ws?: string;
+  /** Project the item was opened in (FR-7.6); wins over `ws`, so only one of them is kept. */
+  project?: ProjectRef;
+}
+
+/** The item with `ws` dropped when a project is present, and no `undefined` fields. */
+export function normalizeRecent(item: RecentItem): RecentItem {
+  const { root, path, type, ws, project } = item;
+  if (project) return { root, path, type, project };
+  return ws === undefined ? { root, path, type } : { root, path, type, ws };
+}
+
+function sameProject(a?: ProjectRef, b?: ProjectRef): boolean {
+  return a === b || (a !== undefined && b !== undefined && a.root === b.root && a.path === b.path);
 }
 
 function sameItem(a: RecentItem, b: RecentItem): boolean {
@@ -32,6 +46,7 @@ function isItem(v: unknown): v is RecentItem {
     typeof r.path === 'string' &&
     (r.type === 'file' || r.type === 'dir') &&
     (r.ws === undefined || typeof r.ws === 'string')
+    // `project` is checked while mapping: a bad value drops only that field.
   );
 }
 
@@ -47,20 +62,34 @@ export function parseRecent(raw: string | null): RecentItem[] {
   if (!Array.isArray(data)) return [];
   return data
     .filter(isItem)
-    .map(({ root, path, type, ws }) =>
-      ws === undefined ? { root, path, type } : { root, path, type, ws },
-    )
+    .map((r) => {
+      const raw = (r as unknown as { project?: unknown }).project;
+      const project = typeof raw === 'string' ? parseProjectParam(raw) : null;
+      return normalizeRecent({ ...r, project: project ?? undefined });
+    })
     .slice(0, RECENT_MAX);
 }
 
 const store = createStoredStore(RECENT_STORAGE_KEY, parseRecent, (list: RecentItem[]) =>
-  list.length === 0 ? null : JSON.stringify(list),
+  list.length === 0
+    ? null
+    : JSON.stringify(
+        list.map((r) => (r.project ? { ...r, project: formatProject(r.project) } : r)),
+      ),
 );
 
 export function recordRecent(item: RecentItem): void {
   const list = store.get();
-  if (list.length > 0 && sameItem(list[0], item) && list[0].ws === item.ws) return;
-  store.set(pushRecent(list, item));
+  const next = normalizeRecent(item);
+  if (
+    list.length > 0 &&
+    sameItem(list[0], next) &&
+    list[0].ws === next.ws &&
+    sameProject(list[0].project, next.project)
+  ) {
+    return;
+  }
+  store.set(pushRecent(list, next));
 }
 
 export function clearRecent(): void {

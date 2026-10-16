@@ -1,7 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, type ReactNode } from 'react';
 import { ApiError } from '../api/client';
 import { useProjectQuery } from '../api/hooks';
 import { useLiveSubscription } from '../live/LiveProvider';
+import { recordRecentProject } from '../recent/recentProjects';
 import { ProjectContext, type ProjectProblem, type ProjectState } from './context';
 import { useProjectParam } from './useNavScope';
 
@@ -20,6 +21,17 @@ function ProjectLive({ root, path }: { root: string; path: string }) {
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const ref = useProjectParam();
   const query = useProjectQuery(ref?.root ?? '', ref?.path ?? '', ref !== null);
+  // Remember a project once it loads; a rename updates the name. A later 404 cannot add it, as
+  // it was recorded on the success before.
+  const root = ref?.root;
+  const path = ref?.path;
+  const loaded = query.data !== undefined;
+  const name = query.data?.name ?? undefined;
+  useEffect(() => {
+    if (root !== undefined && path !== undefined && loaded) {
+      recordRecentProject({ root, path, name });
+    }
+  }, [root, path, loaded, name]);
   const state = useMemo<ProjectState>(() => {
     if (!ref) return { ref: null, query: null, data: undefined, problem: null };
     let data = query.data;

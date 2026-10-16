@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import { browseHref } from '../api/client';
 import { useRoots } from '../api/hooks';
 import { ErrorState, Loading } from '../app/states';
+import { RecentProjects } from '../recent/RecentProjects';
 import { RecentList } from '../recent/RecentList';
 
 export function RootsView() {
@@ -29,6 +30,7 @@ export function RootsView() {
             ))}
           </ul>
         ))}
+      <RecentProjects />
       <RecentList />
     </section>
   );

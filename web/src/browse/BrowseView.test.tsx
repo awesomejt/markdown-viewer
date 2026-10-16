@@ -112,6 +112,35 @@ describe('BrowseView', () => {
     );
   });
 
+  it('Projects only keeps folders and project files, and is not persisted', async () => {
+    const user = userEvent.setup();
+    bodies['mixed'] = listing('mixed', [
+      { name: 'sub', type: 'dir', kind: 'other', size: 0, mtime },
+      f('course.mdv.yaml', 'project'),
+      f('a.md', 'markdown'),
+      f('b.bin', 'other'),
+    ]);
+    renderAt('/browse/r/mixed');
+    const list = await screen.findByRole('list', { name: 'Entries' });
+    const toggle = screen.getByRole('checkbox', { name: 'Projects only' });
+    expect(toggle).not.toBeChecked();
+    expect(toggle.closest('label')).toHaveAttribute(
+      'title',
+      'Show only project files (folders always stay)',
+    );
+    await user.click(toggle);
+    expect(
+      within(list)
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual(['sub', 'course.mdv.yaml']);
+    expect(window.localStorage.getItem('mdv-md-only')).toBeNull();
+    expect(window.localStorage.getItem('mdv-projects-only')).toBeNull();
+    await user.click(toggle);
+    expect(within(list).getAllByRole('link')).toHaveLength(4);
+    delete bodies['mixed'];
+  });
+
   it('shows hidden files when toggled (persisted)', async () => {
     const user = userEvent.setup();
     renderAt('/browse/r');

@@ -36,22 +36,26 @@ export function BrowseView() {
 }
 
 function FolderView({ root, path, scope }: { root: string; path: string; scope: NavScope }) {
-  const ws = scope.ws;
+  const { ws, project } = scope;
   const navigate = useNavigate();
   const list = useList(root, path);
   useLiveSubscription(root, path);
   // Roots are always listed already; only folders inside them are worth remembering.
-  useRecordRecent(list.data && path !== '' ? { root, path, type: 'dir', ws } : undefined);
+  useRecordRecent(list.data && path !== '' ? { root, path, type: 'dir', ws, project } : undefined);
   const [query, setQuery] = useState('');
   const [mdOnly, setMdOnly] = useMdOnly();
   const [showHidden, setShowHidden] = useShowHidden();
+  const [projectsOnly, setProjectsOnly] = useState(false);
   const {
     resolved: { sort },
     setSort,
   } = useSettings();
 
   const entries = list.data
-    ? sortEntries(filterEntries(list.data.entries, { query, mdOnly, showHidden }), sort)
+    ? sortEntries(
+        filterEntries(list.data.entries, { query, mdOnly, showHidden, projectsOnly }),
+        sort,
+      )
     : [];
 
   return (
@@ -87,6 +91,14 @@ function FolderView({ root, path, scope }: { root: string; path: string; scope: 
                 onChange={(e) => setMdOnly(e.target.checked)}
               />
               Markdown/diagrams only
+            </label>
+            <label className="toggle" title="Show only project files (folders always stay)">
+              <input
+                type="checkbox"
+                checked={projectsOnly}
+                onChange={(e) => setProjectsOnly(e.target.checked)}
+              />
+              Projects only
             </label>
             <label className="toggle">
               <input

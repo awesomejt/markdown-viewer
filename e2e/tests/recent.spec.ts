@@ -17,7 +17,7 @@ test('recent files and folders are listed on the home page and can be cleared', 
   page,
 }) => {
   const main = page.getByRole('main');
-  const recent = main.getByRole('list', { name: 'Recent' });
+  const recent = main.getByRole('list', { name: 'Recent', exact: true });
 
   await page.goto('/');
   await expect(main.getByRole('heading', { name: 'Roots' })).toBeVisible();
@@ -49,7 +49,7 @@ test('recent files and folders are listed on the home page and can be cleared', 
   await page.goto('/');
   await expect(links.nth(0)).toHaveAttribute('href', '/browse/fixtures/docs');
 
-  await main.getByRole('button', { name: 'Clear recent' }).click();
+  await main.getByRole('button', { name: 'Clear recent', exact: true }).click();
   await expect(recent).toHaveCount(0);
   await page.reload();
   await expect(main.getByRole('heading', { name: 'Roots' })).toBeVisible();

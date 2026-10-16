@@ -153,7 +153,7 @@ export function ViewFileView() {
   const list = useList(root, parentDir(path));
   useLiveSubscription(root, path);
   const entry = list.data?.entries.find((e) => e.type === 'file' && e.name === baseName(path));
-  useRecordRecent(entry && { root, path, type: 'file', ws: scope.ws });
+  useRecordRecent(entry && { root, path, type: 'file', ws: scope.ws, project: scope.project });
   if (list.isPending) return <Loading />;
   return (
     <ViewByKind

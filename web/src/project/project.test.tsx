@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
+import { resetRecentCache } from '../recent/recent';
+import { parseRecentProjects, resetRecentProjectsCache } from '../recent/recentProjects';
 
 const entry = (path: string, kind: string, type = 'file') => ({
   root: 'r',
@@ -438,13 +440,61 @@ describe('keeping the last good project', () => {
   });
 });
 
+describe('recent projects', () => {
+  const stored = () => parseRecentProjects(window.localStorage.getItem('mdv-recent-projects'));
+  beforeEach(() => {
+    resetRecentProjectsCache();
+    resetRecentCache();
+  });
+
+  it('records a loaded project with its name, and lists it on the home page', async () => {
+    const { router } = renderAt('/view/r/a.mdv.yaml');
+    await waitFor(() =>
+      expect(stored()).toEqual([{ root: 'r', path: 'a.mdv.yaml', name: 'Project A' }]),
+    );
+    await act(() => router.navigate('/'));
+    const list = await screen.findByRole('list', { name: 'Recent projects' });
+    expect(within(list).getByRole('link', { name: /Project A/ })).toHaveAttribute(
+      'href',
+      '/view/r/a.mdv.yaml',
+    );
+  });
+
+  it('records a project without a title by file name', async () => {
+    renderAt('/view/r/plain.mdv.yaml');
+    await waitFor(() => expect(stored()).toEqual([{ root: 'r', path: 'plain.mdv.yaml' }]));
+  });
+
+  it('does not record a project that failed to load', async () => {
+    renderAt('/view/r/dead.mdv.yaml');
+    await main().findByRole('link', { name: 'Close project' });
+    await settle();
+    expect(stored()).toEqual([]);
+  });
+
+  it('files opened in a project are recorded with it and link back into it', async () => {
+    const { router } = renderAt('/view/r/sub/zed.md?project=r:s.mdv.yaml');
+    await waitFor(() =>
+      expect(JSON.parse(window.localStorage.getItem('mdv-recent') ?? '[]')[0]?.project).toBe(
+        'r:s.mdv.yaml',
+      ),
+    );
+    await act(() => router.navigate('/'));
+    const list = await screen.findByRole('list', { name: 'Recent' });
+    expect(within(list).getByRole('link', { name: /zed\.md/ })).toHaveAttribute(
+      'href',
+      '/view/r/sub/zed.md?project=r:s.mdv.yaml',
+    );
+  });
+});
+
 describe('per-project device choices', () => {
   const theme = () => document.documentElement.dataset.theme;
   const choose = (v: string) =>
     userEvent.selectOptions(screen.getByRole('combobox', { name: 'Theme' }), v);
 
   it('a choice inside a project is not seen outside, nor in another project', async () => {
-    const r = renderAt('/view/r/docs/start.md?project=r:s.mdv.yaml');
+    const r = renderAt('/view/r/sub/zed.md?project=r:s.mdv.yaml');
     await sidebar().findByRole('heading', { name: 'Sidebar project' });
     await choose('dark');
     await waitFor(() => expect(theme()).toBe('dark'));
@@ -455,7 +505,7 @@ describe('per-project device choices', () => {
     await act(() => r.router.navigate('/view/r/p1.md?project=r:plain.mdv.yaml'));
     await waitFor(() => expect(fontSize()).toBe('16px'));
     expect(theme()).toBe('light');
-    await act(() => r.router.navigate('/view/r/docs/start.md?project=r:s.mdv.yaml'));
+    await act(() => r.router.navigate('/view/r/sub/zed.md?project=r:s.mdv.yaml'));
     await waitFor(() => expect(theme()).toBe('dark'));
   });
 
@@ -464,7 +514,7 @@ describe('per-project device choices', () => {
     await screen.findByRole('combobox', { name: 'Theme' });
     await choose('dark');
     await waitFor(() => expect(theme()).toBe('dark'));
-    await act(() => r.router.navigate('/view/r/docs/start.md?project=r:s.mdv.yaml'));
+    await act(() => r.router.navigate('/view/r/sub/zed.md?project=r:s.mdv.yaml'));
     await sidebar().findByRole('heading', { name: 'Sidebar project' });
     await waitFor(() => expect(theme()).toBe('light'));
     await choose('light');
