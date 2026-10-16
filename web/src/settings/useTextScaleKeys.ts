@@ -3,22 +3,40 @@ import { decreaseTextScale, increaseTextScale, resetTextScale } from './useTextS
 
 type Action = 'larger' | 'smaller' | 'reset';
 
+const LARGER = ['=', '+'];
+const SMALLER = ['-', '_'];
+
 function actionFor(e: KeyboardEvent): Action | null {
-  if (e.key === '=' || e.key === '+' || e.code === 'Equal' || e.code === 'NumpadAdd')
-    return 'larger';
-  if (e.key === '-' || e.key === '_' || e.code === 'Minus' || e.code === 'NumpadSubtract')
-    return 'smaller';
-  if (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0') return 'reset';
+  // `key` wins; `code` is only a fallback when the layout gives no usable key.
+  if (LARGER.includes(e.key)) return 'larger';
+  if (SMALLER.includes(e.key)) return 'smaller';
+  if (e.key === '0') return 'reset';
+  if (e.key !== 'Unidentified' && e.key !== 'Dead') return null;
+  if (e.code === 'Equal' || e.code === 'NumpadAdd') return 'larger';
+  if (e.code === 'Minus' || e.code === 'NumpadSubtract') return 'smaller';
+  if (e.code === 'Digit0' || e.code === 'Numpad0') return 'reset';
   return null;
 }
 
+const NON_TEXT_INPUTS = new Set([
+  'checkbox',
+  'radio',
+  'button',
+  'submit',
+  'reset',
+  'image',
+  'file',
+  'range',
+  'color',
+  'hidden',
+]);
+
+/** True only for text-entry controls, where Ctrl/Cmd +/-/0 must keep their native meaning. */
 function isEditable(t: EventTarget | null): boolean {
   if (!(t instanceof HTMLElement)) return false;
-  const tag = t.tagName;
+  if (t.tagName === 'INPUT') return !NON_TEXT_INPUTS.has((t as HTMLInputElement).type);
   return (
-    tag === 'INPUT' ||
-    tag === 'TEXTAREA' ||
-    tag === 'SELECT' ||
+    t.tagName === 'TEXTAREA' ||
     t.isContentEditable ||
     t.getAttribute('contenteditable') === '' ||
     t.getAttribute('contenteditable') === 'true'

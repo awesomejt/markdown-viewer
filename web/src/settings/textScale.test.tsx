@@ -117,6 +117,7 @@ describe('text scale keys', () => {
     ['Meta+=', { metaKey: true, key: '=' }, 110],
     ['Ctrl Equal code', { ctrlKey: true, key: 'Unidentified', code: 'Equal' }, 110],
     ['Ctrl NumpadAdd', { ctrlKey: true, key: 'Unidentified', code: 'NumpadAdd' }, 110],
+    ['Ctrl Dead Equal code', { ctrlKey: true, key: 'Dead', code: 'Equal' }, 110],
     ['Ctrl+-', { ctrlKey: true, key: '-' }, 90],
     ['Meta+_', { metaKey: true, key: '_' }, 90],
     ['Ctrl Minus code', { ctrlKey: true, key: 'Unidentified', code: 'Minus' }, 90],
@@ -142,7 +143,12 @@ describe('text scale keys', () => {
     renderHook(() => useTextScaleKeys());
     const ce = document.createElement('div');
     ce.setAttribute('contenteditable', 'true');
-    const els = ['input', 'textarea', 'select'].map((t) => document.createElement(t));
+    const els = ['input', 'textarea'].map((t) => document.createElement(t));
+    for (const type of ['search', 'number']) {
+      const input = document.createElement('input');
+      input.type = type;
+      els.push(input);
+    }
     document.body.append(ce, ...els);
     for (const el of [ce, ...els]) {
       expect(press({ ctrlKey: true, key: '=' }, el).defaultPrevented).toBe(false);
@@ -155,6 +161,43 @@ describe('text scale keys', () => {
     expect(textScaleStore.get()).toBeUndefined();
     ce.remove();
     els.forEach((el) => el.remove());
+  });
+
+  it('handles the shortcut on focused non-text controls', () => {
+    renderHook(() => useTextScaleKeys());
+    const range = document.createElement('input');
+    range.type = 'range';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    const els = [
+      checkbox,
+      radio,
+      document.createElement('select'),
+      document.createElement('button'),
+      range,
+    ];
+    document.body.append(...els);
+    for (const el of els) {
+      setTextScale(100);
+      el.focus();
+      expect(press({ ctrlKey: true, key: '=' }, el).defaultPrevented).toBe(true);
+      expect(textScaleStore.get()).toBe(110);
+    }
+    els.forEach((el) => el.remove());
+  });
+
+  it.each([
+    { key: 'ß', code: 'Minus' },
+    { key: ')', code: 'Minus' },
+    { key: 'à', code: 'Digit0' },
+    { key: 'Insert', code: 'Numpad0' },
+    { key: 'Dead', code: 'KeyA' },
+  ])('ignores key/code mismatch %j', (init) => {
+    renderHook(() => useTextScaleKeys());
+    expect(press({ ctrlKey: true, ...init }).defaultPrevented).toBe(false);
+    expect(textScaleStore.get()).toBeUndefined();
   });
 
   it('ignores an already handled event', () => {
