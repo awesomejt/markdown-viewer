@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4a)
+
+- Task: client settings core. Sonnet coder; orchestrator reviewed the diff and added `src/settings/**` to the vitest coverage `include`; Haiku gate and merge.
+- Files changed: new `web/src/settings/` (types/defaults/registry, pure `resolveSettings` + `applyRegistry`, `sanitizeLayer`, `mdv-prefs-cache`, `usePrefs`, global device stores `T | undefined` with the `setDeviceChoice`/`useDeviceLayer` seam for PJ5b, migration `mdv-settings-v=2`, `useSettings`, `applySettings`/`useApplySettings`, `bootSettings`, `ThemeSelect`, `PrefsBanner`, `FirstPaintHold`, `useProjectLayer` stub for PJ5a, tests); `api` (`getPrefs`, `queryKeys.prefs`, types); `Layout`, `main.tsx`, `theme.ts` (cycle hook removed), browse/workspace consumers read resolved values; content CSS uses `--mdv-*` variables (normal width 50rem, 16 px, 1.6 = previous look); e2e `MDV_PREFS` fixture (`testdata/e2e-preferences.yaml`), `settings.spec.ts`, theme specs on the select; `docs/Architecture.md` implementation notes.
+- Result: defaults look unchanged; prefs reach CSS only through the sanitizer; unknown style/font names fall back with a client warning in the banner. Web coverage 96.2% lines with settings counted.
+- Blockers or follow-up: every e2e spec now sees the one-warning banner (a second e2e server would isolate it). Theme select fit at phone width not checked in a browser (iPad project passes). Reset control and per-project choices are PJ5b; text-scale UI is PJ4b.
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ3)
 
 - Task: `GET /api/project`, shared stat resolver, `project` kind and client kind plumbing (🔒). Sonnet coder, Opus security review (approve-with-changes), coder fixed, orchestrator verified, Haiku gate.

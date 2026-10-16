@@ -40,15 +40,28 @@ const PROJECTS: Record<string, unknown> = {
     entries: [entry('c1.md', 'markdown')],
     warnings: [{ code: 'missing', message: 'No such file', ref: 'gone.md', line: 7 }],
   },
+  // Sidebar fixture: a folder entry, a file entry, an unknown style, a server warning.
+  's.mdv.yaml': {
+    ...base,
+    path: 's.mdv.yaml',
+    name: 'Sidebar project',
+    open: { root: 'r', path: 'docs/start.md', kind: 'markdown' },
+    entries: [entry('sub', 'other', 'dir'), entry('docs/start.md', 'markdown')],
+    settings: { fontSize: 24, style: 'fancy' },
+    warnings: [{ code: 'missing', message: 'No such file', ref: 'gone.md', line: 7 }],
+  },
   'plain.mdv.yaml': { ...base, path: 'plain.mdv.yaml', entries: [entry('p1.md', 'markdown')] },
 };
 
 let projectCalls: string[] = [];
+/** Per project path: answer with this instead of the table (keep-last-good transitions). */
+let overrides: Record<string, () => Response> = {};
 let gates: Record<string, Promise<void>> = {};
 
 beforeEach(() => {
   window.localStorage.clear();
   projectCalls = [];
+  overrides = {};
   gates = {};
   vi.stubGlobal(
     'fetch',
@@ -67,6 +80,7 @@ beforeEach(() => {
         case '/api/project': {
           projectCalls.push(path);
           await gates[path];
+          if (overrides[path]) return overrides[path]();
           if (path.endsWith('dead.mdv.yaml')) {
             return Response.json(
               { error: { code: 'not_found', message: 'nope' } },
@@ -196,10 +210,12 @@ describe('entering a project', () => {
 });
 
 describe('staying in a project', () => {
-  it('drops the param on the explicit exits: the root list and Home', async () => {
+  it('drops the param on the explicit exit Home', async () => {
     const r = renderAt('/view/r/plain.mdv.yaml');
     await waitFor(() => expect(where(r)).toBe('/view/r/p1.md?project=r:plain.mdv.yaml'));
-    expect(screen.getByRole('link', { name: 'r' })).toHaveAttribute('href', '/browse/r');
+    // The project section replaces the root list; Close project is an explicit exit.
+    expect(await screen.findByRole('region', { name: 'Project' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'r' })).toBeNull();
     await userEvent.click(screen.getByRole('link', { name: 'Markdown Viewer' }));
     await waitFor(() => expect(where(r)).toBe('/'));
   });
@@ -266,5 +282,202 @@ describe('initial error states', () => {
     const before = projectCalls.length;
     await userEvent.click(retry);
     await waitFor(() => expect(projectCalls.length).toBeGreaterThan(before));
+  });
+});
+
+const sidebar = () => within(screen.getByRole('navigation', { name: 'Sidebar' }));
+const errorResponse = (status: number, code: string, line?: number) => () =>
+  Response.json({ error: { code, message: code, ...(line ? { line } : {}) } }, { status });
+
+describe('project sidebar', () => {
+  const url = '/view/r/docs/start.md?project=r:s.mdv.yaml';
+
+  it('shows title, links, entries, the current item and folder disclosure', async () => {
+    renderAt(url);
+    expect(await sidebar().findByRole('heading', { name: 'Sidebar project' })).toBeInTheDocument();
+    expect(sidebar().getByRole('heading', { name: 'Project', level: 2 })).toBeInTheDocument();
+    expect(sidebar().getByRole('link', { name: 'Source' })).toHaveAttribute(
+      'href',
+      '/view/r/s.mdv.yaml?project=r:s.mdv.yaml&source=1',
+    );
+    expect(sidebar().getByRole('link', { name: 'Open' })).toHaveAttribute(
+      'href',
+      '/view/r/docs/start.md?project=r:s.mdv.yaml',
+    );
+    expect(sidebar().queryByRole('link', { name: 'r' })).toBeNull();
+    // The current file is marked, the project scope is carried (never ws).
+    const current = sidebar().getByRole('link', { name: 'docs/start.md' });
+    expect(current).toHaveAttribute('aria-current', 'page');
+    expect(current).toHaveAttribute('href', '/view/r/docs/start.md?project=r:s.mdv.yaml');
+    expect(sidebar().queryByText('This file is not part of the project')).toBeNull();
+
+    // A folder entry is collapsed (it does not contain the current path) and lists lazily.
+    const toggle = sidebar().getByRole('button', { name: 'Expand sub' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(sidebar().queryByRole('link', { name: 'zed.md' })).toBeNull();
+    await userEvent.click(toggle);
+    const child = await sidebar().findByRole('link', { name: 'zed.md' });
+    expect(child).toHaveAttribute('href', '/view/r/sub/zed.md?project=r:s.mdv.yaml');
+    expect(sidebar().getByRole('link', { name: 'sub' })).toHaveAttribute(
+      'href',
+      '/browse/r/sub?project=r:s.mdv.yaml',
+    );
+    await userEvent.click(sidebar().getByRole('button', { name: 'Collapse sub' }));
+    expect(sidebar().queryByRole('link', { name: 'zed.md' })).toBeNull();
+  });
+
+  it('opens the folder that contains the current path', async () => {
+    renderAt('/view/r/sub/zed.md?project=r:s.mdv.yaml');
+    const current = await sidebar().findByRole('link', { name: 'zed.md' });
+    expect(current).toHaveAttribute('aria-current', 'page');
+    expect(sidebar().getByRole('button', { name: 'Collapse sub' })).toBeInTheDocument();
+    expect(sidebar().queryByText('This file is not part of the project')).toBeNull();
+  });
+
+  it('notes a file that is not part of the project, but not the project file itself', async () => {
+    const r = renderAt('/view/r/elsewhere.md?project=r:s.mdv.yaml');
+    expect(await sidebar().findByText('This file is not part of the project')).toBeInTheDocument();
+    await act(() => r.router.navigate('/view/r/s.mdv.yaml?project=r:s.mdv.yaml'));
+    await waitFor(() =>
+      expect(sidebar().queryByText('This file is not part of the project')).toBeNull(),
+    );
+    await act(() => r.router.navigate('/browse/r/nope?project=r:s.mdv.yaml'));
+    expect(await sidebar().findByText('This file is not part of the project')).toBeInTheDocument();
+  });
+
+  it('shows the warnings panel with server and client warnings; Re-check refetches', async () => {
+    renderAt(url);
+    const panel = (await sidebar().findByText('Warnings')).closest('details') as HTMLElement;
+    expect(panel).toHaveClass('project-warnings');
+    expect(panel).toHaveAttribute('open');
+    const items = within(panel).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(within(panel).getByText('gone.md').tagName).toBe('CODE');
+    expect(within(panel).getByText(/line 7/)).toBeInTheDocument();
+    // The unknown style comes from the client registry for the project layer.
+    expect(within(panel).getByText(/Unknown style "fancy"/)).toBeInTheDocument();
+    expect(within(panel).getByLabelText('2 warnings')).toBeInTheDocument();
+
+    const before = projectCalls.length;
+    await userEvent.click(within(panel).getByRole('button', { name: 'Re-check' }));
+    await waitFor(() => expect(projectCalls.length).toBeGreaterThan(before));
+  });
+
+  it('keeps the warnings panel closed when there are none', async () => {
+    renderAt('/view/r/p1.md?project=r:plain.mdv.yaml');
+    const panel = (await sidebar().findByText('Warnings')).closest('details') as HTMLElement;
+    expect(panel).not.toHaveAttribute('open');
+  });
+
+  it('falls back to the normal sidebar while the project is loading or broken', async () => {
+    renderAt('/browse/r?project=r:dead.mdv.yaml');
+    expect(await sidebar().findByRole('link', { name: 'r' })).toBeInTheDocument();
+    expect(sidebar().getByRole('heading', { name: 'Roots' })).toBeInTheDocument();
+  });
+});
+
+describe('keeping the last good project', () => {
+  const url = '/view/r/docs/start.md?project=r:s.mdv.yaml';
+  const recheck = async () => {
+    const before = projectCalls.length;
+    await userEvent.click(sidebar().getByRole('button', { name: 'Re-check' }));
+    await waitFor(() => expect(projectCalls.length).toBeGreaterThan(before));
+  };
+
+  it('422: keeps the sidebar and settings with an error line until valid again', async () => {
+    renderAt(url);
+    await sidebar().findByRole('heading', { name: 'Sidebar project' });
+    await waitFor(() => expect(fontSize()).toBe('24px'));
+
+    overrides['s.mdv.yaml'] = errorResponse(422, 'project_invalid', 5);
+    await recheck();
+    expect(await sidebar().findByRole('alert')).toHaveTextContent(
+      'Project file has an error, line 5; showing the last valid version',
+    );
+    expect(sidebar().getByRole('heading', { name: 'Sidebar project' })).toBeInTheDocument();
+    expect(sidebar().getByRole('link', { name: 'docs/start.md' })).toBeInTheDocument();
+    expect(fontSize()).toBe('24px');
+    expect(main().getByRole('heading', { name: 'Hello' })).toBeInTheDocument();
+
+    delete overrides['s.mdv.yaml'];
+    await recheck();
+    await waitFor(() => expect(sidebar().queryByRole('alert')).toBeNull());
+    expect(fontSize()).toBe('24px');
+  });
+
+  it('504: keeps the data and marks it possibly out of date', async () => {
+    renderAt(url);
+    await sidebar().findByRole('heading', { name: 'Sidebar project' });
+    expect(sidebar().queryByText(/may be out of date/)).toBeNull();
+
+    overrides['s.mdv.yaml'] = errorResponse(504, 'fs_timeout');
+    await recheck();
+    expect(await sidebar().findByText(/may be out of date/)).toBeInTheDocument();
+    expect(sidebar().getByRole('heading', { name: 'Sidebar project' })).toBeInTheDocument();
+    expect(fontSize()).toBe('24px');
+
+    delete overrides['s.mdv.yaml'];
+    await recheck();
+    await waitFor(() => expect(sidebar().queryByText(/may be out of date/)).toBeNull());
+  });
+
+  it('404: drops the project; error state with Close project, no project settings', async () => {
+    renderAt(url);
+    await sidebar().findByRole('heading', { name: 'Sidebar project' });
+    await waitFor(() => expect(fontSize()).toBe('24px'));
+
+    overrides['s.mdv.yaml'] = errorResponse(404, 'not_found');
+    await recheck();
+    expect(await main().findByRole('link', { name: 'Close project' })).toHaveAttribute(
+      'href',
+      '/view/r/docs/start.md',
+    );
+    await waitFor(() => expect(fontSize()).toBe('16px'));
+    expect(sidebar().queryByRole('heading', { name: 'Sidebar project' })).toBeNull();
+    expect(sidebar().getByRole('heading', { name: 'Roots' })).toBeInTheDocument();
+  });
+});
+
+describe('per-project device choices', () => {
+  const theme = () => document.documentElement.dataset.theme;
+  const choose = (v: string) =>
+    userEvent.selectOptions(screen.getByRole('combobox', { name: 'Theme' }), v);
+
+  it('a choice inside a project is not seen outside, nor in another project', async () => {
+    const r = renderAt('/view/r/docs/start.md?project=r:s.mdv.yaml');
+    await sidebar().findByRole('heading', { name: 'Sidebar project' });
+    await choose('dark');
+    await waitFor(() => expect(theme()).toBe('dark'));
+    expect(window.localStorage.getItem('mdv-theme')).toBeNull();
+
+    await act(() => r.router.navigate('/browse/r'));
+    await waitFor(() => expect(theme()).toBe('light'));
+    await act(() => r.router.navigate('/view/r/p1.md?project=r:plain.mdv.yaml'));
+    await waitFor(() => expect(fontSize()).toBe('16px'));
+    expect(theme()).toBe('light');
+    await act(() => r.router.navigate('/view/r/docs/start.md?project=r:s.mdv.yaml'));
+    await waitFor(() => expect(theme()).toBe('dark'));
+  });
+
+  it('a global choice does not apply inside a project; Reset clears the current scope only', async () => {
+    const r = renderAt('/browse/r');
+    await screen.findByRole('combobox', { name: 'Theme' });
+    await choose('dark');
+    await waitFor(() => expect(theme()).toBe('dark'));
+    await act(() => r.router.navigate('/view/r/docs/start.md?project=r:s.mdv.yaml'));
+    await sidebar().findByRole('heading', { name: 'Sidebar project' });
+    await waitFor(() => expect(theme()).toBe('light'));
+    await choose('light');
+
+    await userEvent.click(sidebar().getByRole('button', { name: "Reset this device's choices" }));
+    expect(window.localStorage.getItem('mdv-project-device')).toBeNull();
+    // The global choice survives a project reset.
+    expect(window.localStorage.getItem('mdv-theme')).toBe('dark');
+
+    await act(() => r.router.navigate('/browse/r'));
+    await waitFor(() => expect(theme()).toBe('dark'));
+    await userEvent.click(sidebar().getByRole('button', { name: "Reset this device's choices" }));
+    await waitFor(() => expect(theme()).toBe('light'));
+    expect(window.localStorage.getItem('mdv-theme')).toBeNull();
   });
 });

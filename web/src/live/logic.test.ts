@@ -82,7 +82,21 @@ describe('keysForChange', () => {
     ]);
     expect(keysForChange({ root: 'r', path: 'a.md' })[1]).toEqual(['list', 'r', '']);
   });
+  it('adds the project query for project files only', () => {
+    expect(keysForChange({ root: 'r', path: 'd/P.MDV.YAML' })).toContainEqual([
+      'project',
+      'r',
+      'd/P.MDV.YAML',
+    ]);
+    expect(keysForChange({ root: 'r', path: 'p.mdv.yml' })).toContainEqual([
+      'project',
+      'r',
+      'p.mdv.yml',
+    ]);
+    expect(keysForChange({ root: 'r', path: 'p.yaml' })).toHaveLength(3);
+  });
   it('only refetches API queries on reconnect', () => {
+    expect(isApiQueryKey(['prefs'])).toBe(true);
     expect(isApiQueryKey(['list', 'r', ''])).toBe(true);
     expect(isApiQueryKey(['file', 'r', 'a', false])).toBe(true);
     expect(isApiQueryKey(['roots'])).toBe(true);

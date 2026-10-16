@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ5b (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ6 (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -77,6 +77,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
 - Project stat cache (PJ3): a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`, so PJ5b's "Re-check" may want to bypass the cache.
+- Project warnings (PJ5b): an unknown style/font name set by a project appears both in the prefs banner (resolved-value warnings) and in the project warnings panel.
 - Settings parser (PJ1): the non-specific YAML tag `!` (for example `fontSize: ! 18`) passes the pre-check because go-yaml discards it, so the value is typed as if untagged (no security impact; pinned by a test). Integers are decimal only (no hex/octal/underscores).
 
 ## Open Questions
@@ -92,6 +93,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5b)
+
+- Task: project sidebar, warnings, live reload with keep-last-good, per-project device choices. Sonnet coder; orchestrator reviewed (all device writers go through `useSettings`, so scope is enforced in one place) and showed the isolation and 404 tests red under mutation; Haiku gate and merge.
+- Files changed: new `web/src/workspace/TreeRows.tsx` (shared `TreeRow`/`TreeChildren`/`TREE_PAGE`), `web/src/project/` (`ProjectSidebar`, `ProjectTree`, `ProjectWarnings`, `logic.ts`, `project.css`; provider computes effective `data` + `problem` and subscribes to the project file), `settings/device.ts` (`mdv-project-device`, scope arg on `setDeviceChoice`/`useDeviceLayer`/`readDeviceLayer`/`resetDeviceChoices`), `boot.ts` (reads `?project=`), `useSettings.ts`, `project.ts` (`useProjectWarnings`), new `ResetChoices.tsx`, `live/logic.ts`, `Layout.tsx`, tests, e2e live edit in the `live` root, `docs/Architecture.md` PJ5b notes.
+- Result: web tests 412 passed (96.7% lines); `make e2e` 299 passed, 1 skipped. Deviation: a "Close project" link was added to the sidebar (otherwise only Home leaves a healthy project).
+- Blockers or follow-up: an unknown style/font in a project shows in both the prefs banner and the project warnings. Gate found a sidebar test race (asserted before the project sidebar rendered; orchestrator made it wait). The PJ4b `ViewFileView` flake recurred once under concurrent runs: FIX-29.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5a)
 
 - Task: `?project=` routing and project mode entry. Sonnet coder; orchestrator review found "Close project" re-entering the project when shown on the project file itself (where a failed load lands) and sent it back; the fix's test was shown red by the orchestrator. Orchestrator made the sidebar root list an explicit exit (contract). Haiku gate and merge.
@@ -105,10 +113,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/settings/device.ts` (`mdv-text-scale` store, integer percent 50-200 in steps of 10, 100 removes the key, global only and outside the `setDeviceChoice` seam, fed into the device layer and boot step), new `useTextScale.ts`, `useTextScaleKeys.ts` (`onTextScaleKey`), `TextScaleControls.tsx` (A−, percent reset, A+), tests; `Layout.tsx`; content CSS `clamp(8px, ..., 48px)` (text/code 0.9 of that, top 43.2px); header fits 320 px (theme select may shrink, title truncates first); e2e in `settings.spec.ts` (Ctrl keys skipped on the ipad project); `docs/Architecture.md` PJ4b notes.
 - Result: web tests 368 passed, coverage 96.4% lines; `make e2e` 263 passed, 1 skipped.
 - Blockers or follow-up: `ViewFileView.test.tsx` "falls back to the project kind" failed once under `make -j32` load and passed on every rerun (possible flaky timing; investigate if it repeats).
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4a)
-
-- Task: client settings core. Sonnet coder; orchestrator reviewed the diff and added `src/settings/**` to the vitest coverage `include`; Haiku gate and merge.
-- Files changed: new `web/src/settings/` (types/defaults/registry, pure `resolveSettings` + `applyRegistry`, `sanitizeLayer`, `mdv-prefs-cache`, `usePrefs`, global device stores `T | undefined` with the `setDeviceChoice`/`useDeviceLayer` seam for PJ5b, migration `mdv-settings-v=2`, `useSettings`, `applySettings`/`useApplySettings`, `bootSettings`, `ThemeSelect`, `PrefsBanner`, `FirstPaintHold`, `useProjectLayer` stub for PJ5a, tests); `api` (`getPrefs`, `queryKeys.prefs`, types); `Layout`, `main.tsx`, `theme.ts` (cycle hook removed), browse/workspace consumers read resolved values; content CSS uses `--mdv-*` variables (normal width 50rem, 16 px, 1.6 = previous look); e2e `MDV_PREFS` fixture (`testdata/e2e-preferences.yaml`), `settings.spec.ts`, theme specs on the select; `docs/Architecture.md` implementation notes.
-- Result: defaults look unchanged; prefs reach CSS only through the sanitizer; unknown style/font names fall back with a client warning in the banner. Web coverage 96.2% lines with settings counted.
-- Blockers or follow-up: every e2e spec now sees the one-warning banner (a second e2e server would isolate it). Theme select fit at phone width not checked in a browser (iPad project passes). Reset control and per-project choices are PJ5b; text-scale UI is PJ4b.

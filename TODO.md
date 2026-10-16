@@ -40,9 +40,9 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ5b is ready now.
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ6 is ready now.
 
-- [ ] **PJ5b** [S] Project sidebar, warnings panel, live reload keeping last good, per-project device choices (deps: PJ5a, PJ4b)
+- [ ] **FIX-29** [S] Flaky vitest `ViewFileView.test.tsx` "falls back to the project kind (text view) when the listing is unavailable": failed once under `make -j32` after PJ4b and once in 3 concurrent full runs during PJ5b (fails fast, ~200 ms, not a timeout); not reproduced in 15+ further runs. Capture the failure output and fix the race.
 - [ ] **PJ6** [S] "Projects only" filter, project icon, Recent projects (deps: PJ5b)
 - [ ] **PJ7** [S] Docs + example project with an unresolved reference (deps: PJ6)
 - [ ] **PJ8** [H] Full validation + deploy to docker2 (deps: PJ7)
@@ -82,6 +82,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-16: **PJ5b** [S] Project sidebar (title, Source/Open/Close project links, warnings `<details>` with server + client warnings and Re-check, entry tree sharing `TreeRows` with the workspace tree, "not part of the project" note), live sub on the project file (`keysForChange` adds the project key), keep last good (422 error line, 504/network "may be out of date", 404 drops data and settings), per-project device choices `mdv-project-device` (50 max, write-recency order) through the scoped `setDeviceChoice`/`useDeviceLayer`/boot read, one Reset control per scope. Isolation and 404 tests shown red under mutation. Web tests 412 passed (96.7% lines), `make e2e` 299 passed, 1 skipped.
 - [x] 2026-10-16: **PJ5a** [S] `?project=` routing: `NavScope` in `browseHref`/`viewHref` (project wins over `ws`, carried within its root, dropped for another root, Home, the sidebar root list, "Open as workspace"), `ProjectProvider`/`useProject`/`useProjectLayer` (sanitized settings of the current param only), `ProjectGate` (entering/switching via `<Navigate replace>` to `open`, first Markdown entry or project home; no loop; spinner hold; initial 422/404/504 error states with Show source, Retry, Close project), project home with Project/Source toggle. Review fix: Close project on the project file itself goes to its folder listing (it re-entered the project). Web tests 392 passed (96.5% lines), `make e2e` 283 passed, 1 skipped.
 - [x] 2026-10-16: **PJ4b** [S] Device text scale: `mdv-text-scale` (percent 50-200, steps of 10, absent = 100, one global value), header A−/percent reset/A+ (fits 320 px), Ctrl/Cmd `=`/`+`, `-`, `0` handler (Alt, editable targets and handled events ignored; `preventDefault` only for handled keys, also at limits), content clamped to 8-48 px. Web tests 368 passed (96.4% lines), `make e2e` 263 passed, 1 skipped (Ctrl keys on ipad).
 - [x] 2026-10-16: **PJ4a** [S] Client settings core in `web/src/settings/`: pure `resolveSettings` + client registry fallback, `sanitizeLayer` for prefs and `mdv-prefs-cache`, global device stores (absent = no choice) with migration `mdv-settings-v=2`, theme `<select>` with `Default (...)`, `--mdv-*` CSS variables and `data-*` attributes (defaults unchanged), prefs banner (per-session dismissal by content hash), 300 ms first-paint hold and boot step. Web tests 345 passed, coverage 96.2% lines (settings now counted), `make e2e` 252 passed.

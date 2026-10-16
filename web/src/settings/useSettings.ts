@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
+import { useProject } from '../project/context';
 import type { PrefsError, Warning } from '../api/types';
 import type { ThemeMode } from '../app/theme';
 import type { SortKey } from '../browse/logic';
-import { setDeviceChoice, useDeviceLayer } from './device';
+import { resetDeviceChoices, setDeviceChoice, useDeviceLayer } from './device';
 import { readPrefsCache } from './prefsCache';
 import { useProjectLayer } from './project';
 import { applyRegistry, resolveSettings } from './resolve';
@@ -22,14 +23,9 @@ export interface UseSettings {
   setMarkdownOnly(v: boolean | undefined): void;
   setShowHidden(v: boolean | undefined): void;
   setSort(v: SortKey | undefined): void;
+  /** Clears this device's choices of the current scope (the open project's, else the global). */
+  resetChoices(): void;
 }
-
-const setters = {
-  setTheme: (v: ThemeMode | undefined) => setDeviceChoice('theme', v),
-  setMarkdownOnly: (v: boolean | undefined) => setDeviceChoice('markdownOnly', v),
-  setShowHidden: (v: boolean | undefined) => setDeviceChoice('showHidden', v),
-  setSort: (v: SortKey | undefined) => setDeviceChoice('sort', v),
-};
 
 function isWarning(w: unknown): w is Warning {
   return (
@@ -52,7 +48,25 @@ function asError(e: unknown): PrefsError | null {
 export function useSettings(): UseSettings {
   const prefs = usePrefs(false);
   const project = useProjectLayer();
-  const device = useDeviceLayer();
+  const { ref } = useProject();
+  const root = ref?.root;
+  const path = ref?.path;
+  // Inside a project the device layer, and every write to it, is that project's own.
+  const scope = useMemo(
+    () => (root !== undefined && path !== undefined ? { root, path } : null),
+    [root, path],
+  );
+  const device = useDeviceLayer(scope);
+  const setters = useMemo(
+    () => ({
+      setTheme: (v: ThemeMode | undefined) => setDeviceChoice('theme', v, scope),
+      setMarkdownOnly: (v: boolean | undefined) => setDeviceChoice('markdownOnly', v, scope),
+      setShowHidden: (v: boolean | undefined) => setDeviceChoice('showHidden', v, scope),
+      setSort: (v: SortKey | undefined) => setDeviceChoice('sort', v, scope),
+      resetChoices: () => resetDeviceChoices(scope),
+    }),
+    [scope],
+  );
   const [cached] = useState(readPrefsCache);
   const data = prefs.data;
   const layer = useMemo(() => (data ? sanitizeLayer(data.settings) : cached), [data, cached]);
@@ -75,5 +89,14 @@ export function useSettings(): UseSettings {
     [data, out.warnings],
   );
 
-  return { resolved: out.resolved, defaultTheme: out.defaultTheme, warnings, error, ...setters };
+  return useMemo(
+    () => ({
+      resolved: out.resolved,
+      defaultTheme: out.defaultTheme,
+      warnings,
+      error,
+      ...setters,
+    }),
+    [out, warnings, error, setters],
+  );
 }

@@ -68,4 +68,27 @@ describe('bootSettings', () => {
     bootSettings();
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
+
+  it('uses only the project choices when ?project= is in the URL', () => {
+    window.localStorage.setItem('mdv-theme', 'dark');
+    window.localStorage.setItem(
+      'mdv-project-device',
+      JSON.stringify({ 'r:p.mdv.yaml': { theme: 'light' }, 'r:q.mdv.yaml': { theme: 'dark' } }),
+    );
+    window.history.replaceState(null, '', '/view/r/a.md?project=r:p.mdv.yaml');
+    try {
+      bootSettings();
+      expect(document.documentElement.dataset.theme).toBe('light');
+      window.history.replaceState(null, '', '/view/r/a.md?project=r:other.mdv.yaml');
+      resetDeviceCaches();
+      bootSettings();
+      // The global dark choice does not apply inside a project.
+      expect(document.documentElement.dataset.theme).toBe('light');
+      window.history.replaceState(null, '', '/view/r/a.md');
+      bootSettings();
+      expect(document.documentElement.dataset.theme).toBe('dark');
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
+  });
 });
