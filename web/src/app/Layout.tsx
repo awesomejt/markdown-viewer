@@ -6,9 +6,10 @@ import { ErrorState, Loading } from './states';
 import { FolderFiles } from '../fileview/FolderFiles';
 import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
-import { useTheme } from './theme';
-
-const THEME_LABEL = { system: 'Auto', light: 'Light', dark: 'Dark' } as const;
+import { FirstPaintHold } from '../settings/FirstPaintHold';
+import { PrefsBanner } from '../settings/PrefsBanner';
+import { ThemeSelect } from '../settings/ThemeSelect';
+import { useApplySettings } from '../settings/useApplySettings';
 
 function SidebarContent({ workspace }: { workspace: boolean }) {
   const params = useParams();
@@ -58,7 +59,7 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
 }
 
 export function Layout() {
-  const { mode, cycle } = useTheme();
+  useApplySettings();
   const location = useLocation();
   const params = useParams();
   const [search] = useSearchParams();
@@ -111,14 +112,7 @@ export function Layout() {
         <Link to="/" className="app-title">
           Markdown Viewer
         </Link>
-        <button
-          type="button"
-          className="btn theme-btn"
-          onClick={cycle}
-          aria-label={`Theme: ${THEME_LABEL[mode]}. Change theme`}
-        >
-          {THEME_LABEL[mode]}
-        </button>
+        <ThemeSelect />
       </header>
       <div className="body">
         <div
@@ -143,7 +137,10 @@ export function Layout() {
           <SidebarContent workspace={inWorkspace} />
         </nav>
         <main className="main">
-          <Outlet />
+          <PrefsBanner />
+          <FirstPaintHold>
+            <Outlet />
+          </FirstPaintHold>
         </main>
       </div>
     </div>

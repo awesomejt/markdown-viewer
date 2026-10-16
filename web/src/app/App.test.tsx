@@ -15,6 +15,9 @@ const rootsBody = {
   ],
 };
 
+const emptyPrefs = { configured: false, settings: {}, warnings: [], error: null };
+let prefsBody: unknown = emptyPrefs;
+
 function mockApi() {
   vi.stubGlobal(
     'fetch',
@@ -26,6 +29,7 @@ function mockApi() {
           { status: 404 },
         );
       }
+      if (url.startsWith('/api/prefs')) return Response.json(prefsBody);
       return new Response('', { status: 404 });
     }),
   );
@@ -43,6 +47,7 @@ function renderAt(path: string) {
 }
 
 beforeEach(() => {
+  prefsBody = emptyPrefs;
   mockApi();
   window.localStorage.clear();
 });
@@ -86,19 +91,47 @@ describe('shell', () => {
 });
 
 describe('theme', () => {
-  it('cycles modes, applies data-theme and persists the choice', async () => {
+  it('selects a theme, applies data-theme and persists the choice', async () => {
     const user = userEvent.setup();
     renderAt('/');
-    const btn = await screen.findByRole('button', { name: /Theme: Auto/ });
+    const select = await screen.findByRole('combobox', { name: 'Theme' });
+    expect(select).toHaveValue('default');
+    expect(screen.getByRole('option', { name: 'Default (Auto)' })).toBeInTheDocument();
     expect(document.documentElement.dataset.theme).toBe('light');
-    await user.click(btn);
+    await user.selectOptions(select, 'light');
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('light');
-    await user.click(screen.getByRole('button', { name: /Theme: Light/ }));
+    await user.selectOptions(select, 'dark');
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 
-  it('restores a stored mode and follows the OS in system mode', async () => {
+  it('Default removes the device choice and returns to the lower layers', async () => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+    const user = userEvent.setup();
+    renderAt('/');
+    const select = await screen.findByRole('combobox', { name: 'Theme' });
+    expect(select).toHaveValue('dark');
+    await user.selectOptions(select, 'default');
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
+    expect(document.documentElement.dataset.theme).toBe('light');
+  });
+
+  it('an explicit Auto is stored even though it equals the default', async () => {
+    const user = userEvent.setup();
+    renderAt('/');
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Theme' }), 'system');
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe('system');
+  });
+
+  it('shows the preferences theme in the Default label and applies it', async () => {
+    prefsBody = { configured: true, settings: { theme: 'dark' }, warnings: [], error: null };
+    renderAt('/');
+    expect(await screen.findByRole('option', { name: 'Default (Dark)' })).toBeInTheDocument();
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('default');
+  });
+
+  it('follows the OS in system mode', async () => {
     let listener: (() => void) | undefined;
     let dark = false;
     vi.stubGlobal('matchMedia', () => ({
@@ -109,7 +142,7 @@ describe('theme', () => {
       removeEventListener: () => (listener = undefined),
     }));
     renderAt('/');
-    await screen.findByRole('button', { name: /Theme: Auto/ });
+    await screen.findByRole('combobox', { name: 'Theme' });
     expect(document.documentElement.dataset.theme).toBe('light');
     dark = true;
     act(() => listener?.());
@@ -127,10 +160,9 @@ describe('theme', () => {
     try {
       const user = userEvent.setup();
       renderAt('/');
-      const btn = await screen.findByRole('button', { name: /Theme: Auto/ });
+      const select = await screen.findByRole('combobox', { name: 'Theme' });
       expect(metas.map((m) => m.content)).toEqual([THEME_COLOR.light, THEME_COLOR.light]);
-      await user.click(btn); // light
-      await user.click(screen.getByRole('button', { name: /Theme: Light/ })); // dark
+      await user.selectOptions(select, 'dark');
       expect(metas.map((m) => m.content)).toEqual([THEME_COLOR.dark, THEME_COLOR.dark]);
     } finally {
       metas.forEach((m) => m.remove());
@@ -149,8 +181,49 @@ describe('theme', () => {
   it('uses a stored override', async () => {
     window.localStorage.setItem(THEME_STORAGE_KEY, 'dark');
     renderAt('/');
-    await screen.findByRole('button', { name: /Theme: Dark/ });
+    await screen.findByRole('combobox', { name: 'Theme' });
     expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+});
+
+describe('applied settings', () => {
+  afterEach(() => {
+    const el = document.documentElement;
+    el.removeAttribute('style');
+    for (const a of ['data-style', 'data-font', 'data-code-font']) el.removeAttribute(a);
+  });
+
+  it('sets data attributes and CSS variables from preferences, and the banner shows warnings', async () => {
+    prefsBody = {
+      configured: true,
+      settings: { fontSize: 20, lineHeight: 2, contentWidth: 'full', font: 'serif' },
+      warnings: [{ code: 'unknown_key', message: 'unknown key "x"', key: 'x', line: 2 }],
+      error: null,
+    };
+    renderAt('/');
+    const el = document.documentElement;
+    await waitFor(() => expect(el.style.getPropertyValue('--mdv-font-size')).toBe('20px'));
+    expect(el.style.getPropertyValue('--mdv-line-height')).toBe('2');
+    expect(el.style.getPropertyValue('--mdv-content-width')).toBe('100%');
+    expect(el.style.getPropertyValue('--mdv-text-scale')).toBe('1');
+    expect(el.dataset.style).toBe('github');
+    expect(el.dataset.codeFont).toBe('mono');
+    // The unknown font falls back to the default and warns on the client.
+    expect(el.dataset.font).toBe('system');
+    expect(await screen.findByText('2 preference warnings')).toBeInTheDocument();
+  });
+
+  it('shows the fatal preferences error', async () => {
+    prefsBody = {
+      configured: true,
+      settings: {},
+      warnings: [],
+      error: { code: 'prefs_invalid', message: 'bad file', line: 1 },
+    };
+    renderAt('/');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Preferences file problem: bad file. Using defaults.',
+    );
   });
 });
 

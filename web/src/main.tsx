@@ -2,9 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app/App';
 import { installPreloadErrorHandler } from './app/preloadError';
-import { applyTheme, readStoredMode } from './app/theme';
+import { bootSettings } from './settings/boot';
 
-applyTheme(readStoredMode());
+bootSettings();
 installPreloadErrorHandler();
 
 createRoot(document.getElementById('root')!).render(

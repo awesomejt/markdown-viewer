@@ -1,23 +1,14 @@
-import { useCallback, useSyncExternalStore } from 'react';
-import { createStoredStore } from '../app/storedStore';
-import { MD_ONLY_STORAGE_KEY } from './logic';
+import { mdOnlyStore } from '../settings/device';
+import { useSettings } from '../settings/useSettings';
 
-// One value shared by the browse listing and the workspace tree, so flipping the toggle in one
-// updates the other immediately (and other tabs via the `storage` event).
-const store = createStoredStore(
-  MD_ONLY_STORAGE_KEY,
-  (raw) => raw === '1',
-  (on: boolean) => (on ? '1' : '0'),
-);
-
-export const loadMdOnly = store.load;
-export const setMdOnly = store.set;
+export const loadMdOnly = mdOnlyStore.load;
+export const setMdOnly = mdOnlyStore.set;
 
 /** Test hook: forget the cached value so the next read comes from storage. */
-export const resetMdOnlyCache = store.reset;
+export const resetMdOnlyCache = mdOnlyStore.reset;
 
+/** The resolved Markdown-only setting (prefs can set it) and a setter for the device choice. */
 export function useMdOnly(): [boolean, (on: boolean) => void] {
-  const value = useSyncExternalStore(store.subscribe, store.get);
-  const set = useCallback((on: boolean) => setMdOnly(on), []);
-  return [value, set];
+  const { resolved, setMarkdownOnly } = useSettings();
+  return [resolved.markdownOnly, setMarkdownOnly];
 }

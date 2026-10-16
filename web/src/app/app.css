@@ -18,6 +18,11 @@
     Arial,
     sans-serif;
   line-height: 1.5;
+  /* Set by the settings layer (settings/apply.ts); these match the built-in defaults. */
+  --mdv-font-size: 16px;
+  --mdv-text-scale: 1;
+  --mdv-line-height: 1.6;
+  --mdv-content-width: 50rem;
 }
 
 :root[data-theme='dark'] {
@@ -238,8 +243,9 @@ a:focus-visible {
 
 /* Markdown documents */
 .markdown-body {
-  max-width: 50rem;
-  line-height: 1.6;
+  max-width: var(--mdv-content-width);
+  font-size: calc(var(--mdv-font-size) * var(--mdv-text-scale));
+  line-height: var(--mdv-line-height);
   overflow-wrap: anywhere;
   /* KaTeX maxSize limits only positive sizes; clip (no scroll container) keeps negative kerns and
      rules from painting over the header and sidebar. */
@@ -421,7 +427,7 @@ a:focus-visible {
 
 /* Front matter panel above the document (R2.2), collapsed by default. */
 .front-matter {
-  max-width: 50rem;
+  max-width: var(--mdv-content-width);
   margin-bottom: 1rem;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -443,7 +449,7 @@ a:focus-visible {
 
 /* Table of contents: a collapsed panel above the document, a sticky column beside it on wide screens. */
 .toc {
-  max-width: 50rem;
+  max-width: var(--mdv-content-width);
   margin-bottom: 1rem;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -476,7 +482,7 @@ a:focus-visible {
 @media (min-width: 1400px) {
   .markdown-doc {
     display: grid;
-    grid-template-columns: minmax(0, 50rem) 16rem;
+    grid-template-columns: minmax(0, var(--mdv-content-width)) 16rem;
     grid-template-rows: auto 1fr;
     column-gap: 2rem;
   }
@@ -724,4 +730,43 @@ html:has(.diagram-viewer[open]) {
   background: var(--border);
   font-weight: 600;
   border-radius: 4px;
+}
+
+/* Theme menu in the header: a native select styled like the buttons. */
+.theme-select {
+  flex: none;
+  max-width: 11rem;
+  padding: 0 8px;
+}
+
+/* Preferences notice above the content (settings/PrefsBanner.tsx). */
+.prefs-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.prefs-banner-body {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prefs-banner p {
+  margin: 0.4em 0;
+}
+
+.prefs-banner summary {
+  cursor: pointer;
+  padding: 0.4em 0;
+}
+
+.prefs-banner ul {
+  margin: 0;
+  padding-left: 1.2em;
 }

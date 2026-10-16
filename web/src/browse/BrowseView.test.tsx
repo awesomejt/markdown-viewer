@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -33,7 +33,10 @@ const bodies: Record<string, unknown> = {
   ),
 };
 
+let prefsBody: unknown = { configured: false, settings: {}, warnings: [], error: null };
+
 beforeEach(() => {
+  prefsBody = { configured: false, settings: {}, warnings: [], error: null };
   window.localStorage.clear();
   resetShowHiddenCache();
   resetMdOnlyCache();
@@ -43,6 +46,7 @@ beforeEach(() => {
       if (url.startsWith('/api/roots')) {
         return Response.json({ roots: [{ name: 'r', watch: 'poll', available: true }] });
       }
+      if (url.startsWith('/api/prefs')) return Response.json(prefsBody);
       const p = new URL(url, 'http://x').searchParams.get('path') ?? '';
       return p in bodies ? Response.json(bodies[p]) : new Response('', { status: 404 });
     }),
@@ -150,6 +154,26 @@ describe('BrowseView', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Sort by' }), 'date');
     expect(order()).toEqual(['b.md', 'c.md', 'a.md']);
     expect(window.localStorage.getItem('mdv-sort')).toBe('date');
+  });
+
+  it('takes sort, show-hidden and Markdown-only from preferences; a device choice wins', async () => {
+    prefsBody = {
+      configured: true,
+      settings: { sort: 'date', showHidden: true, markdownOnly: true },
+      warnings: [],
+      error: null,
+    };
+    const user = userEvent.setup();
+    renderAt('/browse/r');
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: 'Sort by' })).toHaveValue('date'),
+    );
+    expect(screen.getByRole('checkbox', { name: 'Show hidden files' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /Markdown\/diagrams only/ })).toBeChecked();
+    expect(window.localStorage.getItem('mdv-sort')).toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: 'Show hidden files' }));
+    expect(screen.getByRole('checkbox', { name: 'Show hidden files' })).not.toBeChecked();
+    expect(window.localStorage.getItem('mdv-show-hidden')).toBe('0');
   });
 
   it('restores a persisted sort choice', async () => {

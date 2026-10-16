@@ -36,3 +36,27 @@ export interface FileContent {
   contentType: string;
   etag: string;
 }
+
+/** A non-fatal problem in a preferences or project file (also produced by the client registry). */
+export interface Warning {
+  code: string;
+  message: string;
+  /** Dotted path such as `settings.fontSize`. */
+  key?: string;
+  ref?: string;
+  line?: number;
+}
+
+export interface PrefsError {
+  code: string;
+  message: string;
+  line?: number;
+}
+
+/** `GET /api/prefs` always answers 200. `settings` is sparse; the client sanitizes it before use. */
+export interface PrefsResponse {
+  configured: boolean;
+  settings: Record<string, unknown>;
+  warnings: Warning[];
+  error: PrefsError | null;
+}

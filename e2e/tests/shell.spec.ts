@@ -28,17 +28,23 @@ test.describe('wide viewport', () => {
 test.describe('theme', () => {
   test.use({ colorScheme: 'light' });
 
-  test('toggle changes data-theme and survives a reload', async ({ page }) => {
+  test('the theme select changes data-theme and survives a reload', async ({ page }) => {
     await page.goto('/');
     const html = page.locator('html');
+    const select = page.getByRole('combobox', { name: 'Theme' });
     await expect(html).toHaveAttribute('data-theme', 'light');
-    // Modes cycle system, light, dark: two clicks reach dark.
-    const toggle = page.getByRole('button', { name: /^Theme:/ });
-    await toggle.click();
-    await toggle.click();
+    await expect(select.locator('option').first()).toHaveText('Default (Auto)');
+    await select.selectOption('dark');
     await expect(html).toHaveAttribute('data-theme', 'dark');
     await page.reload();
     await expect(html).toHaveAttribute('data-theme', 'dark');
+    await expect(select).toHaveValue('dark');
+    // Default removes the device choice.
+    await select.selectOption({ label: 'Default (Auto)' });
+    await expect(html).toHaveAttribute('data-theme', 'light');
+    await page.reload();
+    await expect(select).toHaveValue('default');
+    await expect(html).toHaveAttribute('data-theme', 'light');
   });
 });
 
@@ -97,9 +103,7 @@ test.describe('home screen', () => {
       }
     };
     await check();
-    const toggle = page.getByRole('button', { name: /^Theme:/ });
-    await toggle.click();
-    await toggle.click();
+    await page.getByRole('combobox', { name: 'Theme' }).selectOption('dark');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await check();
   });

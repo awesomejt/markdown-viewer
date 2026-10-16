@@ -46,6 +46,8 @@ export default defineConfig({
       MDV_LISTEN: `127.0.0.1:${port}`,
       MDV_ROOTS: `fixtures=${path.join(repo, 'testdata/fixtures')},live=${liveDir}:poll,livefs=${liveFsDir}:fsnotify`,
       MDV_POLL_INTERVAL: '300ms',
+      // fontSize 17 and one unknown key: see tests/settings.spec.ts.
+      MDV_PREFS: path.join(repo, 'testdata/e2e-preferences.yaml'),
     },
   },
 });

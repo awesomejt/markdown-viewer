@@ -5,6 +5,7 @@ import { ApiError, getFile, getList, getRoots } from './client';
 export const queryKeys = {
   roots: () => ['roots'] as const,
   list: (root: string, path: string) => ['list', root, path] as const,
+  prefs: () => ['prefs'] as const,
   file: (root: string, path: string, force = false) => ['file', root, path, force] as const,
 };
 
