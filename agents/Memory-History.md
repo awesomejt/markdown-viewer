@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-33)
+
+- Task: `?project=` into a missing folder failed `/api/events` (reconnect loop) and entering a project fetched `/api/project` twice. `ProjectLive` now subscribes the project file as `lsub` until the first success, then as a normal `sub` (an invalid-on-first-load project file still live-reloads); `useProjectQuery` `staleTime` 5 s (live changes still refetch via `invalidateQueries`). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
+- Files changed: `web/src/project/ProjectProvider.tsx`, `web/src/api/hooks.ts`, `web/src/project/project.test.tsx` (single fetch on entry, low-then-normal sub), e2e in `project.spec.ts` (missing-folder link: error state, ≤ 2 events requests in 3 s), `docs/Architecture.md`.
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-32)
 
 - Task: text-scale keys. Only text-entry controls (text-like `input`, `textarea`, contenteditable) block Ctrl/Cmd `+`/`−`/`0`; checkbox, radio, select, button, range now scale. `key` is matched first, `code` only for `Unidentified`/`Dead` (German `ß`, AZERTY `)`, Insert on Numpad0 ignored). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
