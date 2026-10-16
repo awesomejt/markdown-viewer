@@ -42,7 +42,6 @@ All Phase 2 tasks are done.
 
 Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ9 review fixes (D-34) are ready now; FIX-30 and FIX-31 should land before V1 (both done).
 
-- [ ] **FIX-35** [S] YAML error lines: go-yaml v3.0.4 adds 1 only for scanner errors, so parser-class errors ("did not find expected ...", "while parsing ...") report one line too low and an error on line 1 shows no line. Correct the offset in `syntaxError` (`internal/settings/parse.go`), fix the pinned `parse_test.go` case, add cases on lines 1, 2 and 5 per class
 - [ ] **DOC3** [S] Phase 2b docs drift: README `?source=1` only works on an already open project (or make `ProjectGate` keep `source=1` when entering); `./a:b/c` escape fails for one-letter prefixes in a root-level project (Architecture References); README + FR-8.5 wording: inside a project only that project's device choices apply (global ones do not); `config/preferences.example.yaml` `# font: serif` only warns until DS1; stale Architecture text (line ~297 "not built yet", ~375 "`project` files open as text", PJ4a `useProjectLayer` note); a bare `.mdv.yaml` is a dotfile, hidden unless Show hidden
 
 ## Phase 2c: Reading Experience
@@ -79,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-16: **FIX-35** [S] YAML error lines: `syntaxError` classifies go-yaml v3.0.4 problems; parser-class gets +1, a prefix-less scanner/parser problem is line 1. Fixed the pinned case (3 → 4), added lines 1/2/5 per class and a raw-library guard test.
 - [x] 2026-10-16: **FIX-34** [S] `statRes` records `regular`: a FIFO/socket/device as `open` gives `not_a_file`, as an include `forbidden` (matches `/api/file`). `prefs_unreadable` WARN logs a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Go tests: FIFO open/include, `TestPrefsLogCauses` (no path in logs).
 - [x] 2026-10-16: **FIX-33** [S] Project file is an `lsub` until the first success, then a normal `sub`, so a `?project=` link into a missing folder shows the error without failing `/api/events`; project query `staleTime` 5 s, so entering fetches once. Unit tests (single fetch, low-then-normal sub) and e2e (missing-folder link, no reconnect loop).
 - [x] 2026-10-16: **FIX-32** [S] Text-scale keys: only text-entry inputs, `textarea` and contenteditable block Ctrl/Cmd `+`/`−`/`0` (checkbox, radio, select, button, range now scale); `key` first, `code` only for `Unidentified`/`Dead`. Unit tests for non-text controls and key/code mismatches.

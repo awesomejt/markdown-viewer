@@ -205,6 +205,58 @@ func precheck(n *yaml.Node, depth int, count *int) (string, int) {
 	return "", 0
 }
 
+// Problem texts of go.yaml.in/yaml/v3 v3.0.4 by error class. (*parser).fail
+// builds "line N: " from the 0-based context mark (else the problem mark),
+// adds 1 only for scanner errors, and omits the prefix when that line is 0.
+// So parser errors report one line too low, and a scanner or parser error
+// without a prefix happened on line 1. TestLibraryErrorLineBehavior guards this.
+var (
+	parserProblems = map[string]bool{
+		"did not find expected <stream-start>":   true,
+		"did not find expected <document start>": true,
+		"found undefined tag handle":             true,
+		"did not find expected node content":     true,
+		"did not find expected '-' indicator":    true,
+		"did not find expected key":              true,
+		"did not find expected ',' or ']'":       true,
+		"did not find expected ',' or '}'":       true,
+		"found duplicate %YAML directive":        true,
+		"found incompatible YAML document":       true,
+		"found duplicate %TAG directive":         true,
+	}
+	scannerProblems = map[string]bool{
+		"found character that cannot start any token":                  true,
+		"could not find expected ':'":                                  true,
+		"block sequence entries are not allowed in this context":       true,
+		"mapping keys are not allowed in this context":                 true,
+		"mapping values are not allowed in this context":               true,
+		"found unknown directive name":                                 true,
+		"did not find expected comment or line break":                  true,
+		"could not find expected directive name":                       true,
+		"found unexpected non-alphabetical character":                  true,
+		"did not find expected digit or '.' character":                 true,
+		"found extremely long version number":                          true,
+		"did not find expected version number":                         true,
+		"did not find expected whitespace":                             true,
+		"did not find expected whitespace or line break":               true,
+		"did not find expected alphabetic or numeric character":        true,
+		"did not find the expected '>'":                                true,
+		"found an indentation indicator equal to 0":                    true,
+		"found a tab character where an indentation space is expected": true,
+		"found unexpected document indicator":                          true,
+		"found unexpected end of stream":                               true,
+		"found unknown escape character":                               true,
+		"did not find expected hexdecimal number":                      true,
+		"found invalid Unicode character escape code":                  true,
+		"found a tab character that violates indentation":              true,
+		"did not find expected '!'":                                    true,
+		"did not find expected tag URI":                                true,
+		"did not find URI escaped octet":                               true,
+		"found an incorrect leading UTF-8 octet":                       true,
+		"found an incorrect trailing UTF-8 octet":                      true,
+	}
+)
+
 // syntaxError converts a library error into a bounded, sanitized ParseError.
 func syntaxError(err error, b []byte) *ParseError {
 	msg := err.Error()
@@ -214,6 +266,13 @@ func syntaxError(err error, b []byte) *ParseError {
 		msg = "yaml: " + msg[len(m[0]):]
 	}
 	msg = strings.TrimPrefix(msg, "yaml: ")
+	switch {
+	case parserProblems[msg] && line > 0:
+		line++ // the library reports parser errors one line too low
+	case line == 0 && (parserProblems[msg] || scannerProblems[msg] ||
+		strings.HasPrefix(msg, "exceeded max depth of ")):
+		line = 1 // no prefix means the mark was on line 1
+	}
 	return &ParseError{Line: clampLine(line, b), Msg: Sanitize(msg, MaxMessageRunes)}
 }
 

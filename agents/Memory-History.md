@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-32)
+
+- Task: text-scale keys. Only text-entry controls (text-like `input`, `textarea`, contenteditable) block Ctrl/Cmd `+`/`−`/`0`; checkbox, radio, select, button, range now scale. `key` is matched first, `code` only for `Unidentified`/`Dead` (German `ß`, AZERTY `)`, Insert on Numpad0 ignored). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
+- Files changed: `web/src/settings/useTextScaleKeys.ts`, `textScale.test.tsx`, `docs/Architecture.md`.
+- Result: `make check` passed in the gate (unit tests only; no e2e needed).
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-31)
 
 - Task: header at 320 px (Home link collapsed to 0 px), project link touch targets, `.text-scale-reset` specificity. Sonnet coder; orchestrator review replaced the coder's `display: flex` on `.app-title` (it would stop the ellipsis on the full label above 400 px) with `line-height: var(--touch)`, and confirmed the text scale only sizes `.markdown-body`, so the 320 px budget (~5 px slack) holds at any scale. Haiku gate and merge.
