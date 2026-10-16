@@ -4,6 +4,14 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-29)
+
+- Task: flaky Shiki-dependent web tests. Orchestrator fixed it directly (test-only change, smaller than a coder brief). Haiku gate and merge.
+- Cause: (1) `ViewFileView.test.tsx` matched `findByText(/name: Docker course/)`, which only works while the file is plain; with the highlighter warm from the first test, Shiki can split the line into token spans before the query runs (shown red by a probe that waits for `pre.shiki` first). (2) Captured under 4 concurrent full runs: `CodeFile.test.tsx` timed out on a cold Shiki start with the 1 s `vi.waitFor` default.
+- Files changed: new `web/src/markdown/test-utils.ts` (`SHIKI_WAIT` 5 s, `findCodeText` matching a `<pre>` by full text in both states); `ViewFileView.test.tsx`, `CodeFile.test.tsx`, `highlight.test.tsx` use them.
+- Result: the probe passes; 8 concurrent full web runs (2 rounds of 4) passed.
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ6)
 
 - Task: "Projects only" filter, project icon, Recent projects, `project` on recent items. Sonnet coder; orchestrator review removed a dead "not after a 404" recording guard (a 404 only follows a success, which already recorded the project; its test could not fail under mutation) and made the `recent.spec.ts` role queries exact (Playwright names match by substring, so "Recent" also hit "Recent projects"). Haiku gate and merge.
