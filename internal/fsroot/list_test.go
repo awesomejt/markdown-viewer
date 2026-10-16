@@ -79,7 +79,7 @@ func TestListFixturesRoot(t *testing.T) {
 	}
 	// Dirs first (case-insensitive: ".hidden" < "diagrams" < ...), then files.
 	want := []string{
-		".hidden", "diagrams", "docs", "generated", "html", "images", "other", "text",
+		".hidden", "diagrams", "docs", "generated", "html", "images", "other", "projects", "text",
 		".dotfile.md", "name with spaces.md", "README.md", "Unicode Ünïcödé name.md",
 	}
 	if got := names(l); !slices.Equal(got, want) {

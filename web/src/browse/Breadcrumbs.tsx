@@ -1,8 +1,17 @@
 import { Link } from 'react-router';
+import type { NavScope } from '../api/client';
 import { breadcrumbs } from './logic';
 
-export function Breadcrumbs({ root, path, ws }: { root: string; path: string; ws?: string }) {
-  const crumbs = breadcrumbs(root, path, ws);
+export function Breadcrumbs({
+  root,
+  path,
+  scope,
+}: {
+  root: string;
+  path: string;
+  scope?: NavScope;
+}) {
+  const crumbs = breadcrumbs(root, path, scope);
   return (
     <nav aria-label="Breadcrumb" className="breadcrumbs">
       <ol>

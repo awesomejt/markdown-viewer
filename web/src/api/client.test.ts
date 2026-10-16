@@ -4,9 +4,12 @@ import {
   browseHref,
   encodePath,
   fileUrl,
+  formatProject,
   getFile,
   getList,
   getRoots,
+  makeProjectRef,
+  parseProjectParam,
   renderD2,
   viewHref,
 } from './client';
@@ -42,17 +45,74 @@ describe('href builders', () => {
   });
 
   it('appends an encoded workspace', () => {
-    expect(viewHref('r', 'x.md', 'my docs/sub')).toBe('/view/r/x.md?ws=my%20docs%2Fsub');
-    expect(browseHref('r', '', 'w')).toBe('/browse/r?ws=w');
-    expect(browseHref('r', 'a', '')).toBe('/browse/r/a?ws=');
-    expect(viewHref('r', 'x.md', '')).toBe('/view/r/x.md?ws=');
-    expect(viewHref('r', 'x.md', undefined)).toBe('/view/r/x.md');
+    expect(viewHref('r', 'x.md', { ws: 'my docs/sub' })).toBe('/view/r/x.md?ws=my%20docs%2Fsub');
+    expect(browseHref('r', '', { ws: 'w' })).toBe('/browse/r?ws=w');
+    expect(browseHref('r', 'a', { ws: '' })).toBe('/browse/r/a?ws=');
+    expect(viewHref('r', 'x.md', { ws: '' })).toBe('/view/r/x.md?ws=');
+    expect(viewHref('r', 'x.md', {})).toBe('/view/r/x.md');
   });
 
   it('builds file urls with query encoding', () => {
     expect(fileUrl('r', 'a b/c&d#e.png')).toBe('/api/file?root=r&path=a+b%2Fc%26d%23e.png');
     expect(fileUrl('r', 'a.png', '2026-01-02T03:04:05Z-10')).toBe(
       '/api/file?root=r&path=a.png&v=2026-01-02T03%3A04%3A05Z-10',
+    );
+  });
+});
+
+describe('project param', () => {
+  const ref = { root: 'my-root', path: 'a b/c:d/100%/e.mdv.yaml' };
+  const viaUrl = (value: string) => new URLSearchParams(`project=${value}`).get('project');
+
+  it('formats as encoded root, colon, encoded path', () => {
+    expect(formatProject({ root: 'r', path: 'a b/p.mdv.yml' })).toBe('r:a%20b/p.mdv.yml');
+  });
+
+  it('round-trips through the URL, including a colon and percent in the path', () => {
+    expect(parseProjectParam(viaUrl(formatProject(ref)))).toEqual(ref);
+    expect(
+      parseProjectParam(viaUrl(formatProject({ root: 'r', path: '+x&y#z.MDV.YAML' }))),
+    ).toEqual({ root: 'r', path: '+x&y#z.MDV.YAML' });
+  });
+
+  it('splits at the first colon only', () => {
+    expect(parseProjectParam('r:a:b.mdv.yaml')).toEqual({ root: 'r', path: 'a:b.mdv.yaml' });
+  });
+
+  it('accepts both suffixes, any case, and the bare dotfile names', () => {
+    expect(parseProjectParam('r:.mdv.yml')).toEqual({ root: 'r', path: '.mdv.yml' });
+    expect(parseProjectParam('r:d/X.Mdv.Yaml')).not.toBeNull();
+  });
+
+  it('ignores a bad root, a bad suffix, a .. segment and malformed values', () => {
+    expect(parseProjectParam(null)).toBeNull();
+    expect(parseProjectParam('nocolon')).toBeNull();
+    expect(parseProjectParam('Bad Root:p.mdv.yaml')).toBeNull();
+    expect(parseProjectParam(':p.mdv.yaml')).toBeNull();
+    expect(parseProjectParam('r:p.yaml')).toBeNull();
+    expect(parseProjectParam('r:p.mdv.yaml.txt')).toBeNull();
+    expect(parseProjectParam('r:../p.mdv.yaml')).toBeNull();
+    expect(parseProjectParam('r:a/../b/p.mdv.yaml')).toBeNull();
+    expect(makeProjectRef('r', '..a/p.mdv.yaml')).not.toBeNull();
+  });
+});
+
+describe('NavScope hrefs', () => {
+  const project = { root: 'r', path: 'd/p.mdv.yaml' };
+
+  it('carries the project to links in its own root', () => {
+    expect(viewHref('r', 'a b.md', { project })).toBe('/view/r/a%20b.md?project=r:d/p.mdv.yaml');
+    expect(browseHref('r', '', { project })).toBe('/browse/r?project=r:d/p.mdv.yaml');
+  });
+
+  it('drops the project for a link to another root', () => {
+    expect(viewHref('other', 'a.md', { project })).toBe('/view/other/a.md');
+    expect(browseHref('other', '', { project, ws: 'x' })).toBe('/browse/other');
+  });
+
+  it('lets the project win over ws', () => {
+    expect(viewHref('r', 'a.md', { project, ws: 'docs' })).toBe(
+      '/view/r/a.md?project=r:d/p.mdv.yaml',
     );
   });
 });

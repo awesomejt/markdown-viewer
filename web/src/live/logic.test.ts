@@ -86,6 +86,7 @@ describe('keysForChange', () => {
     expect(isApiQueryKey(['list', 'r', ''])).toBe(true);
     expect(isApiQueryKey(['file', 'r', 'a', false])).toBe(true);
     expect(isApiQueryKey(['roots'])).toBe(true);
+    expect(isApiQueryKey(['project', 'r', 'p.mdv.yaml'])).toBe(true);
     expect(isApiQueryKey(['d2', 'src'])).toBe(false);
   });
 });

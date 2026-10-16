@@ -1,12 +1,12 @@
-import { browseHref, fileUrl, viewHref } from '../api/client';
-import { isWithin } from '../browse/logic';
+import { browseHref, fileUrl, viewHref, type NavScope } from '../api/client';
+import { scopeNav } from '../browse/logic';
 
 export interface LinkContext {
   root: string;
   /** Path of the current document, relative to the root (e.g. `docs/guide.md`). */
   docPath: string;
-  /** Workspace folder: `undefined` = none, `''` = the whole root. */
-  ws?: string;
+  /** Workspace folder (`''` = the whole root) or open project that internal links carry. */
+  scope?: NavScope;
 }
 
 export type ResolvedLink =
@@ -103,13 +103,13 @@ export function resolveLink(rawHref: string, ctx: LinkContext, isImage = false):
   if (resolved === 'outside') return { type: 'blocked', reason: 'outside-root' };
 
   const { path, dir } = resolved;
-  const ws = ctx.ws !== undefined && isWithin(path, ctx.ws) ? ctx.ws : undefined;
+  const scope = scopeNav(path, ctx.scope);
   const lower = path.toLowerCase();
   if (!isImage) {
     if (dir || path === '')
-      return { type: 'internal', href: browseHref(ctx.root, path, ws) + frag };
+      return { type: 'internal', href: browseHref(ctx.root, path, scope) + frag };
     if (DOC_EXTS.some((e) => lower.endsWith(e))) {
-      return { type: 'internal', href: viewHref(ctx.root, path, ws) + frag };
+      return { type: 'internal', href: viewHref(ctx.root, path, scope) + frag };
     }
   }
   return { type: 'asset', href: fileUrl(ctx.root, path), path };

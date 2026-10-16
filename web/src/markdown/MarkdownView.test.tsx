@@ -31,7 +31,14 @@ function renderMd(text: string, opts: { ws?: string; at?: string } = {}) {
     [
       {
         path: '*',
-        element: <MarkdownView text={text} root="r" docPath="docs/guide.md" ws={opts.ws} />,
+        element: (
+          <MarkdownView
+            text={text}
+            root="r"
+            docPath="docs/guide.md"
+            scope={opts.ws === undefined ? undefined : { ws: opts.ws }}
+          />
+        ),
       },
     ],
     { initialEntries: [opts.at ?? '/view/r/docs/guide.md'] },

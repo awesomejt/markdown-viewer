@@ -1,0 +1,7 @@
+version: 1
+name: Course project
+open: course/intro.md
+include:
+  - course/
+settings:
+  fontSize: 22

@@ -11,6 +11,7 @@ import {
 } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import { Link, useLocation } from 'react-router';
+import type { NavScope } from '../api/client';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
 import { preloadMermaid } from '../diagrams/mermaid';
 import Diagram, { type DiagramKind } from '../diagrams/Diagram';
@@ -48,7 +49,7 @@ export interface MarkdownViewProps {
   root: string;
   /** Path of this document relative to the root. */
   docPath: string;
-  ws?: string;
+  scope?: NavScope;
 }
 
 function makeComponents(ctx: LinkContext): Components {
@@ -154,9 +155,12 @@ function makeComponents(ctx: LinkContext): Components {
 
 const remarkRehypeOptions = { clobberPrefix: '' };
 
-export default function MarkdownView({ text, root, docPath, ws }: MarkdownViewProps) {
+export default function MarkdownView({ text, root, docPath, scope }: MarkdownViewProps) {
   const { hash } = useLocation();
-  const components = useMemo(() => makeComponents({ root, docPath, ws }), [root, docPath, ws]);
+  const components = useMemo(
+    () => makeComponents({ root, docPath, scope }),
+    [root, docPath, scope],
+  );
   const math = useMathPlugin(text);
   const hasMermaid = /(?:`{3,}|~{3,})[ \t]*mermaid\b/i.test(text);
   useEffect(() => {

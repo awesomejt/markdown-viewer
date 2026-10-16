@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { ApiError, getFile, getList, getRoots } from './client';
+import { ApiError, getFile, getList, getProject, getRoots } from './client';
 
 /** Stable query keys; F6 invalidates by these (prefix matching works). */
 export const queryKeys = {
   roots: () => ['roots'] as const,
   list: (root: string, path: string) => ['list', root, path] as const,
   prefs: () => ['prefs'] as const,
+  project: (root: string, path: string) => ['project', root, path] as const,
   file: (root: string, path: string, force = false) => ['file', root, path, force] as const,
 };
 
@@ -38,5 +39,19 @@ export function useFile(root: string, path: string, force = false) {
     queryKey: queryKeys.file(root, path, force),
     queryFn: ({ signal }) => getFile(root, path, { force, signal }),
     retry: shouldRetry,
+  });
+}
+
+/** `GET /api/project`, no `placeholderData`: another project never shows this one's data. */
+export function useProjectQuery(root: string, path: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.project(root, path),
+    queryFn: ({ signal }) => getProject(root, path, signal),
+    retry: shouldRetry,
+    staleTime: 0,
+    enabled,
+    // The result is shared through context and read by deeper components (possibly after a
+    // delay), so the provider must re-render on every change, not just on props it read itself.
+    notifyOnChangeProps: 'all',
   });
 }

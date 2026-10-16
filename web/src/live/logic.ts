@@ -86,7 +86,7 @@ export function keysForChange(e: Sub): (readonly unknown[])[] {
 
 /** Whether a query should be refetched after (re)connecting: API data, not immutable renders. */
 export function isApiQueryKey(key: readonly unknown[]): boolean {
-  return key[0] === 'roots' || key[0] === 'list' || key[0] === 'file';
+  return key[0] === 'roots' || key[0] === 'list' || key[0] === 'file' || key[0] === 'project';
 }
 
 export interface HeadingPos {
