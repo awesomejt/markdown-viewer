@@ -9,6 +9,7 @@ import { useLiveSubscription } from '../live/LiveProvider';
 import { useRecordRecent } from '../recent/RecentList';
 import { Breadcrumbs } from './Breadcrumbs';
 import { KindIcon } from './KindIcon';
+import { useSettings } from '../settings/useSettings';
 import { useMdOnly } from './mdOnly';
 import { useShowHidden } from './showHidden';
 import {
@@ -17,8 +18,6 @@ import {
   formatSize,
   joinPath,
   kindOf,
-  loadSort,
-  saveSort,
   scopeWs,
   sortEntries,
   type SortKey,
@@ -45,7 +44,10 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
   const [query, setQuery] = useState('');
   const [mdOnly, setMdOnly] = useMdOnly();
   const [showHidden, setShowHidden] = useShowHidden();
-  const [sort, setSort] = useState<SortKey>(loadSort);
+  const {
+    resolved: { sort },
+    setSort,
+  } = useSettings();
 
   const entries = list.data
     ? sortEntries(filterEntries(list.data.entries, { query, mdOnly, showHidden }), sort)
@@ -100,7 +102,6 @@ function FolderView({ root, path, ws }: { root: string; path: string; ws?: strin
                 onChange={(e) => {
                   const next: SortKey = e.target.value === 'date' ? 'date' : 'name';
                   setSort(next);
-                  saveSort(next);
                 }}
               >
                 <option value="name">Name</option>

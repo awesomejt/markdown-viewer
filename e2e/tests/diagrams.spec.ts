@@ -68,15 +68,13 @@ test('broken.d2 shows an error with its source', async ({ page }) => {
 test.describe('theme', () => {
   test.use({ colorScheme: 'light' });
 
-  test('toggling the theme re-requests D2 with dark', async ({ page }) => {
+  test('selecting the dark theme re-requests D2 with dark', async ({ page }) => {
     await page.goto('/view/fixtures/diagrams/arch.d2');
     await expect(figures(page, 'd2')).toHaveAttribute('data-state', 'ready');
-    const toggle = page.getByRole('button', { name: /^Theme:/ });
     const dark = page.waitForRequest(
       (r) => r.url().includes('/api/render/d2') && (r.postData() ?? '').includes('"dark"'),
     );
-    await toggle.click();
-    await toggle.click();
+    await page.getByRole('combobox', { name: 'Theme' }).selectOption('dark');
     await dark;
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
     await expect(figures(page, 'd2')).toHaveAttribute('data-state', 'ready');

@@ -1,4 +1,4 @@
-import type { FileContent, Listing, RootsResponse } from './types';
+import type { FileContent, Listing, PrefsResponse, RootsResponse } from './types';
 
 /** Error codes the client itself produces, in addition to the server's. */
 export const NETWORK_CODE = 'network';
@@ -87,6 +87,10 @@ async function getJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 export function getRoots(signal?: AbortSignal): Promise<RootsResponse> {
   return getJSON<RootsResponse>('/api/roots', signal);
+}
+
+export function getPrefs(signal?: AbortSignal): Promise<PrefsResponse> {
+  return getJSON<PrefsResponse>('/api/prefs', signal);
 }
 
 export function getList(root: string, path: string, signal?: AbortSignal): Promise<Listing> {

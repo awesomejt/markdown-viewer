@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { ListEntry } from '../api/types';
 import {
   breadcrumbs,
@@ -7,8 +7,6 @@ import {
   formatSize,
   isWithin,
   scopeWs,
-  loadSort,
-  saveSort,
   sortEntries,
   workspaceTarget,
 } from './logic';
@@ -148,30 +146,5 @@ describe('sortEntries', () => {
     const before = list.map((e) => e.name);
     sortEntries(list, 'date');
     expect(list.map((e) => e.name)).toEqual(before);
-  });
-});
-
-describe('sort persistence', () => {
-  it('defaults to name, round-trips, and rejects unknown values', () => {
-    window.localStorage.clear();
-    expect(loadSort()).toBe('name');
-    saveSort('date');
-    expect(window.localStorage.getItem('mdv-sort')).toBe('date');
-    expect(loadSort()).toBe('date');
-    window.localStorage.setItem('mdv-sort', 'bogus');
-    expect(loadSort()).toBe('name');
-  });
-
-  it('tolerates throwing storage', () => {
-    const get = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      throw new Error('denied');
-    });
-    const set = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('denied');
-    });
-    expect(loadSort()).toBe('name');
-    expect(() => saveSort('date')).not.toThrow();
-    get.mockRestore();
-    set.mockRestore();
   });
 });

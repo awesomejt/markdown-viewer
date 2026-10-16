@@ -407,6 +407,15 @@ Text size: `A-`, a percent reset and `A+` in the header, and Ctrl/Cmd with `=`/`
 
 A dismissible banner (per session) shows `prefs_unreadable`/`prefs_invalid` ("Using defaults") and preference warnings. The main outlet waits for `/api/prefs` (it never touches roots) for at most 300 ms, and the last preferences are cached in `localStorage` (`mdv-prefs-cache`) and applied before React renders, to avoid a first-paint flash. Fonts are bundled and never fetched from the internet (NFR-5).
 
+Implementation notes (PJ4a):
+
+- Code is in `web/src/settings/`. `useSettings()` resolves defaults, sanitized prefs (the `mdv-prefs-cache` copy until `/api/prefs` settles), the project layer (`useProjectLayer()`, `undefined` until PJ5a) and the global device stores. `usePrefs(false)` only observes the shared `['prefs']` query; the layout's first-paint hold is the one fetching reader.
+- Content width maps to `--mdv-content-width`: narrow `40rem`, normal `50rem` (the previous fixed width), wide `70rem`, full `100%`. The Markdown body, front matter, table of contents and the wide-screen grid column use it; plain-text file blocks scale as 0.9 of the content font size. Defaults (16 px, 1.6) equal the previous look.
+- Registry placeholders until RX0/DS1: styles `github`, fonts `system`, code fonts `mono`. An unknown code font is reported as `unknown_font` with key `settings.codeFont`.
+- Every layer from the server or the cache passes `sanitizeLayer` (valid keys, types and ranges only) because values reach CSS variables and attributes.
+- Banner dismissal is kept in `sessionStorage` (`mdv-prefs-banner-dismissed`) as a hash of the error and warning content, so a different problem shows again.
+- The e2e server runs with `testdata/e2e-preferences.yaml` (`fontSize: 17` and one unknown key), so every e2e spec sees the warning banner.
+
 ### Security notes
 
 A writer of a project file can reference any path in the same root (already readable on the LAN); `..` and symlink escapes are blocked lexically and by `os.Root` and reported as `outside_root` (an escaping symlink thus reveals that an in-root link of that name exists, which `/api/list` omits; accepted). Stat load is bounded by 201 references, the per-Handle limiter, singleflight and the deadline. Names, refs and messages render as text only, are length-limited and stripped of controls. Settings are enumerated or range-checked, and style/font names never reach CSS text or URLs. YAML bombs are stopped by the 32 KiB cap, no aliases, node/depth limits and the parse semaphore; panics become 422. It cannot read outside roots, write, run code or fetch URLs (`http://x` looks cross-root and is dropped). `MDV_PREFS` is trusted operator config and must not be bind-mounted inside a root. Logs: the request line; parse failures at DEBUG (root, path, line, code); preferences state changes once per change (hash-deduplicated); never file contents, reference text or host paths.

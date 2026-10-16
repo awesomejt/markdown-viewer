@@ -39,6 +39,9 @@ beforeEach(() => {
         const p = new URL(url, 'http://x').searchParams.get('path') ?? '';
         return Response.json({ root: 'r', path: p, truncated: false, entries: bodies[p] ?? [] });
       }
+      if (url.startsWith('/api/prefs')) {
+        return Response.json({ configured: false, settings: {}, warnings: [], error: null });
+      }
       return new Response('# T');
     }),
   );

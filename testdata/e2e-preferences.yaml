@@ -1,0 +1,7 @@
+# Preferences for the e2e server (MDV_PREFS in e2e/playwright.config.ts).
+# fontSize is applied and checked in e2e/tests/settings.spec.ts; the unknown key gives a warning
+# banner. Keep it small: every e2e spec runs with these preferences.
+version: 1
+settings:
+  fontSize: 17
+bogus: true

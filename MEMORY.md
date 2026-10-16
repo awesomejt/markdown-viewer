@@ -8,7 +8,7 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 
 - Current phase: Phase 1 MVP
 - Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ4a (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Next recommended task: PJ4b (Phase 2b, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -91,6 +91,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ4a)
+
+- Task: client settings core. Sonnet coder; orchestrator reviewed the diff and added `src/settings/**` to the vitest coverage `include`; Haiku gate and merge.
+- Files changed: new `web/src/settings/` (types/defaults/registry, pure `resolveSettings` + `applyRegistry`, `sanitizeLayer`, `mdv-prefs-cache`, `usePrefs`, global device stores `T | undefined` with the `setDeviceChoice`/`useDeviceLayer` seam for PJ5b, migration `mdv-settings-v=2`, `useSettings`, `applySettings`/`useApplySettings`, `bootSettings`, `ThemeSelect`, `PrefsBanner`, `FirstPaintHold`, `useProjectLayer` stub for PJ5a, tests); `api` (`getPrefs`, `queryKeys.prefs`, types); `Layout`, `main.tsx`, `theme.ts` (cycle hook removed), browse/workspace consumers read resolved values; content CSS uses `--mdv-*` variables (normal width 50rem, 16 px, 1.6 = previous look); e2e `MDV_PREFS` fixture (`testdata/e2e-preferences.yaml`), `settings.spec.ts`, theme specs on the select; `docs/Architecture.md` implementation notes.
+- Result: defaults look unchanged; prefs reach CSS only through the sanitizer; unknown style/font names fall back with a client warning in the banner. Web coverage 96.2% lines with settings counted.
+- Blockers or follow-up: every e2e spec now sees the one-warning banner (a second e2e server would isolate it). Theme select fit at phone width not checked in a browser (iPad project passes). Reset control and per-project choices are PJ5b; text-scale UI is PJ4b.
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ3)
 
 - Task: `GET /api/project`, shared stat resolver, `project` kind and client kind plumbing (🔒). Sonnet coder, Opus security review (approve-with-changes), coder fixed, orchestrator verified, Haiku gate.
@@ -105,10 +112,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `internal/config` (`Prefs`, absolute path required, empty = unset), new `internal/api/prefs.go` (+ `prefs_unix.go`/`prefs_other.go`, tests), `api.go` (`parseSem` 4 slots on `Server` for PJ3, route), `compose.yaml` (`MDV_PREFS` default `/config/preferences.yaml`, `./config:/config:ro`), new tracked `config/preferences.example.yaml`, `.gitignore` (`/config/preferences.yaml`), README, `docs/Deployment.md`.
 - Result: one read outstanding (joiners wait `MDV_FS_TIMEOUT`, then the last result); `O_NONBLOCK` + regular-file check (FIFO test); fixed error strings so no host path leaks; logs de-duplicated by a hash of state + content. Compose defaults to a path in the stack folder so an operator only drops the file in; the real file is untracked and survives re-archiving on docker2.
 - Blockers or follow-up: with the Compose default, a stack without the file logs one WARN "missing" (per contract).
-
-### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ1)
-
-- Task: `internal/settings` YAML parser for project files and preferences (🔒). Sonnet coder, Opus security review (approve-with-changes, 7 findings), coder fixed, orchestrator verified and adjusted, Haiku gate and merge.
-- Files changed: `go.mod`/`go.sum` (`go.yaml.in/yaml/v3` v3.0.4, offline), new `internal/settings/` (parse, warn, types, sem + tests and fuzzers), `internal/api/api.go` (`errorDetail.Line`, `omitempty`), `internal/fsroot/guard.go` (`isControl` exported as `IsControl`, behaviour unchanged).
-- Result: review found no panic/500/unbounded-resource path (densest 32 KiB input ~7.4 MiB, ~10 ms). Fixed from the review: depth/node limits now pinned by boundary tests (mutations go red), YAML 1.2 decimal-only numbers (go-yaml v3 read `024` as octal 20), precheck reports the offending line, line count matches the library's breaks (U+2028/2029/0085) and warning lines are clamped, Unicode format chars sanitized in a settings-local predicate (orchestrator kept ZWJ/ZWNJ for emoji and Persian/Indic names). Coverage 99.6%.
-- Blockers or follow-up: PJ2/PJ3 wire `settings.Sem` (4 slots) and the 32 KiB fstat check; PJ3 does the lexical reference rules (`Ref.Text` is raw). The bare `!` tag is accepted (see Known Limitations).

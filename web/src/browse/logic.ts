@@ -135,19 +135,3 @@ export function breadcrumbs(root: string, path: string, ws?: string): Crumb[] {
 export function kindOf(entry: Pick<ListEntry, 'type' | 'kind'>): EntryKind | 'dir' {
   return entry.type === 'dir' ? 'dir' : entry.kind;
 }
-
-export function loadSort(): SortKey {
-  try {
-    return window.localStorage.getItem(SORT_STORAGE_KEY) === 'date' ? 'date' : 'name';
-  } catch {
-    return 'name';
-  }
-}
-
-export function saveSort(sort: SortKey): void {
-  try {
-    window.localStorage.setItem(SORT_STORAGE_KEY, sort);
-  } catch {
-    // Storage unavailable (private mode): the choice just isn't persisted.
-  }
-}
