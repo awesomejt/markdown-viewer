@@ -40,7 +40,7 @@ export function ProjectSidebar() {
   const outside =
     (view || browse) &&
     params.root === ref.root &&
-    !inProject(path, browse, ref.path, data.entries);
+    !inProject(path, browse, ref.path, data.entries, ref.root, data.open);
   const home = viewHref(ref.root, ref.path, { project: ref });
   return (
     <section className="project-sidebar" aria-label="Project">
