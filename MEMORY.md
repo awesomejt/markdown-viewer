@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 to FIX-33 done
-- Next recommended task: FIX-34, FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
+- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34), FIX-30 to FIX-34 done
+- Next recommended task: FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`, redeployed at 2d79ed0 with FIX-30/FIX-31 on 2026-10-16: healthy, `/` 200, `/api/prefs` OK) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -94,6 +94,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-34)
+
+- Task: `/api/project` treated FIFOs/sockets/devices as files. `statRes` now records `regular`; a non-regular `open` gives `not_a_file`, a non-regular include `forbidden` (verified: `/api/file` answers 403 `forbidden` via `fsroot` `KindForbidden`). `LimitedStat` follows in-root symlinks, so a symlink to a regular file stays regular. `prefs_unreadable` WARN logs carry a fixed `cause` (`not_regular`, `permission`, `io`, `busy`, `timeout`). Sonnet coder; orchestrator reviewed and updated Architecture.
+- Files changed: `internal/api/project.go`, `projectflight.go`, `prefs.go`, tests in `project_test.go` (FIFO open, `TestProjectIncludeFIFO`) and `prefs_test.go` (`TestPrefsLogCauses`, no path in logs), `docs/Architecture.md`.
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: `busy`/`timeout` causes have no dedicated log test.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-33)
 
 - Task: `?project=` into a missing folder failed `/api/events` (reconnect loop) and entering a project fetched `/api/project` twice. `ProjectLive` now subscribes the project file as `lsub` until the first success, then as a normal `sub` (an invalid-on-first-load project file still live-reloads); `useProjectQuery` `staleTime` 5 s (live changes still refetch via `invalidateQueries`). Sonnet coder; orchestrator reviewed the diff and updated Architecture.
@@ -107,10 +114,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `web/src/settings/useTextScaleKeys.ts`, `textScale.test.tsx`, `docs/Architecture.md`.
 - Result: `make check` passed in the gate (unit tests only; no e2e needed).
 - Blockers or follow-up: none.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-31)
-
-- Task: header at 320 px (Home link collapsed to 0 px), project link touch targets, `.text-scale-reset` specificity. Sonnet coder; orchestrator review replaced the coder's `display: flex` on `.app-title` (it would stop the ellipsis on the full label above 400 px) with `line-height: var(--touch)`, and confirmed the text scale only sizes `.markdown-body`, so the 320 px budget (~5 px slack) holds at any scale. Haiku gate and merge.
-- Files changed: `web/src/app/Layout.tsx` (full/short label spans, `aria-label`), `web/src/app/app.css`, `web/src/project/project.css`, e2e in `settings.spec.ts` and `project.spec.ts`.
-- Result: `make check` and `make e2e` passed in the gate.
-- Blockers or follow-up: V1 should eyeball the "MDV" label and the taller project links on the iPad.
