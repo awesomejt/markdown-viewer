@@ -1,0 +1,6 @@
+version: 1
+name: Outside open project
+open: plain.md
+include:
+  - course/
+  - nope/

@@ -126,6 +126,26 @@ test('a file outside the project shows the note', async ({ page }) => {
   await expect(sidebar(page).getByText('This file is not part of the project')).toBeVisible();
 });
 
+test('an open file outside include is part of the project and broken entries are warned', async ({
+  page,
+}) => {
+  await page.goto('/view/fixtures/projects/outside-open.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Outside the project' })).toBeVisible();
+  expect(new URL(page.url()).pathname).toBe('/view/fixtures/projects/plain.md');
+  await openSidebar(page);
+  const bar = sidebar(page);
+  await expect(bar.getByRole('heading', { name: 'Outside open project' })).toBeVisible();
+  await expect(bar.getByText('This file is not part of the project')).toHaveCount(0);
+  const warnings = bar.locator('details.project-warnings');
+  await expect(warnings).toHaveAttribute('open', '');
+  await expect(warnings.getByLabel('1 warnings')).toBeVisible();
+  await expect(
+    bar.getByRole('list', { name: 'Project warnings' }).getByRole('listitem'),
+  ).toHaveCount(1);
+  await expect(bar.getByRole('list', { name: 'Project warnings' })).toContainText('nope');
+  await closeSidebar(page);
+});
+
 test('theme choices are kept per project and do not cross the project boundary', async ({
   page,
 }) => {
