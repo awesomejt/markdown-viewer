@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5b)
+
+- Task: project sidebar, warnings, live reload with keep-last-good, per-project device choices. Sonnet coder; orchestrator reviewed (all device writers go through `useSettings`, so scope is enforced in one place) and showed the isolation and 404 tests red under mutation; Haiku gate and merge.
+- Files changed: new `web/src/workspace/TreeRows.tsx` (shared `TreeRow`/`TreeChildren`/`TREE_PAGE`), `web/src/project/` (`ProjectSidebar`, `ProjectTree`, `ProjectWarnings`, `logic.ts`, `project.css`; provider computes effective `data` + `problem` and subscribes to the project file), `settings/device.ts` (`mdv-project-device`, scope arg on `setDeviceChoice`/`useDeviceLayer`/`readDeviceLayer`/`resetDeviceChoices`), `boot.ts` (reads `?project=`), `useSettings.ts`, `project.ts` (`useProjectWarnings`), new `ResetChoices.tsx`, `live/logic.ts`, `Layout.tsx`, tests, e2e live edit in the `live` root, `docs/Architecture.md` PJ5b notes.
+- Result: web tests 412 passed (96.7% lines); `make e2e` 299 passed, 1 skipped. Deviation: a "Close project" link was added to the sidebar (otherwise only Home leaves a healthy project).
+- Blockers or follow-up: an unknown style/font in a project shows in both the prefs banner and the project warnings. Gate found a sidebar test race (asserted before the project sidebar rendered; orchestrator made it wait). The PJ4b `ViewFileView` flake recurred once under concurrent runs: FIX-29.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5a)
 
 - Task: `?project=` routing and project mode entry. Sonnet coder; orchestrator review found "Close project" re-entering the project when shown on the project file itself (where a failed load lands) and sent it back; the fix's test was shown red by the orchestrator. Orchestrator made the sidebar root list an explicit exit (contract). Haiku gate and merge.
