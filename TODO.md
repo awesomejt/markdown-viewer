@@ -40,9 +40,8 @@ All Phase 2 tasks are done.
 
 ## Phase 2b: Projects And Display Settings
 
-Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ8 is ready now.
+Owner request (D-30): `*.mdv.yaml` project files, global `preferences.yaml`, device text size. Details in `docs/Implementation.md` (Phase 2b). PJ9 is ready now.
 
-- [ ] **PJ8** [H] Full validation + deploy to docker2 (deps: PJ7)
 - [ ] **PJ9** [O] Phase 2b review (deps: PJ8)
 
 ## Phase 2c: Reading Experience
@@ -79,6 +78,7 @@ Move blocked tasks here with the reason and exact next action needed.
 
 ## Done
 
+- [x] 2026-10-16: **PJ8** [H] Full validation (`make check`, `go test -race`, `make e2e` 311 passed/1 skipped, `docker compose build`) passed; docker2 upgraded to fe9c96a, healthy, `/api/prefs` and root `content` OK.
 - [x] 2026-10-16: **PJ7** [S] Docs: README "Project files" section and a shared settings table under Global preferences, Deployment preferences/project bullets; example `examples/projects/demo.mdv.yaml` with valid entries plus six intentional warnings (missing folder, file as folder, `../../` outside the root, `notes:` cross-root, unknown key, `fontSize: 99`), confirmed against a running server.
 - [x] 2026-10-16: **PJ6** [S] "Projects only" toolbar checkbox (not persisted, keeps folders), briefcase project icon, Recent projects (`mdv-recent-projects`, 10, recorded when the project loads, on Home and in the normal sidebar; links enter the project afresh), recent files/folders carry their `project`. Web tests 431 passed; `make check` and `make e2e` passed.
 - [x] 2026-10-16: **FIX-29** [S] Flaky Shiki-dependent web tests: `ViewFileView` text query broke once a warm Shiki split the line into spans (now `findCodeText` matches the `<pre>` in both states); cold Shiki start exceeded the 1 s `waitFor` default under load (`SHIKI_WAIT` 5 s in `CodeFile`/`highlight` tests). 8 concurrent full web runs passed.
