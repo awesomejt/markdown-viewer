@@ -4,6 +4,14 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ3)
+
+- Task: `GET /api/project`, shared stat resolver, `project` kind and client kind plumbing (🔒). Sonnet coder, Opus security review (approve-with-changes), coder fixed, orchestrator verified, Haiku gate.
+- Files changed: `internal/fsroot` (`FileKindProject` in `ClassifyName`; `statSem` + `Handle.LimitedStat`/`StatLimit`), new `internal/api/project.go`, `projectref.go` (`resolveRef`, `warnCode`, `refMessage`), `projectflight.go` (singleflight + TTL cache), `api.go` (route, `Server.flight`), tests; web `EntryKind`/`fileKind`/`KindIcon`/`ViewFileView`/md-only filter + tests; `docs/Architecture.md` (implementation notes, step 5).
+- Result: no security findings. The review found a lost `warnings_truncated` marker when only the parser overflowed, plus three tests that could not fail (size-before-read, limiter claim isolation, log leak); all fixed and each shown red under mutation. `./ab:b/c` used in tests because fsroot's drive-letter rule rejects `a:b` as a first segment at the root.
+- Process: the first merge attempt was refused by auto mode (no project git permissions; a batched `bash -c` commit). The owner approved project agents, permissions and the branch hook, landed in this merge as a separate `chore(agents)` commit.
+- Blockers or follow-up: PJ5 "Re-check" may want to bypass the stat cache (a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`).
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ2)
 
 - Task: `MDV_PREFS` + `GET /api/prefs` + Compose bind. Sonnet coder; orchestrator reviewed the read policy; Haiku gate and merge.
