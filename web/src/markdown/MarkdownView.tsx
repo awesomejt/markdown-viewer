@@ -11,6 +11,7 @@ import {
 } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import { Link, useLocation } from 'react-router';
+import type { Root } from 'mdast';
 import type { NavScope } from '../api/client';
 import { OUTSIDE_ROOT_TITLE, resolveLink, type LinkContext } from './links';
 import { preloadMermaid } from '../diagrams/mermaid';
@@ -21,6 +22,7 @@ import { extractFrontMatter } from './frontMatter';
 import MarkdownImage from './MarkdownImage';
 import { useMathPlugin } from './math';
 import { rehypePlugins, remarkPlugins } from './pipeline';
+import { READ_TIME_DEFAULTS, countWords, formatReadTime } from './readTime';
 import { scrollToHash } from './scroll';
 import Toc from './Toc';
 import { collectHeadings, sameEntries, type TocEntry } from './toc';
@@ -172,11 +174,24 @@ export default function MarkdownView({ text, root, docPath, scope }: MarkdownVie
     [math.plugin],
   );
 
+  // The read-time word count walks the mdast the renderer already parsed: a last remark plugin hands
+  // the tree to a ref (no state during render); an effect below publishes the count.
+  const mdast = useRef<{ text: string; tree: Root } | null>(null);
+  const remarkWithCapture = useMemo(
+    () => [
+      ...remarkPlugins,
+      () => (tree: Root) => {
+        mdast.current = { text, tree };
+      },
+    ],
+    [text],
+  );
+
   // Memoized so re-renders (TOC state, hash change) don't re-parse or remount diagrams.
   const body = useMemo(
     () => (
       <Markdown
-        remarkPlugins={remarkPlugins}
+        remarkPlugins={remarkWithCapture}
         rehypePlugins={plugins}
         remarkRehypeOptions={remarkRehypeOptions}
         components={components}
@@ -184,7 +199,7 @@ export default function MarkdownView({ text, root, docPath, scope }: MarkdownVie
         {text}
       </Markdown>
     ),
-    [text, plugins, components],
+    [text, remarkWithCapture, plugins, components],
   );
 
   // Live reload: when the text changes under a mounted view, keep the heading nearest the viewport
@@ -215,6 +230,15 @@ export default function MarkdownView({ text, root, docPath, scope }: MarkdownVie
     setToc((prev) => (sameEntries(prev, next) ? prev : next));
   }, [text, ready]);
 
+  const [words, setWords] = useState(0);
+  useEffect(() => {
+    const captured = mdast.current;
+    if (!ready || captured?.text !== text) return;
+    const { includeHeadings, includeCode } = READ_TIME_DEFAULTS;
+    setWords(countWords(captured.tree, { includeHeadings, includeCode }).words);
+  }, [text, ready]);
+  const readTime = words > 0 ? formatReadTime(words, READ_TIME_DEFAULTS.wpm) : null;
+
   // After content renders, and again on every hash change (but not over a live-reload restore).
   useEffect(() => {
     if (!ready) return;
@@ -242,6 +266,11 @@ export default function MarkdownView({ text, root, docPath, scope }: MarkdownVie
             <code>{frontMatter}</code>
           </pre>
         </details>
+      )}
+      {readTime && (
+        <p className="read-time" title={readTime.title}>
+          {readTime.text}
+        </p>
       )}
       <div className="markdown-body" ref={bodyRef} aria-busy={ready ? undefined : true}>
         {ready && body}

@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ListEntry } from '../api/types';
@@ -624,5 +625,34 @@ describe('render stability', () => {
     await router.navigate('/#b');
     await waitFor(() => expect(router.state.location.hash).toBe('#b'));
     expect(mock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('read time line', () => {
+  it('shows the word count and updates when the text changes', async () => {
+    let setText: (t: string) => void = () => undefined;
+    function Host() {
+      const [text, set] = useState('one two three');
+      setText = set;
+      return <MarkdownView text={text} root="r" docPath="a.md" />;
+    }
+    const router = createMemoryRouter([{ path: '*', element: <Host /> }], {
+      initialEntries: ['/view/r/a.md'],
+    });
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const line = () => container.querySelector('.read-time');
+    await waitFor(() => expect(line()?.textContent).toBe('3 words · under 1 min'));
+    expect(line()?.getAttribute('title')).toBe('1 s at 160 wpm');
+    expect(container.querySelector('.markdown-body')?.contains(line())).toBe(false);
+
+    act(() => setText('# Head\n\n' + 'word '.repeat(400)));
+    await waitFor(() => expect(line()?.textContent).toBe('400 words · about 3 min'));
+
+    act(() => setText('---\na: b\n---\n'));
+    await waitFor(() => expect(line()).toBeNull());
   });
 });
