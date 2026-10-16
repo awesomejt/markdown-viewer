@@ -116,7 +116,7 @@ settings:                    # optional, same keys as global preferences
 - `settings` accepts the [keys above](#global-preferences). The project file is limited to 32 KiB and cannot use YAML aliases, anchors, tags or merge keys.
 - Cross-root references such as `other-root:path` are not supported yet and give a warning.
 
-**Opening a project.** Click a project file in a listing (it has its own icon), or tick "Projects only" in the listing toolbar to see just the project files and folders. Opened projects appear under "Recent projects" on the home page and in the sidebar. A project is a link too: `/view/<root>/<path>?project=<root>:<path>` (the browser address bar shows it). Add `?source=1` to a project file's address to read the YAML itself. "Close project" in the sidebar returns to the normal view.
+**Opening a project.** Click a project file in a listing (it has its own icon), or tick "Projects only" in the listing toolbar to see just the project files and folders. Opened projects appear under "Recent projects" on the home page and in the sidebar. A project is a link too: `/view/<root>/<path>?project=<root>:<path>` (the browser address bar shows it). Add `?source=1` to a project file's address to read the YAML itself; this works whether or not the project is open. A project file named just `.mdv.yaml` is a dotfile, so listings hide it unless "Show hidden files" is on. "Close project" in the sidebar returns to the normal view.
 
 **Warnings.** Problems with single entries do not stop the project. The sidebar shows a Warnings panel with each problem, the text you wrote and the YAML line. Valid entries keep working. "Re-check" tests the paths again, for example after you create a missing folder. The panel also reports setting values that are out of range and unknown keys.
 
@@ -124,7 +124,7 @@ settings:                    # optional, same keys as global preferences
 
 **Live reload.** Edits to the project file apply right away. Changes to the files it references show on the next refresh or "Re-check".
 
-**Which setting wins.** Lowest to highest: built-in defaults, global preferences, the open project, this device. Device choices are the theme selector and the listing toggles (Markdown only, show hidden, sort). Inside a project they are remembered per project on that device. Outside a project they are global. One "Reset this device's choices" button clears them. Leaving the project brings back the lower layers.
+**Which setting wins.** Lowest to highest: built-in defaults, global preferences, the open project, this device. Device choices are the theme selector and the listing toggles (Markdown only, show hidden, sort). Inside a project only that project's choices (kept per project on this device) apply, and the global choices do not. Outside a project the global choices apply. One "Reset this device's choices" button clears them. Leaving the project brings back the lower layers.
 
 Text size is separate: A−, A+ and the percentage button in the header, or Ctrl/Cmd with `+`, `-` and `0`, scale the reading text on this device (50 to 200 %). It is not part of any file and "Reset" does not change it. On iPad and Safari the browser may still zoom with the keys, so use the buttons there.
 
