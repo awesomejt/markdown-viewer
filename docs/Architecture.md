@@ -315,7 +315,7 @@ Preferences (`MDV_PREFS`) allow only `version` (optional, 1) and `settings`; oth
 | `settings` key | Type and range | Default (client constant) |
 | --- | --- | --- |
 | `theme` | `system` `light` `dark` | `system` |
-| `style`, `font`, `codeFont` | string `^[a-z][a-z0-9-]{0,31}$` | `github`; fonts per RX0/DS1 |
+| `style`, `font`, `codeFont` | string `^[a-z][a-z0-9-]{0,31}$` | `github`; `system`/`mono` (styles and fonts per D-35) |
 | `fontSize` / `lineHeight` | number 12 to 32 px / 1.0 to 2.5 | 16 / 1.6 |
 | `contentWidth` | `narrow` `normal` `wide` `full` | `normal` |
 | `markdownOnly`, `showHidden` | bool | false |
@@ -433,7 +433,7 @@ Implementation notes (PJ4a):
 
 - Code is in `web/src/settings/`. `useSettings()` resolves defaults, sanitized prefs (the `mdv-prefs-cache` copy until `/api/prefs` settles), the project layer (`useProjectLayer()`, the open project's sanitized settings since PJ5a, else `undefined`) and the device layer for the scope (inside a project only its choices, else the global ones). `usePrefs(false)` only observes the shared `['prefs']` query; the layout's first-paint hold is the one fetching reader.
 - Content width maps to `--mdv-content-width`: narrow `40rem`, normal `50rem` (the previous fixed width), wide `70rem`, full `100%`. The Markdown body, front matter, table of contents and the wide-screen grid column use it; plain-text file blocks scale as 0.9 of the content font size. Defaults (16 px, 1.6) equal the previous look.
-- Registry placeholders until RX0/DS1: styles `github`, fonts `system`, code fonts `mono`. An unknown code font is reported as `unknown_font` with key `settings.codeFont`.
+- Registry placeholders until DS1/DS2 (names per D-35): styles `github`, fonts `system`, code fonts `mono`. An unknown code font is reported as `unknown_font` with key `settings.codeFont`.
 - Every layer from the server or the cache passes `sanitizeLayer` (valid keys, types and ranges only) because values reach CSS variables and attributes.
 - Banner dismissal is kept in `sessionStorage` (`mdv-prefs-banner-dismissed`) as a hash of the error and warning content, so a different problem shows again.
 - The e2e server runs with `testdata/e2e-preferences.yaml` (`fontSize: 17` and one unknown key), so every e2e spec sees the warning banner.
@@ -451,7 +451,7 @@ A writer of a project file can reference any path in the same root (already read
 
 ### Reading Experience (Planned, Phase 2c)
 
-Draft for FR-9 (D-31); RX0 picks the fonts and styles.
+Draft for FR-9 (D-31). RX0 picked the styles and fonts (D-35, details in `agents/RX0-Styles.md`): styles `github` (default), `clean`, `book` and `script`; bundled variable fonts Inter (sans), Literata (serif), JetBrains Mono (mono) and Atkinson Hyperlegible Next (script), each with italics. `font`/`codeFont` override the style's fonts.
 
 - **Fonts:** woff2 files (Latin and Latin Extended subsets, variable fonts where available) live in `web/public/fonts/<family>/` with their `OFL.txt`, and are embedded in the binary like the KaTeX fonts. `@font-face` rules use `font-display: swap`, so text shows at once in a local font and switches when the bundled file arrives. Browsers download a font only when a rule that uses it applies, so unused families cost nothing on the device. Responses get a long `Cache-Control` (fonts are versioned by path or hash), so each device downloads a font once. No prompt is needed, because nothing leaves the LAN.
 - **Font categories:** CSS stacks such as `--mdv-font-serif: "<bundled serif>", Charter, "Iowan Old Style", Georgia, serif;` and `--mdv-font-system: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;`. `font`/`codeFont` settings map to a stack, or to a single bundled family plus its category fallback. Unknown `style`/`font`/`codeFont` names fall back to the built-in default with a client warning (see Projects And Settings).
