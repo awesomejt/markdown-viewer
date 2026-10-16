@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ1)
+
+- Task: `internal/settings` YAML parser for project files and preferences (🔒). Sonnet coder, Opus security review (approve-with-changes, 7 findings), coder fixed, orchestrator verified and adjusted, Haiku gate and merge.
+- Files changed: `go.mod`/`go.sum` (`go.yaml.in/yaml/v3` v3.0.4, offline), new `internal/settings/` (parse, warn, types, sem + tests and fuzzers), `internal/api/api.go` (`errorDetail.Line`, `omitempty`), `internal/fsroot/guard.go` (`isControl` exported as `IsControl`, behaviour unchanged).
+- Result: review found no panic/500/unbounded-resource path (densest 32 KiB input ~7.4 MiB, ~10 ms). Fixed from the review: depth/node limits now pinned by boundary tests (mutations go red), YAML 1.2 decimal-only numbers (go-yaml v3 read `024` as octal 20), precheck reports the offending line, line count matches the library's breaks (U+2028/2029/0085) and warning lines are clamped, Unicode format chars sanitized in a settings-local predicate (orchestrator kept ZWJ/ZWNJ for emoji and Persian/Indic names). Coverage 99.6%.
+- Blockers or follow-up: PJ2/PJ3 wire `settings.Sem` (4 slots) and the 32 KiB fstat check; PJ3 does the lexical reference rules (`Ref.Text` is raw). The bare `!` tag is accepted (see Known Limitations).
+
 ### 2026-10-15 - Claude Opus 5.5 orchestrator (PJ0)
 
 - Task: finalize the project/preferences contract. Sonnet designer draft, Opus debater challenge, owner answered 4 product questions (AskUserQuestion), designer applied all, orchestrator reviewed.
