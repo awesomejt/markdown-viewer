@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-30)
+
+- Task: project `open` outside `include` was flagged "not part of the project" (the shipped demo hit it). Sonnet coder; orchestrator reviewed the diff and tests. Haiku gate and merge.
+- Files changed: `web/src/project/logic.ts` (`inProject` takes `root` and `open`; counts the open file on a file route in the project's root), `ProjectSidebar.tsx`, new `web/src/project/logic.test.ts`, new fixture `testdata/fixtures/projects/outside-open.mdv.yaml`, e2e in `project.spec.ts` (no note, warnings panel open with 1 item).
+- Result: `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: none.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ9)
 
 - Task: Phase 2b review. Three parallel Opus reviewers (backend/security with hostile project files, fuzzing and a slow/hung-stat harness on port 18091; frontend/iPad with vitest and Playwright probes; requirements conformance against a live server). Orchestrator verified each medium/low finding in source (`inProject` ignores `open`, `.app-title` flex rule, `isEditable` covers all `INPUT`/`SELECT`, `ProjectLive` mounts before success, `statRes` has only `dir`, `syntaxError` line offset).
