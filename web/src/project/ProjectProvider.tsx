@@ -6,9 +6,13 @@ import { recordRecentProject } from '../recent/recentProjects';
 import { ProjectContext, type ProjectProblem, type ProjectState } from './context';
 import { useProjectParam } from './useNavScope';
 
-/** Normal (not low-priority) watch of the project file; a change refetches the project query. */
-function ProjectLive({ root, path }: { root: string; path: string }) {
-  useLiveSubscription(root, path);
+/**
+ * Watch of the project file; a change refetches the project query. Low priority until the first
+ * success: the server drops an invalid low sub (e.g. a missing folder), while an invalid normal
+ * sub fails the whole event stream. Once loaded the file is valid, so it is a normal sub.
+ */
+function ProjectLive({ root, path, low }: { root: string; path: string; low: boolean }) {
+  useLiveSubscription(root, path, low);
   return null;
 }
 
@@ -47,7 +51,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [ref, query]);
   return (
     <ProjectContext value={state}>
-      {ref && <ProjectLive root={ref.root} path={ref.path} />}
+      {ref && <ProjectLive root={ref.root} path={ref.path} low={query.data === undefined} />}
       {children}
     </ProjectContext>
   );

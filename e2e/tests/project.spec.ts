@@ -75,6 +75,19 @@ test('Close project on a broken project opened from its folder shows the listing
   await expect(page.getByRole('link', { name: 'Close project' })).toHaveCount(0);
 });
 
+test('a project file in a missing folder shows the error without an events reconnect loop', async ({
+  page,
+}) => {
+  let events = 0;
+  page.on('request', (req) => {
+    if (new URL(req.url()).pathname === '/api/events') events++;
+  });
+  await page.goto('/view/fixtures/README.md?project=fixtures:missing-dir/x.mdv.yaml');
+  await expect(page.getByRole('link', { name: 'Close project' })).toBeVisible();
+  await page.waitForTimeout(3000);
+  expect(events).toBeLessThanOrEqual(2);
+});
+
 const sidebar = (page: Page) => page.getByRole('navigation', { name: 'Sidebar' });
 
 /** Below 900 px (e.g. iPad portrait) the sidebar is a drawer: open it when the menu button shows. */

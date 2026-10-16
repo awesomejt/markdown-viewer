@@ -48,7 +48,8 @@ export function useProjectQuery(root: string, path: string, enabled = true) {
     queryKey: queryKeys.project(root, path),
     queryFn: ({ signal }) => getProject(root, path, signal),
     retry: shouldRetry,
-    staleTime: 0,
+    // Entering a project fetches in the gate, then the provider mounts on the same key: no refetch.
+    staleTime: 5_000,
     enabled,
     // The result is shared through context and read by deeper components (possibly after a
     // delay), so the provider must re-render on every change, not just on props it read itself.
