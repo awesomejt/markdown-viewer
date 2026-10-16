@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: DEP1 deployed on docker2 under systemd (2026-10-14)
-- Next recommended task: PJ8 (Phase 2b validation + docker2 deploy, D-30); RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Last major milestone: Phase 2b (projects and settings) deployed on docker2 at fe9c96a (PJ8, 2026-10-16)
+- Next recommended task: PJ9 [O] Phase 2b review; RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
 - Current blocker: None
 
 ## Key Decisions
@@ -93,19 +93,18 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ8)
+
+- Task: full validation and docker2 deploy (owner approved the deploy). Haiku validator ran the gates; orchestrator deployed.
+- Result: `make check` passed (431 web tests, Go coverage all above thresholds), `go test -race ./...` clean, `make e2e` 311 passed, 1 skipped (Ctrl keys on ipad), `docker compose build` passed. docker2 upgraded from 7e7bf4c to fe9c96a (`git archive main` into `/opt/stacks/mdv`, `MDV_VERSION` and `.deployed-commit` updated, `systemctl reload docker-compose@mdv`): container healthy, `/api/prefs` `configured:true` with no file (WARN `missing` logged, defaults), root `content` available, LAN 200.
+- Blockers or follow-up: the image build's `npm audit` 5 high findings are the known dev-only `braces` ones (FIX-20). No `config/preferences.yaml` on docker2 yet (owner may add one). V1 iPad checklist still open and now also covers Phase 2b.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ7)
 
 - Task: project file and preferences docs, example project. Sonnet documentor; orchestrator checked the README UI claims against the client (labels, text scale 50-200 %, `../` only as leading segments) and ran mdv on `examples/` to confirm the demo project's warnings. Haiku gate and merge.
 - Files changed: `README.md` (shared settings table under Global preferences, new "Project files" section), `docs/Deployment.md` (preferences bullet, project files bullet), new `examples/projects/demo.mdv.yaml`, `examples/README.md`.
 - Result: `GET /api/project` on the demo returns 3 entries, `open` `gfm-tour.md` and exactly the six intended warnings (`invalid_value`, `unknown_key`, `missing`, `not_a_dir`, `outside_root`, `cross_root_unsupported`).
 - Blockers or follow-up: none. README says `style`/`font`/`codeFont`/`readTime` are accepted but have no effect until Phase 2c.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ6)
-
-- Task: "Projects only" filter, project icon, Recent projects, `project` on recent items. Sonnet coder; orchestrator review removed a dead "not after a 404" recording guard (a 404 only follows a success, which already recorded the project; its test could not fail under mutation) and made the `recent.spec.ts` role queries exact (Playwright names match by substring, so "Recent" also hit "Recent projects"). Haiku gate and merge.
-- Files changed: `web/src/browse/` (`filterEntries` `projectsOnly`, `BrowseView` checkbox, briefcase `project` glyph in `KindIcon`, `RootsView`), new `web/src/recent/recentProjects.ts` + `RecentProjects.tsx`, `recent.ts`/`RecentList.tsx` (`project` stored as the `formatProject` string, wins over `ws`), `ProjectProvider.tsx` (records on load), `ViewFileView.tsx`, `Layout.tsx`, tests, e2e in `project.spec.ts`, `docs/Architecture.md` PJ6 notes.
-- Result: web tests 431 passed; `make check` and `make e2e` passed in the gate.
-- Blockers or follow-up: none. Recent projects are not shown inside a project (the project sidebar replaces the normal one).
 
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-29)
 

@@ -4,6 +4,13 @@ Archived Agent Run Log entries moved out of `MEMORY.md` to keep session start-up
 
 ## Agent Run Log (archived)
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ6)
+
+- Task: "Projects only" filter, project icon, Recent projects, `project` on recent items. Sonnet coder; orchestrator review removed a dead "not after a 404" recording guard (a 404 only follows a success, which already recorded the project; its test could not fail under mutation) and made the `recent.spec.ts` role queries exact (Playwright names match by substring, so "Recent" also hit "Recent projects"). Haiku gate and merge.
+- Files changed: `web/src/browse/` (`filterEntries` `projectsOnly`, `BrowseView` checkbox, briefcase `project` glyph in `KindIcon`, `RootsView`), new `web/src/recent/recentProjects.ts` + `RecentProjects.tsx`, `recent.ts`/`RecentList.tsx` (`project` stored as the `formatProject` string, wins over `ws`), `ProjectProvider.tsx` (records on load), `ViewFileView.tsx`, `Layout.tsx`, tests, e2e in `project.spec.ts`, `docs/Architecture.md` PJ6 notes.
+- Result: web tests 431 passed; `make check` and `make e2e` passed in the gate.
+- Blockers or follow-up: none. Recent projects are not shown inside a project (the project sidebar replaces the normal one).
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ5b)
 
 - Task: project sidebar, warnings, live reload with keep-last-good, per-project device choices. Sonnet coder; orchestrator reviewed (all device writers go through `useSettings`, so scope is enforced in one place) and showed the isolation and 404 tests red under mutation; Haiku gate and merge.
