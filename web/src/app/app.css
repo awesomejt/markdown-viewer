@@ -463,6 +463,14 @@ a:focus-visible {
   overflow-x: auto;
 }
 
+/* Read-time estimate line above the document body (FR-9.6). */
+.read-time {
+  max-width: var(--mdv-content-width);
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 /* Table of contents: a collapsed panel above the document, a sticky column beside it on wide screens. */
 .toc {
   max-width: var(--mdv-content-width);
