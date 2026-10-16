@@ -16,6 +16,7 @@ import {
 } from './recent';
 
 const KEY = 'mdv-recent';
+const resetRecentCacheForTest = resetRecentCache;
 const file = (path: string, ws?: string): RecentItem =>
   ws === undefined ? { root: 'r', path, type: 'file' } : { root: 'r', path, type: 'file', ws };
 
@@ -198,5 +199,71 @@ describe('recording and the recent list', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Clear recent' }));
     expect(screen.queryByRole('list', { name: 'Recent' })).toBeNull();
     expect(window.localStorage.getItem(KEY)).toBeNull();
+  });
+});
+
+describe('recent items with a project', () => {
+  const project = { root: 'r', path: 'p.mdv.yaml' };
+  const inProject = (path: string): RecentItem => ({ root: 'r', path, type: 'file', project });
+
+  it('stores the project as its param string and parses it back', () => {
+    recordRecent(inProject('a.md'));
+    expect(JSON.parse(window.localStorage.getItem(KEY) ?? '')).toEqual([
+      { root: 'r', path: 'a.md', type: 'file', project: 'r:p.mdv.yaml' },
+    ]);
+    resetRecentCacheForTest();
+    expect(parseRecent(window.localStorage.getItem(KEY))).toEqual([inProject('a.md')]);
+  });
+
+  it('drops only an invalid project field and prefers project over ws', () => {
+    const raw = JSON.stringify([
+      { root: 'r', path: 'a.md', type: 'file', project: 'r:../x.mdv.yaml' },
+      { root: 'r', path: 'b.md', type: 'file', project: 5 },
+      { root: 'r', path: 'c.md', type: 'file', ws: 'w', project: 'r:p.mdv.yaml' },
+    ]);
+    expect(parseRecent(raw)).toEqual([file('a.md'), file('b.md'), inProject('c.md')]);
+  });
+
+  it('records project over ws, and the same-head check compares the project', () => {
+    recordRecent({ ...inProject('a.md'), ws: 'w' });
+    expect(parseRecent(window.localStorage.getItem(KEY))[0]).toEqual(inProject('a.md'));
+    const set = vi.spyOn(Storage.prototype, 'setItem');
+    recordRecent(inProject('a.md'));
+    expect(set).not.toHaveBeenCalled();
+    recordRecent({ ...inProject('a.md'), project: { root: 'r', path: 'q.mdv.yaml' } });
+    expect(set).toHaveBeenCalledTimes(1);
+    recordRecent(file('a.md'));
+    expect(set).toHaveBeenCalledTimes(2);
+  });
+
+  it('dedupes by root, path and type, replacing the older project', () => {
+    const list = pushRecent([file('a.md')], inProject('a.md'));
+    expect(list).toEqual([inProject('a.md')]);
+  });
+
+  it('lists links that keep the project', async () => {
+    recordRecent(inProject('docs/a.md'));
+    recordRecent({ root: 'r', path: 'docs', type: 'dir', project });
+    const router = createMemoryRouter(routes, { initialEntries: ['/'] });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) =>
+        url.startsWith('/api/roots')
+          ? Response.json({ roots: [{ name: 'r', available: true }] })
+          : new Response('', { status: 404 }),
+      ),
+    );
+    render(
+      <QueryClientProvider client={client}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    const list = await screen.findByRole('list', { name: 'Recent' });
+    expect(
+      within(list)
+        .getAllByRole('link')
+        .map((l) => l.getAttribute('href')),
+    ).toEqual(['/browse/r/docs?project=r:p.mdv.yaml', '/view/r/docs/a.md?project=r:p.mdv.yaml']);
   });
 });

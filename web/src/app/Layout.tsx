@@ -4,6 +4,7 @@ import { browseHref } from '../api/client';
 import { useRoots } from '../api/hooks';
 import { ErrorState, Loading } from './states';
 import { FolderFiles } from '../fileview/FolderFiles';
+import { RecentProjects } from '../recent/RecentProjects';
 import { RecentList } from '../recent/RecentList';
 import { WorkspaceTree } from '../workspace/WorkspaceTree';
 import { ProjectSidebar } from '../project/ProjectSidebar';
@@ -40,7 +41,13 @@ function SidebarContent({ workspace }: { workspace: boolean }) {
     );
   }
   // The home page shows the recent list in the main column already.
-  const recent = location.pathname === '/' ? null : <RecentList heading="h3" />;
+  const recent =
+    location.pathname === '/' ? null : (
+      <>
+        <RecentProjects heading="h3" />
+        <RecentList heading="h3" />
+      </>
+    );
   if (roots.isPending) return <Loading />;
   if (roots.isError) return <ErrorState error={roots.error} onRetry={() => void roots.refetch()} />;
   const siblings =

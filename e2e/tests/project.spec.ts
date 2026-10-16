@@ -186,3 +186,54 @@ test('a live edit of the project file updates the sidebar and settings', async (
   await expect(sidebar(page).getByRole('alert')).toContainText('showing the last valid version');
   await expect(page.locator('html')).toHaveCSS('--mdv-font-size', '24px');
 });
+
+// FR-7.6: recent projects, and `project` on recent items.
+test('Recent projects lists an opened project on Home and reopens it', async ({ page }) => {
+  const main = page.getByRole('main');
+  await page.goto('/view/fixtures/projects/course.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  await page.getByRole('link', { name: 'Markdown Viewer' }).click();
+  await expect(page).toHaveURL(/\/$/);
+
+  const list = main.getByRole('list', { name: 'Recent projects', exact: true });
+  const link = list.getByRole('link', { name: /Course project/ });
+  await expect(link).toHaveAttribute('href', '/view/fixtures/projects/course.mdv.yaml');
+  await link.click();
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  expect(projectParam(page)).toBe(PROJECT);
+
+  await page.getByRole('link', { name: 'Markdown Viewer' }).click();
+  await main.getByRole('button', { name: 'Clear recent projects' }).click();
+  await expect(list).toHaveCount(0);
+});
+
+test('a file opened in a project is recent with its project param', async ({ page }) => {
+  const main = page.getByRole('main');
+  await page.goto('/view/fixtures/projects/course.mdv.yaml');
+  await expect(page.getByRole('heading', { name: 'Course intro' })).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const raw = window.localStorage.getItem('mdv-recent');
+        const list = raw ? (JSON.parse(raw) as { path: string; project?: string }[]) : [];
+        return list.find((r) => r.path === 'projects/course/intro.md')?.project;
+      }),
+    )
+    .toBe(PROJECT);
+  await page.getByRole('link', { name: 'Markdown Viewer' }).click();
+  await expect(
+    main.getByRole('list', { name: 'Recent', exact: true }).getByRole('link', {
+      name: /intro\.md/,
+    }),
+  ).toHaveAttribute('href', `/view/fixtures/projects/course/intro.md?project=${PROJECT}`);
+});
+
+test('Projects only shows folders and project files', async ({ page }) => {
+  await page.goto('/browse/fixtures/projects');
+  const entries = page.getByRole('list', { name: 'Entries' });
+  await expect(entries.getByRole('link', { name: 'plain.md' })).toBeVisible();
+  await page.getByRole('checkbox', { name: 'Projects only' }).check();
+  await expect(entries.getByRole('link', { name: 'plain.md' })).toHaveCount(0);
+  await expect(entries.getByRole('link', { name: 'course.mdv.yaml' })).toBeVisible();
+  await expect(entries.getByRole('link', { name: 'course', exact: true })).toBeVisible();
+});
