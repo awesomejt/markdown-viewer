@@ -7,8 +7,8 @@ Agents should update this file after meaningful decisions, milestones, blockers,
 ## Current Status
 
 - Current phase: Phase 1 MVP
-- Last major milestone: Phase 2b (projects and settings) deployed on docker2 at fe9c96a (PJ8, 2026-10-16)
-- Next recommended task: PJ9 [O] Phase 2b review; RX0, RT1, FM1 (Phase 2c, D-31) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open
+- Last major milestone: Phase 2b review done (PJ9, 2026-10-16): accepted with follow-ups FIX-30 to FIX-35, DOC3 (D-34)
+- Next recommended task: FIX-30, then FIX-31 (both before V1), then FIX-32 to FIX-35, DOC3; RX0, RT1, FM1 (Phase 2c) are also ready. V1 [Human] iPad checklist against docker2 (`http://192.168.50.58:8080`) still open; add Cmd `+`/`−` with a hardware keyboard (page vs Safari zoom)
 - Current blocker: None
 
 ## Key Decisions
@@ -77,6 +77,7 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 - `/view/...%2f..` returns 200 because it is an SPA route; the API path guard is the boundary (T1).
 - Roots (FIX-21): a root path must be a real directory or mount point, not a symlink (refused as unavailable, also at startup). Symlinks in parent folders are resolved once into the pin, so a parent folder swapped for a symlink before startup is still followed; parents up to the mount point must not be writable by untrusted users (`docs/Deployment.md`). Retargeting a configured parent symlink needs a restart.
 - Project stat cache (PJ3): a slot-wait `unavailable` is reused for `MDV_POLL_INTERVAL`, so PJ5b's "Re-check" may want to bypass the cache.
+- Projects (PJ9, D-34): a reference into a hung sub-mount can hold both stat slots of its root, so later projects there report `unavailable` after 2 × `MDV_FS_TIMEOUT` (`/api/file` unaffected). YAML library messages may echo an anchor name (sanitized). Settings apply in `useEffect` (one possible stale frame); a reloaded project's theme is not cached (prefs theme shows until the project loads). `FolderFiles` is keyed by root only (its "Show more" limit carries across folders) and always sorts by name.
 - Project warnings (PJ5b): an unknown style/font name set by a project appears both in the prefs banner (resolved-value warnings) and in the project warnings panel.
 - Settings parser (PJ1): the non-specific YAML tag `!` (for example `fontSize: ! 18`) passes the pre-check because go-yaml discards it, so the value is typed as if untagged (no security impact; pinned by a test). Integers are decimal only (no hex/octal/underscores).
 
@@ -93,6 +94,13 @@ Open items carried from archived run log entries (`agents/Memory-History.md`). R
 
 Newest entries first. Keep only the last three entries here; when adding a new one, move the oldest to the top of `agents/Memory-History.md` and carry any still-open follow-up into "Known Limitations And Accepted Risks".
 
+### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ9)
+
+- Task: Phase 2b review. Three parallel Opus reviewers (backend/security with hostile project files, fuzzing and a slow/hung-stat harness on port 18091; frontend/iPad with vitest and Playwright probes; requirements conformance against a live server). Orchestrator verified each medium/low finding in source (`inProject` ignores `open`, `.app-title` flex rule, `isEditable` covers all `INPUT`/`SELECT`, `ProjectLive` mounts before success, `statRes` has only `dir`, `syntaxError` line offset).
+- Files changed: `TODO.md`, `MEMORY.md`, `agents/Decisions.md` (D-34), `agents/Memory-History.md`, `status.yaml` only. No source changes. Scratch fixtures and harness in `build/pj9/`.
+- Result: no high findings; 2 medium, 6 low, several nits grouped into FIX-30 to FIX-35 and DOC3. FIX-30/FIX-31 before V1.
+- Blockers or follow-up: V1 checklist should include Cmd `+`/`−` on a hardware keyboard and Slide Over width.
+
 ### 2026-10-16 - Claude Opus 5.5 orchestrator (PJ8)
 
 - Task: full validation and docker2 deploy (owner approved the deploy). Haiku validator ran the gates; orchestrator deployed.
@@ -105,11 +113,3 @@ Newest entries first. Keep only the last three entries here; when adding a new o
 - Files changed: `README.md` (shared settings table under Global preferences, new "Project files" section), `docs/Deployment.md` (preferences bullet, project files bullet), new `examples/projects/demo.mdv.yaml`, `examples/README.md`.
 - Result: `GET /api/project` on the demo returns 3 entries, `open` `gfm-tour.md` and exactly the six intended warnings (`invalid_value`, `unknown_key`, `missing`, `not_a_dir`, `outside_root`, `cross_root_unsupported`).
 - Blockers or follow-up: none. README says `style`/`font`/`codeFont`/`readTime` are accepted but have no effect until Phase 2c.
-
-### 2026-10-16 - Claude Opus 5.5 orchestrator (FIX-29)
-
-- Task: flaky Shiki-dependent web tests. Orchestrator fixed it directly (test-only change, smaller than a coder brief). Haiku gate and merge.
-- Cause: (1) `ViewFileView.test.tsx` matched `findByText(/name: Docker course/)`, which only works while the file is plain; with the highlighter warm from the first test, Shiki can split the line into token spans before the query runs (shown red by a probe that waits for `pre.shiki` first). (2) Captured under 4 concurrent full runs: `CodeFile.test.tsx` timed out on a cold Shiki start with the 1 s `vi.waitFor` default.
-- Files changed: new `web/src/markdown/test-utils.ts` (`SHIKI_WAIT` 5 s, `findCodeText` matching a `<pre>` by full text in both states); `ViewFileView.test.tsx`, `CodeFile.test.tsx`, `highlight.test.tsx` use them.
-- Result: the probe passes; 8 concurrent full web runs (2 rounds of 4) passed.
-- Blockers or follow-up: none.
